@@ -1,5 +1,5 @@
 import { consoleLogger } from '@algorandfoundation/algokit-utils/types/logging'
-import { AppSpec } from '@algorandfoundation/algokit-utils/types/appspec'
+import { AppSpec } from '@algorandfoundation/algokit-utils/types/app-spec'
 import * as algokit from '@algorandfoundation/algokit-utils'
 import fs from 'fs/promises'
 import path from 'path'
@@ -7,7 +7,7 @@ import { contracts, deploy } from './deploy-config'
 
 algokit.Config.configure({
   logger: consoleLogger,
-})
+}) 
 ;(async () => {
   for (const app of contracts) {
     console.info(`Deploying ${app}`)
