@@ -42,7 +42,7 @@ suppress-none-returning = true
 pythonpath = ["smart_contracts", "tests"]
 
 [tool.mypy]
-files = "smart_contracts/"
+files = ["smart_contracts/", "tests/"]
 python_version = "3.10"
 check_untyped_defs = true
 warn_redundant_casts = true
