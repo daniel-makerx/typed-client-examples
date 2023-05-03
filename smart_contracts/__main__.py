@@ -7,9 +7,7 @@ from dotenv import load_dotenv
 from smart_contracts import config
 from smart_contracts.helpers.build import build
 
-logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s %(levelname)-10s: %(message)s"
-)
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)-10s: %(message)s")
 logger = logging.getLogger(__name__)
 logger.info("Loading .env")
 load_dotenv()
