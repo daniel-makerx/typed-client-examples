@@ -1,0 +1,97 @@
+{
+    "name": "VotingRoundApp",
+    "methods": [
+        {
+            "name": "create",
+            "args": [
+                {
+                    "type": "string",
+                    "name": "vote_id"
+                },
+                {
+                    "type": "byte[]",
+                    "name": "snapshot_public_key"
+                },
+                {
+                    "type": "string",
+                    "name": "metadata_ipfs_cid"
+                },
+                {
+                    "type": "uint64",
+                    "name": "start_time"
+                },
+                {
+                    "type": "uint64",
+                    "name": "end_time"
+                },
+                {
+                    "type": "uint8[]",
+                    "name": "option_counts"
+                },
+                {
+                    "type": "uint64",
+                    "name": "quorum"
+                },
+                {
+                    "type": "string",
+                    "name": "nft_image_url"
+                }
+            ],
+            "returns": {
+                "type": "void"
+            }
+        },
+        {
+            "name": "bootstrap",
+            "args": [
+                {
+                    "type": "pay",
+                    "name": "fund_min_bal_req"
+                }
+            ],
+            "returns": {
+                "type": "void"
+            }
+        },
+        {
+            "name": "close",
+            "args": [],
+            "returns": {
+                "type": "void"
+            }
+        },
+        {
+            "name": "get_preconditions",
+            "args": [
+                {
+                    "type": "byte[]",
+                    "name": "signature"
+                }
+            ],
+            "returns": {
+                "type": "(uint64,uint64,uint64,uint64)"
+            }
+        },
+        {
+            "name": "vote",
+            "args": [
+                {
+                    "type": "pay",
+                    "name": "fund_min_bal_req"
+                },
+                {
+                    "type": "byte[]",
+                    "name": "signature"
+                },
+                {
+                    "type": "uint8[]",
+                    "name": "answer_ids"
+                }
+            ],
+            "returns": {
+                "type": "void"
+            }
+        }
+    ],
+    "networks": {}
+}
