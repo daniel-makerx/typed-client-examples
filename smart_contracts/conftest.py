@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 @pytest.fixture(autouse=True, scope="session")
 def environment_fixture() -> None:
-    env_path = Path(__file__).parent.parent / "smart_contracts" / ".env"
+    env_path = Path(__file__).parent / ".env"
     load_dotenv(env_path)
 
 

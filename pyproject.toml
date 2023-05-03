@@ -39,10 +39,10 @@ allow-star-arg-any = true
 suppress-none-returning = true
 
 [tool.pytest.ini_options]
-pythonpath = ["smart_contracts", "tests"]
+pythonpath = ["smart_contracts"]
 
 [tool.mypy]
-files = ["smart_contracts/", "tests/"]
+files = ["smart_contracts/"]
 python_version = "3.10"
 check_untyped_defs = true
 warn_redundant_casts = true
