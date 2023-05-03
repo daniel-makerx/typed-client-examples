@@ -47,11 +47,14 @@ jobs:
       - name: Check types with mypy
         run: poetry run mypy
 
-      - name: Run tests
+      - name: Run python tests
         shell: bash
         run: |
           set -o pipefail
           poetry run pytest --junitxml=pytest-junit.xml
+
+      - name: Run typescript tests
+        run: npm --prefix smart_contracts run test
 
       - name: Build smart contracts
         run: poetry run python -m smart_contracts build
