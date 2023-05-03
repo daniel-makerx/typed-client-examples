@@ -18,7 +18,7 @@
     "source.fixAll.eslint": true,
     "source.organizeImports": true
   },
-  "jest.jestCommandLine": "npm run test --",
+  "jest.jestCommandLine": "npm run test --prefix smart_contracts --",
   // Python
   "python.analysis.extraPaths": ["${workspaceFolder}/smart_contracts"],
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv",
