@@ -2,7 +2,8 @@
   "extends": "@makerx/ts-config",
   "compilerOptions": {
     "outDir": "dist",
-    "declaration": true
+    "declaration": true,
+    "resolveJsonModule": true
   },
   "include": ["artifacts/**/*.ts"]
 }
