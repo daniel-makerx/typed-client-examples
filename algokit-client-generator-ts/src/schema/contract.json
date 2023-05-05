@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "title": "AbiContract",
+  "type": "object",
+  "required": ["name"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "methods": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ContractMethod"
+      }
+    },
+    "networks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["appID"],
+        "additionalProperties": false,
+        "properties": {
+          "appID": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ContractMethod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "args"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContractMethodArg"
+          }
+        },
+        "returns": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "desc": {
+              "type": "string"
+            },
+            "type": {
+              "$ref": "#/definitions/ABIType"
+            }
+          }
+        }
+      }
+    },
+    "ContractMethodArg": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "desc": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/ABIType"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "ABIType": {
+      "oneOf": [
+        {
+          "enum": [
+            "string[]",
+            "byte[]",
+            "uint64",
+            "uint64[]",
+            "uint8",
+            "uint8[]",
+            "bool[]",
+            "pay",
+            "address",
+            "account",
+            "asset",
+            "application"
+          ]
+        },
+        {
+          "description": "Catch all for fixed length arrays and tuples",
+          "type": "string"
+        }
+      ]
+    }
+  }
+}
