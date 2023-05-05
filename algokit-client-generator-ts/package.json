@@ -21,6 +21,7 @@
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
+    "change-case": "^4.1.2",
     "commander": "^10.0.1",
     "esm": "^3.2.25",
     "jsonschema": "^1.4.1"

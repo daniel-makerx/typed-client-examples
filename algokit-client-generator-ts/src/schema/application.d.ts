@@ -54,7 +54,7 @@ export interface AppSources {
 }
 export interface AbiContract {
   name: string;
-  methods?: ContractMethod[];
+  methods: ContractMethod[];
   networks?: {
     [k: string]: {
       appID: number;

@@ -133,7 +133,7 @@ export class HelloWorldAppClient {
    * @returns
    */
   public async delete(args?: RawAppCallArgs, params?: AppClientCallCoreParams) {
-    const { return: r, ...result } = await this.appClient.delete({
+    const { return: _, ...result } = await this.appClient.delete({
       args,
       ...(params ?? {}),
     })

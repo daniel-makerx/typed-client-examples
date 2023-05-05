@@ -63,19 +63,31 @@ export function writeDocumentPartsToString(document: DocumentParts, options: Wri
   return writer.toString()
 }
 
-export function formatInline(parts: DocumentParts): string {
-  return Array.from(parts)
-    .map((x) => (x === PropertyDelimiter ? ', ' : x === NewLine ? ' ' : x))
-    .filter((p) => typeof p === 'string')
-    .join('')
+export function* inline(...parts: Array<Part | DocumentParts>) {
+  yield InlineMode
+  for (const part of parts) {
+    if (typeof part === 'string' || typeof part === 'symbol') yield part
+    else yield* part
+  }
+  yield RestoreLineMode
+}
+
+export function* indent(...parts: Array<Part | DocumentParts>) {
+  yield IncIndent
+  for (const part of parts) {
+    if (typeof part === 'string' || typeof part === 'symbol') yield part
+    else yield* part
+  }
+  yield DecIndent
 }
 
 function writeDocumentPartsTo(document: DocumentParts, { indent = '  ', ...options }: WriteOptions, writer: StringWriter): void {
   if (options.header) writer.write(`${options.header}\n`)
   if (options.disableEslint) writer.write('/* eslint-disable */\n')
 
-  let prevLineMode = true
-  let newLineMode = true
+  const lineModes = [NewLineMode]
+  const currentLineMode = () => lineModes.at(-1) ?? NewLineMode
+
   let curIndent = ''
   for (const part of document) {
     switch (part) {
@@ -86,25 +98,23 @@ function writeDocumentPartsTo(document: DocumentParts, { indent = '  ', ...optio
         curIndent = curIndent.slice(0, -indent.length)
         break
       case NewLineMode:
-        prevLineMode = newLineMode
+        lineModes.push(NewLineMode)
         if (writer.last.slice(-1)[0] !== '\n') {
           writer.write('\n')
         }
-        newLineMode = true
         break
       case InlineMode:
-        prevLineMode = newLineMode
-        newLineMode = false
+        lineModes.push(InlineMode)
         break
       case RestoreLineMode:
-        newLineMode = prevLineMode
+        lineModes.pop()
 
-        if (newLineMode && writer.last.slice(-1)[0] !== '\n') {
+        if (currentLineMode() === NewLineMode && writer.last.slice(-1)[0] !== '\n') {
           writer.write('\n')
         }
         break
       case PropertyDelimiter:
-        if (newLineMode) {
+        if (currentLineMode() === NewLineMode) {
           writer.write('\n')
         } else {
           writer.write(', ')
@@ -116,7 +126,7 @@ function writeDocumentPartsTo(document: DocumentParts, { indent = '  ', ...optio
       default:
         if (writer.last.slice(-1)[0] === '\n') writer.write(curIndent)
         writer.write(part)
-        if (newLineMode) writer.write('\n')
+        if (currentLineMode() === NewLineMode) writer.write('\n')
         break
     }
   }
