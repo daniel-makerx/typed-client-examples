@@ -10,15 +10,16 @@ describe('hello world typed client', () => {
     const { algod, indexer, testAccount } = localnet.context
     const client = new HelloWorldAppClient(
       {
+        resolveBy: 'creatorAndName',
         sender: testAccount,
         creatorAddress: testAccount.addr,
-        indexer,
+        findExistingUsing: indexer,
       },
       algod,
     )
     await client.appClient.deploy()
 
-    const response = await client.hello('World')
+    const response = await client.hello({ name: 'World' })
     expect(response.return).toBe('Hello, World')
   })
 })

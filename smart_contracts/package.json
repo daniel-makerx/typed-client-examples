@@ -10,7 +10,7 @@
     "test": "dotenv -e .env -- jest --coverage --passWithNoTests"
   },
   "dependencies": {
-    "@algorandfoundation/algokit-utils": "^1.2.0-beta.1"
+    "@algorandfoundation/algokit-utils": "^2.0.0-beta.3"
   },
   "devDependencies": {
     "@makerx/ts-config": "^1.0.1",
