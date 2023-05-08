@@ -15,7 +15,7 @@ def test_lifecycle_client_create_2arg(algod_client: AlgodClient, indexer_client:
         app_spec=app_spec,
         indexer_client=indexer_client,
         creator=get_localnet_default_account(algod_client),
-        template_values={"UPDATABLE": 1, "DELETABLE": 1}
+        template_values={"UPDATABLE": 1, "DELETABLE": 1},
     )
     lifecycle_client.create("create_2arg", greeting="Greetings", times=2)
     response = lifecycle_client.call("hello", name="World")

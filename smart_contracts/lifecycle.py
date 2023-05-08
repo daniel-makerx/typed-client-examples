@@ -26,7 +26,6 @@ app = (
 
 @app.external
 def hello(name: pt.abi.String, *, output: pt.abi.String) -> pt.Expr:
-
     return pt.Seq(
         (buff := pt.ScratchVar()).store(pt.Bytes("")),
         Iterate(
