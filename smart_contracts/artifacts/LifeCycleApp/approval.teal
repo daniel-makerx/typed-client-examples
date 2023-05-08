@@ -1,0 +1,216 @@
+#pragma version 8
+intcblock 0 1
+bytecblock 0x74696d6573 0x6772656574696e67 0x
+txn NumAppArgs
+intc_0 // 0
+==
+bnz main_l8
+txna ApplicationArgs 0
+pushbytes 0x02bece11 // "hello(string)string"
+==
+bnz main_l7
+txna ApplicationArgs 0
+pushbytes 0xc6c3e00a // "create_1arg(string)void"
+==
+bnz main_l6
+txna ApplicationArgs 0
+pushbytes 0xd869f636 // "create_2arg(string,uint32)void"
+==
+bnz main_l5
+err
+main_l5:
+txn OnCompletion
+intc_0 // NoOp
+==
+txn ApplicationID
+intc_0 // 0
+==
+&&
+assert
+txna ApplicationArgs 1
+store 1
+txna ApplicationArgs 2
+intc_0 // 0
+extract_uint32
+store 2
+load 1
+load 2
+callsub create2arg_5
+intc_1 // 1
+return
+main_l6:
+txn OnCompletion
+intc_0 // NoOp
+==
+txn ApplicationID
+intc_0 // 0
+==
+&&
+assert
+txna ApplicationArgs 1
+callsub create1arg_4
+intc_1 // 1
+return
+main_l7:
+txn OnCompletion
+intc_0 // NoOp
+==
+txn ApplicationID
+intc_0 // 0
+!=
+&&
+assert
+txna ApplicationArgs 1
+callsub hello_2
+store 0
+pushbytes 0x151f7c75 // 0x151f7c75
+load 0
+concat
+log
+intc_1 // 1
+return
+main_l8:
+txn OnCompletion
+intc_0 // NoOp
+==
+bnz main_l14
+txn OnCompletion
+pushint 4 // UpdateApplication
+==
+bnz main_l13
+txn OnCompletion
+pushint 5 // DeleteApplication
+==
+bnz main_l12
+err
+main_l12:
+txn ApplicationID
+intc_0 // 0
+!=
+assert
+callsub delete_1
+intc_1 // 1
+return
+main_l13:
+txn ApplicationID
+intc_0 // 0
+!=
+assert
+callsub update_0
+intc_1 // 1
+return
+main_l14:
+txn ApplicationID
+intc_0 // 0
+==
+assert
+callsub barecreate_3
+intc_1 // 1
+return
+
+// update
+update_0:
+proto 0 0
+txn Sender
+global CreatorAddress
+==
+// unauthorized
+assert
+pushint TMPL_UPDATABLE // TMPL_UPDATABLE
+// Check app is updatable
+assert
+retsub
+
+// delete
+delete_1:
+proto 0 0
+txn Sender
+global CreatorAddress
+==
+// unauthorized
+assert
+pushint TMPL_DELETABLE // TMPL_DELETABLE
+// Check app is deletable
+assert
+retsub
+
+// hello
+hello_2:
+proto 1 1
+bytec_2 // ""
+bytec_2 // ""
+store 3
+intc_0 // 0
+store 4
+hello_2_l1:
+load 4
+bytec_0 // "times"
+app_global_get
+<
+bz hello_2_l3
+load 3
+bytec_1 // "greeting"
+app_global_get
+concat
+pushbytes 0x2c20 // ", "
+concat
+frame_dig -1
+extract 2 0
+concat
+pushbytes 0x0a // "\n"
+concat
+store 3
+load 4
+intc_1 // 1
++
+store 4
+b hello_2_l1
+hello_2_l3:
+load 3
+frame_bury 0
+frame_dig 0
+len
+itob
+extract 6 0
+frame_dig 0
+concat
+frame_bury 0
+retsub
+
+// bare_create
+barecreate_3:
+proto 0 0
+bytec_1 // "greeting"
+pushbytes 0x48656c6c6f // "Hello"
+app_global_put
+bytec_0 // "times"
+intc_1 // 1
+app_global_put
+intc_1 // 1
+return
+
+// create_1arg
+create1arg_4:
+proto 1 0
+bytec_1 // "greeting"
+frame_dig -1
+extract 2 0
+app_global_put
+bytec_0 // "times"
+intc_1 // 1
+app_global_put
+intc_1 // 1
+return
+
+// create_2arg
+create2arg_5:
+proto 2 0
+bytec_1 // "greeting"
+frame_dig -2
+extract 2 0
+app_global_put
+bytec_0 // "times"
+frame_dig -1
+app_global_put
+intc_1 // 1
+return
