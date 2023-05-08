@@ -1,0 +1,46 @@
+{
+    "name": "LifeCycleApp",
+    "methods": [
+        {
+            "name": "hello",
+            "args": [
+                {
+                    "type": "string",
+                    "name": "name"
+                }
+            ],
+            "returns": {
+                "type": "string"
+            }
+        },
+        {
+            "name": "create_1arg",
+            "args": [
+                {
+                    "type": "string",
+                    "name": "greeting"
+                }
+            ],
+            "returns": {
+                "type": "void"
+            }
+        },
+        {
+            "name": "create_2arg",
+            "args": [
+                {
+                    "type": "string",
+                    "name": "greeting"
+                },
+                {
+                    "type": "uint32",
+                    "name": "times"
+                }
+            ],
+            "returns": {
+                "type": "void"
+            }
+        }
+    ],
+    "networks": {}
+}

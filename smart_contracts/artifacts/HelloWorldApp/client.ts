@@ -106,7 +106,7 @@ export class HelloWorldAppClient {
    */
   public async create(args?: RawAppCallArgs, params?: AppClientCallCoreParams & AppClientCompilationParams) {
     const { return: r, ...result } = await this.appClient.create({
-      args,
+      ...args,
       ...(params ?? {}),
     })
     return result
@@ -120,7 +120,7 @@ export class HelloWorldAppClient {
    */
   public async update(args?: RawAppCallArgs, params?: AppClientCallCoreParams & AppClientCompilationParams) {
     const { return: r, ...result } = await this.appClient.update({
-      args,
+      ...args,
       ...(params ?? {}),
     })
     return result
@@ -134,7 +134,7 @@ export class HelloWorldAppClient {
    */
   public async delete(args?: RawAppCallArgs, params?: AppClientCallCoreParams) {
     const { return: _, ...result } = await this.appClient.delete({
-      args,
+      ...args,
       ...(params ?? {}),
     })
     return result
