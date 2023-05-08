@@ -25,14 +25,13 @@ def test_says_hello(helloworld_client: HelloWorldAppClient) -> None:
 
     assert response.return_value == "Hello, World"
 
+
 def test_lifecycle(algod_client: AlgodClient) -> None:
     account = get_localnet_default_account(algod_client)
     signer = AccountTransactionSigner(account.private_key)
 
     helloworld_client = HelloWorldAppClient(
-        algod_client=algod_client,
-        signer=signer,
-        template_values={"UPDATABLE": 1, "DELETABLE": 1}
+        algod_client=algod_client, signer=signer, template_values={"UPDATABLE": 1, "DELETABLE": 1}
     )
 
     assert helloworld_client.create()
