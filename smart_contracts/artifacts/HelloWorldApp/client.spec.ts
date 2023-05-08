@@ -21,5 +21,8 @@ describe('hello world typed client', () => {
 
     const response = await client.hello({ name: 'World' })
     expect(response.return).toBe('Hello, World')
+
+    const response2 = await client.hello_world_check({ name: 'World' })
+    expect(response2.return).toBe(undefined)
   })
 })

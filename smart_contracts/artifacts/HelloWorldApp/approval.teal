@@ -3,13 +3,30 @@ intcblock 0 1
 txn NumAppArgs
 intc_0 // 0
 ==
-bnz main_l4
+bnz main_l6
 txna ApplicationArgs 0
 pushbytes 0x02bece11 // "hello(string)string"
 ==
-bnz main_l3
+bnz main_l5
+txna ApplicationArgs 0
+pushbytes 0xbf9c1edf // "hello_world_check(string)void"
+==
+bnz main_l4
 err
-main_l3:
+main_l4:
+txn OnCompletion
+intc_0 // NoOp
+==
+txn ApplicationID
+intc_0 // 0
+!=
+&&
+assert
+txna ApplicationArgs 1
+callsub helloworldcheck_3
+intc_1 // 1
+return
+main_l5:
 txn OnCompletion
 intc_0 // NoOp
 ==
@@ -27,21 +44,21 @@ concat
 log
 intc_1 // 1
 return
-main_l4:
+main_l6:
 txn OnCompletion
 intc_0 // NoOp
 ==
-bnz main_l10
+bnz main_l12
 txn OnCompletion
 pushint 4 // UpdateApplication
 ==
-bnz main_l9
+bnz main_l11
 txn OnCompletion
 pushint 5 // DeleteApplication
 ==
-bnz main_l8
+bnz main_l10
 err
-main_l8:
+main_l10:
 txn ApplicationID
 intc_0 // 0
 !=
@@ -49,7 +66,7 @@ assert
 callsub delete_1
 intc_1 // 1
 return
-main_l9:
+main_l11:
 txn ApplicationID
 intc_0 // 0
 !=
@@ -57,7 +74,7 @@ assert
 callsub update_0
 intc_1 // 1
 return
-main_l10:
+main_l12:
 txn ApplicationID
 intc_0 // 0
 ==
@@ -107,4 +124,14 @@ extract 6 0
 frame_dig 0
 concat
 frame_bury 0
+retsub
+
+// hello_world_check
+helloworldcheck_3:
+proto 1 0
+frame_dig -1
+extract 2 0
+pushbytes 0x576f726c64 // "World"
+==
+assert
 retsub
