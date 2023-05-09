@@ -17,7 +17,7 @@ describe('hello world typed client', () => {
       },
       algod,
     )
-    await client.appClient.deploy()
+    await client.deploy()
 
     const response = await client.hello({ name: 'World' })
     expect(response.return).toBe('Hello, World')
