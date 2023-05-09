@@ -379,12 +379,11 @@ export class VotingRoundAppClient {
 
   /**
    * Idempotently deploys the VotingRoundApp smart contract.
-   * @param args The arguments for the contract call
-   * @param params Any additional parameters for the call
+   * @param params The arguments for the contract calls and any additional parameters for the call
    * @returns The deployment result
    */
-  public deploy(args: VotingRoundAppDeployArgs = {}, params?: AppClientDeployCoreParams) {
-    return this.appClient.deploy({ ...args, ...params, })
+  public deploy(params: VotingRoundAppDeployArgs & AppClientDeployCoreParams = {}) {
+    return this.appClient.deploy({ ...params, })
   }
 
   /**

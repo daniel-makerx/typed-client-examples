@@ -80,13 +80,12 @@ function* deployMethods(app: AlgoAppSpec): DocumentParts {
   const name = makeSafeTypeIdentifier(app.contract.name)
   yield `/**`
   yield ` * Idempotently deploys the ${app.contract.name} smart contract.`
-  yield ` * @param args The arguments for the contract call`
-  yield ` * @param params Any additional parameters for the call`
+  yield ` * @param params The arguments for the contract calls and any additional parameters for the call`
   yield ` * @returns The deployment result`
   yield ` */`
-  yield `public deploy(args: ${name}DeployArgs = {}, params?: AppClientDeployCoreParams) {`
+  yield `public deploy(params: ${name}DeployArgs & AppClientDeployCoreParams = {}) {`
   yield IncIndent
-  yield `return this.appClient.deploy({ ...args, ...params, })`
+  yield `return this.appClient.deploy({ ...params, })`
   yield DecIndentAndCloseBlock
   yield NewLine
 

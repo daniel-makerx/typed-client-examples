@@ -210,12 +210,11 @@ export class LifeCycleAppClient {
 
   /**
    * Idempotently deploys the LifeCycleApp smart contract.
-   * @param args The arguments for the contract call
-   * @param params Any additional parameters for the call
+   * @param params The arguments for the contract calls and any additional parameters for the call
    * @returns The deployment result
    */
-  public deploy(args: LifeCycleAppDeployArgs = {}, params?: AppClientDeployCoreParams) {
-    return this.appClient.deploy({ ...args, ...params, })
+  public deploy(params: LifeCycleAppDeployArgs & AppClientDeployCoreParams = {}) {
+    return this.appClient.deploy({ ...params, })
   }
 
   /**

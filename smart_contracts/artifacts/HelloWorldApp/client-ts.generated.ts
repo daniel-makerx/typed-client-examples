@@ -167,12 +167,11 @@ export class HelloWorldAppClient {
 
   /**
    * Idempotently deploys the HelloWorldApp smart contract.
-   * @param args The arguments for the contract call
-   * @param params Any additional parameters for the call
+   * @param params The arguments for the contract calls and any additional parameters for the call
    * @returns The deployment result
    */
-  public deploy(args: HelloWorldAppDeployArgs = {}, params?: AppClientDeployCoreParams) {
-    return this.appClient.deploy({ ...args, ...params, })
+  public deploy(params: HelloWorldAppDeployArgs & AppClientDeployCoreParams = {}) {
+    return this.appClient.deploy({ ...params, })
   }
 
   /**
