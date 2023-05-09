@@ -78,11 +78,10 @@ export abstract class HelloWorldAppCallFactory {
   }
 }
 
-
 /** A client to make calls to the HelloWorldApp smart contract */
 export class HelloWorldAppClient {
   /** The underlying `ApplicationClient` for when you want to have more flexibility */
-  public appClient: ApplicationClient
+  public readonly appClient: ApplicationClient
 
   /**
    * Creates a new instance of `HelloWorldAppClient`
@@ -93,7 +92,7 @@ export class HelloWorldAppClient {
     this.appClient = algokit.getAppClient(
       {
         ...appDetails,
-        app: appspec as unknown /* todo: fix type to not need the unknown */ as AppSpec,
+        app: appspec as unknown as AppSpec,
       },
       algod,
     )
@@ -112,7 +111,7 @@ export class HelloWorldAppClient {
    * Idempotently deploys the HelloWorldApp smart contract.
    * @param args The arguments for the contract call
    * @param params Any additional parameters for the call
-   * @returns
+   * @returns The deployment result
    */
   public async deploy(args: HelloWorldAppDeployArgs = {}, params: AppClientDeployCoreParams = {}) {
     const result = await this.appClient.deploy({
@@ -126,7 +125,7 @@ export class HelloWorldAppClient {
    * Creates a new instance of the HelloWorldApp smart contract.
    * @param args The arguments for the contract call
    * @param params Any additional parameters for the call
-   * @returns
+   * @returns The creation result
    */
   public async create(
     args: HelloWorldCreateArgs = {},
@@ -143,7 +142,7 @@ export class HelloWorldAppClient {
    * Updates an existing instance of the HelloWorldApp smart contract.
    * @param args The arguments for the contract call
    * @param params Any additional parameters for the call
-   * @returns
+   * @returns The update result
    */
   public async update(
     args: HelloWorldUpdateArgs = {},
@@ -160,7 +159,7 @@ export class HelloWorldAppClient {
    * Deletes an existing instance of the HelloWorldApp smart contract.
    * @param args The arguments for the contract call
    * @param params Any additional parameters for the call
-   * @returns
+   * @returns The deletion result
    */
   public async delete(args: HelloWorldDeleteArgs = {}, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
     const { return: _, ...result } = await this.appClient.delete({

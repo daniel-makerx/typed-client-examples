@@ -32,12 +32,9 @@
     "ContractMethod": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "args"],
+      "required": ["name", "args", "returns"],
       "properties": {
         "name": {
-          "type": "string"
-        },
-        "description": {
           "type": "string"
         },
         "args": {
@@ -52,6 +49,7 @@
         "returns": {
           "type": "object",
           "additionalProperties": false,
+          "required": ["type"],
           "properties": {
             "desc": {
               "type": "string"

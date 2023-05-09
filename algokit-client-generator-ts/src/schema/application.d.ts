@@ -63,11 +63,11 @@ export interface AbiContract {
 }
 export interface ContractMethod {
   name: string;
-  description?: string;
+  desc?: string;
   args: ContractMethodArg[];
-  returns?: {
+  returns: {
     desc?: string;
-    type?:
+    type:
       | (
           | "string[]"
           | "byte[]"
