@@ -1,0 +1,45 @@
+{
+  "name": "@algorandfoundation/client-generator",
+  "version": "1.0.0",
+  "description": "Generates a TypeScript client for interacting with, and deploying smart contracts on the Algorand Block Chain",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "run-s build:*",
+    "build:0-clean": "rimraf dist",
+    "build:1-schema-to-types": "cd src/schema && npx --yes json-schema-to-typescript application.json > application.d.ts",
+    "build:1-build": "tsc -p tsconfig.json",
+    "build:2-copy-pkg-json": "npx --yes @makerx/ts-toolkit@latest copy-package-json --input-folder ./ --output-folder ./dist --main index.js --types index.d.ts",
+    "build:3-copy-bin": "copyfiles bin/* dist/bin -f",
+    "dev": "run-s dev:*",
+    "dev:helloworld": "ts-node src/index.ts generate -a ../smart_contracts/artifacts/HelloWorldApp/application.json -o ../smart_contracts/artifacts/HelloWorldApp/client-ts.generated.ts",
+    "dev:lifecycle": "ts-node src/index.ts generate -a ../smart_contracts/artifacts/LifeCycleApp/application.json -o ../smart_contracts/artifacts/LifeCycleApp/client-ts.generated.ts",
+    "dev:voting": "ts-node src/index.ts generate -a ../smart_contracts/artifacts/VotingRoundApp/application.json -o ../smart_contracts/artifacts/VotingRoundApp/client-ts.generated.ts",
+    "format": "prettier --write .",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix"
+  },
+  "bin": {
+    "@algorandfoundation/client-generator": "bin/cli.js"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@algorandfoundation/algokit-utils": "^1.1.1",
+    "change-case": "^4.1.2",
+    "commander": "^10.0.1",
+    "esm": "^3.2.25",
+    "jsonschema": "^1.4.1"
+  },
+  "devDependencies": {
+    "@makerx/eslint-config": "3.0.0",
+    "@makerx/prettier-config": "2.0.0",
+    "@makerx/ts-config": "1.0.1",
+    "copyfiles": "^2.4.1",
+    "eslint": "8.22.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "2.8.8",
+    "rimraf": "^5.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.4"
+  }
+}

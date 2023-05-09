@@ -2,6 +2,18 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Build TypeScript clients",
+      "type": "npm",
+      "script": "dev",
+      "options": {
+        "cwd": "${workspaceFolder}/algokit-client-generator-ts"
+      },
+      "group": {
+        "kind": "build"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Build Beaker application",
       "command": "${workspaceFolder}/.venv/bin/python",
       "windows": {
@@ -12,8 +24,7 @@
         "cwd": "${workspaceFolder}"
       },
       "group": {
-        "kind": "build",
-        "isDefault": true
+        "kind": "build"
       },
       "problemMatcher": []
     },

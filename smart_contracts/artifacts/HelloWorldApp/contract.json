@@ -11,7 +11,21 @@
             ],
             "returns": {
                 "type": "string"
-            }
+            },
+            "desc": "Returns Hello, {name}"
+        },
+        {
+            "name": "hello_world_check",
+            "args": [
+                {
+                    "type": "string",
+                    "name": "name"
+                }
+            ],
+            "returns": {
+                "type": "void"
+            },
+            "desc": "Asserts {name} is \"World\""
         }
     ],
     "networks": {}

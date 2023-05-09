@@ -1,0 +1,9 @@
+{
+  "extends": "@makerx/ts-config",
+  "compilerOptions": {
+    "target": "ES2022",
+    "outDir": "./dist/",
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*.ts"]
+}

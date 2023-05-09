@@ -11,5 +11,11 @@ app = beaker.Application("HelloWorldApp").apply(deploy_time_immutability_control
 
 @app.external
 def hello(name: pt.abi.String, *, output: pt.abi.String) -> pt.Expr:
-    """ Returns Hello, {name} """
+    """Returns Hello, {name}"""
     return output.set(pt.Concat(pt.Bytes("Hello, "), name.get()))
+
+
+@app.external
+def hello_world_check(name: pt.abi.String) -> pt.Expr:
+    """Asserts {name} is "World" """
+    return pt.Assert(name.get() == pt.Bytes("World"))
