@@ -33,7 +33,7 @@
     },
     "DeclaredSchemaValueSpec": {
       "type": "object",
-      "required": ["type", "key", "static"],
+      "required": ["type", "key"],
       "properties": {
         "type": {
           "description": "The type of the value",
@@ -55,7 +55,7 @@
     },
     "ReservedSchemaValueSpec": {
       "type": "object",
-      "required": ["type", "key", "static"],
+      "required": ["type"],
       "properties": {
         "type": {
           "description": "The type of the value",
@@ -123,7 +123,7 @@
         "reserved": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/definitions/DeclaredSchemaValueSpec"
+            "$ref": "#/definitions/ReservedSchemaValueSpec"
           }
         }
       }

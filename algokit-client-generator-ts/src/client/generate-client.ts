@@ -1,6 +1,12 @@
-import { DecIndent, DocumentParts, IncIndent, indent, inline, NewLine } from '../output/writer'
+import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, indent, inline, NewLine } from '../output/writer'
 import { AlgoAppSpec, ContractMethod } from '../schema/application'
-import { isSafeVariableIdentifier, makeSafeMethodIdentifier, makeSafePropertyIdentifier, makeSafeTypeIdentifier } from '../sanitization'
+import {
+  isSafeVariableIdentifier,
+  makeSafeMethodIdentifier,
+  makeSafePropertyIdentifier,
+  makeSafeTypeIdentifier,
+  makeSafeVariableIdentifier,
+} from '../sanitization'
 
 export function* generateClient(app: AlgoAppSpec): DocumentParts {
   yield* imports()
@@ -14,6 +20,7 @@ export function* generateClient(app: AlgoAppSpec): DocumentParts {
     yield* argTypes(method)
   }
   yield NewLine
+  yield* deployTypes(app)
 
   // Write a call factory
   yield* callFactory(app)
@@ -21,12 +28,26 @@ export function* generateClient(app: AlgoAppSpec): DocumentParts {
   // Write a client
   yield* client(app)
 }
+function* deployTypes(app: AlgoAppSpec): DocumentParts {
+  const name = makeSafeTypeIdentifier(app.contract.name)
+  yield `export type ${name}CreateArgs = BareCallArgs`
+  yield `export type ${name}UpdateArgs = BareCallArgs`
+  yield `export type ${name}DeleteArgs = BareCallArgs`
+  yield `export type ${name}DeployArgs = {`
+  yield IncIndent
+  yield `deployTimeParams?: TealTemplateParams`
+  yield `createArgs?: ${name}CreateArgs & CoreAppCallArgs`
+  yield `updateArgs?: ${name}UpdateArgs & CoreAppCallArgs`
+  yield `deleteArgs?: ${name}DeleteArgs & CoreAppCallArgs`
+  yield DecIndentAndCloseBlock
+  yield NewLine
+}
 
 function* client(app: AlgoAppSpec): DocumentParts {
   yield `export class ${makeSafeTypeIdentifier(app.contract.name)}Client {`
   yield IncIndent
   yield 'public readonly appClient: ApplicationClient'
-
+  yield NewLine
   yield `constructor(appDetails: AppDetails, algod: Algodv2) {`
   yield IncIndent
   yield 'this.appClient = algokit.getAppClient({'
@@ -35,7 +56,39 @@ function* client(app: AlgoAppSpec): DocumentParts {
   yield DecIndent
   yield '}'
   yield NewLine
-  yield 'public async call<TReturn>(params: CallRequest<TReturn, any>): Promise<CallResult<TReturn>> {'
+  yield* genericCallMethod()
+  yield* clientCallMethods(app)
+  yield* deployMethods(app)
+  yield DecIndentAndCloseBlock
+}
+
+function* deployMethods(app: AlgoAppSpec): DocumentParts {
+  const name = makeSafeTypeIdentifier(app.contract.name)
+  yield `public deploy(args?: ${name}DeployArgs, params?: AppClientDeployCoreParams) {`
+  yield IncIndent
+  yield `return this.appClient.deploy({ ...args, ...params, })`
+  yield DecIndentAndCloseBlock
+  yield NewLine
+
+  yield `public create(args?: ${name}CreateArgs, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
+  yield IncIndent
+  yield `return this.appClient.create({ ...args, ...params, })`
+  yield DecIndentAndCloseBlock
+  yield NewLine
+  yield `public update(args?: ${name}UpdateArgs, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
+  yield IncIndent
+  yield `return this.appClient.update({ ...args, ...params, })`
+  yield DecIndentAndCloseBlock
+  yield NewLine
+  yield `public delete(args?: ${name}DeleteArgs, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
+  yield IncIndent
+  yield `return this.appClient.delete({ ...args, ...params, })`
+  yield DecIndentAndCloseBlock
+  yield NewLine
+}
+
+function* genericCallMethod(): DocumentParts {
+  yield 'public async call<TReturn>(params: CallRequest<TReturn, any>): Promise<AppCallTransactionResultOfType<TReturn>> {'
   yield IncIndent
   yield `const result = await this.appClient.call(params)`
   yield `if(result.return?.decodeError) {`
@@ -43,21 +96,21 @@ function* client(app: AlgoAppSpec): DocumentParts {
   yield '}'
   yield 'const returnValue = result.return?.returnValue as TReturn'
   yield 'return { ...result, return: returnValue }'
-  yield DecIndent
-  yield '}'
+  yield DecIndentAndCloseBlock
+  yield NewLine
+}
 
+function* clientCallMethods(app: AlgoAppSpec): DocumentParts {
   for (const method of app.contract.methods) {
     yield `public ${makeSafeMethodIdentifier(method.name)}(args: ${makeSafeTypeIdentifier(
       method.name,
-    )}ArgsObj, params?: AppClientCallCoreParams & AppClientCompilationParams) {`
+    )}Args, params?: AppClientCallCoreParams & AppClientCompilationParams) {`
     yield IncIndent
     yield `return this.call(${makeSafeTypeIdentifier(app.contract.name)}CallFactory.${makeSafeMethodIdentifier(method.name)}(args, params))`
     yield DecIndent
     yield '}'
+    yield NewLine
   }
-
-  yield DecIndent
-  yield '}'
 }
 
 function* argTypes({ name, args }: ContractMethod): DocumentParts {
@@ -69,7 +122,12 @@ function* argTypes({ name, args }: ContractMethod): DocumentParts {
   }
   yield DecIndent
   yield '}'
-  yield* inline(`export type ${safeIdentifier}ArgsTuple = [`, args.map((t) => t.type).join(','), ']')
+  yield* inline(
+    `export type ${safeIdentifier}ArgsTuple = [`,
+    args.map((t) => `${makeSafeVariableIdentifier(t.name)}: ${t.type}`).join(','),
+    ']',
+  )
+  yield `export type ${safeIdentifier}Args = ${safeIdentifier}ArgsObj | ${safeIdentifier}ArgsTuple`
 }
 
 function* callFactory(app: AlgoAppSpec): DocumentParts {
@@ -85,16 +143,16 @@ function* callFactory(app: AlgoAppSpec): DocumentParts {
 function* callFactoryMethod(method: ContractMethod) {
   yield `static ${makeSafeMethodIdentifier(method.name)}(args: ${makeSafeTypeIdentifier(
     method.name,
-  )}ArgsObj, params?: AppClientCallCoreParams & AppClientCompilationParams = {}): CallRequest<${
+  )}Args, params: AppClientCallCoreParams & AppClientCompilationParams = {}): CallRequest<${
     method.returns?.type ?? 'void'
-  }, ${makeSafeTypeIdentifier(method.name)}ArgsTuple>  {`
+  }, ${makeSafeTypeIdentifier(method.name)}Args>  {`
   yield IncIndent
   yield `return {`
   yield IncIndent
   yield `method: '${method.name}(${method.args.map((a) => a.type).join(',')})${method.returns?.type ?? ''}',`
-  yield `methodArgs: [${method.args
+  yield `methodArgs: Array.isArray(args) ? args : [${method.args
     .map((a) => (isSafeVariableIdentifier(a.name) ? `args.${a.name}` : `args['${makeSafePropertyIdentifier(a.name)}']`))
-    .join(',')}], `
+    .join(',')}],`
   yield '...params,'
   yield DecIndent
   yield '}'
@@ -107,19 +165,16 @@ function* utilityTypes(): DocumentParts {
   yield IncIndent
   yield 'method: string'
   yield 'methodArgs: TArgs'
-
   yield DecIndent
   yield '} & AppClientCallCoreParams & CoreAppCallArgs'
-  yield 'export type CallResult<TReturn> = {'
-  yield IncIndent
-  yield 'return: TReturn'
-  yield DecIndent
-  yield `} & Omit<AppCallTransactionResult, 'return'>`
+
+  yield `export type BareCallArgs = Omit<RawAppCallArgs, keyof CoreAppCallArgs>`
 }
 
 function* imports(): DocumentParts {
   yield `import * as algokit from '@algorandfoundation/algokit-utils'
 import {
+  AppCallTransactionResultOfType,
   AppCallTransactionResult,
   CoreAppCallArgs,
   RawAppCallArgs,

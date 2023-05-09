@@ -10,7 +10,9 @@
     "build:1-build": "tsc -p tsconfig.json",
     "build:2-copy-pkg-json": "npx --yes @makerx/ts-toolkit@latest copy-package-json --input-folder ./ --output-folder ./dist --main index.js --types index.d.ts",
     "build:3-copy-bin": "copyfiles bin/* dist/bin -f",
-    "dev": "ts-node src/index.ts generate -a ../smart_contracts/artifacts/HelloWorldApp/application.json -o ../smart_contracts/artifacts/HelloWorldApp/client.actual.ts",
+    "dev:helloworld": "ts-node src/index.ts generate -a ../smart_contracts/artifacts/HelloWorldApp/application.json -o ../smart_contracts/artifacts/HelloWorldApp/client.actual.ts",
+    "dev:lifecycle": "ts-node src/index.ts generate -a ../smart_contracts/artifacts/LifeCycleApp/application.json -o ../smart_contracts/artifacts/LifeCycleApp/client.actual.ts",
+    "dev:voting": "ts-node src/index.ts generate -a ../smart_contracts/artifacts/VotingRoundApp/application.json -o ../smart_contracts/artifacts/VotingRoundApp/client.actual.ts",
     "format": "prettier --write .",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix"

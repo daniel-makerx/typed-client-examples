@@ -1,5 +1,6 @@
 import * as algokit from '@algorandfoundation/algokit-utils'
 import {
+  AppCallTransactionResultOfType,
   AppCallTransactionResult,
   CoreAppCallArgs,
   RawAppCallArgs,
@@ -23,10 +24,15 @@ export const APP_SPEC: AppSpec = {
       "call_config": {
         "no_op": "CALL"
       }
+    },
+    "hello_world_check(string)void": {
+      "call_config": {
+        "no_op": "CALL"
+      }
     }
   },
   "source": {
-    "approval": "I3ByYWdtYSB2ZXJzaW9uIDgKaW50Y2Jsb2NrIDAgMQp0eG4gTnVtQXBwQXJncwppbnRjXzAgLy8gMAo9PQpibnogbWFpbl9sNAp0eG5hIEFwcGxpY2F0aW9uQXJncyAwCnB1c2hieXRlcyAweDAyYmVjZTExIC8vICJoZWxsbyhzdHJpbmcpc3RyaW5nIgo9PQpibnogbWFpbl9sMwplcnIKbWFpbl9sMzoKdHhuIE9uQ29tcGxldGlvbgppbnRjXzAgLy8gTm9PcAo9PQp0eG4gQXBwbGljYXRpb25JRAppbnRjXzAgLy8gMAohPQomJgphc3NlcnQKdHhuYSBBcHBsaWNhdGlvbkFyZ3MgMQpjYWxsc3ViIGhlbGxvXzIKc3RvcmUgMApwdXNoYnl0ZXMgMHgxNTFmN2M3NSAvLyAweDE1MWY3Yzc1CmxvYWQgMApjb25jYXQKbG9nCmludGNfMSAvLyAxCnJldHVybgptYWluX2w0Ogp0eG4gT25Db21wbGV0aW9uCmludGNfMCAvLyBOb09wCj09CmJueiBtYWluX2wxMAp0eG4gT25Db21wbGV0aW9uCnB1c2hpbnQgNCAvLyBVcGRhdGVBcHBsaWNhdGlvbgo9PQpibnogbWFpbl9sOQp0eG4gT25Db21wbGV0aW9uCnB1c2hpbnQgNSAvLyBEZWxldGVBcHBsaWNhdGlvbgo9PQpibnogbWFpbl9sOAplcnIKbWFpbl9sODoKdHhuIEFwcGxpY2F0aW9uSUQKaW50Y18wIC8vIDAKIT0KYXNzZXJ0CmNhbGxzdWIgZGVsZXRlXzEKaW50Y18xIC8vIDEKcmV0dXJuCm1haW5fbDk6CnR4biBBcHBsaWNhdGlvbklECmludGNfMCAvLyAwCiE9CmFzc2VydApjYWxsc3ViIHVwZGF0ZV8wCmludGNfMSAvLyAxCnJldHVybgptYWluX2wxMDoKdHhuIEFwcGxpY2F0aW9uSUQKaW50Y18wIC8vIDAKPT0KYXNzZXJ0CmludGNfMSAvLyAxCnJldHVybgoKLy8gdXBkYXRlCnVwZGF0ZV8wOgpwcm90byAwIDAKdHhuIFNlbmRlcgpnbG9iYWwgQ3JlYXRvckFkZHJlc3MKPT0KLy8gdW5hdXRob3JpemVkCmFzc2VydApwdXNoaW50IFRNUExfVVBEQVRBQkxFIC8vIFRNUExfVVBEQVRBQkxFCi8vIENoZWNrIGFwcCBpcyB1cGRhdGFibGUKYXNzZXJ0CnJldHN1YgoKLy8gZGVsZXRlCmRlbGV0ZV8xOgpwcm90byAwIDAKdHhuIFNlbmRlcgpnbG9iYWwgQ3JlYXRvckFkZHJlc3MKPT0KLy8gdW5hdXRob3JpemVkCmFzc2VydApwdXNoaW50IFRNUExfREVMRVRBQkxFIC8vIFRNUExfREVMRVRBQkxFCi8vIENoZWNrIGFwcCBpcyBkZWxldGFibGUKYXNzZXJ0CnJldHN1YgoKLy8gaGVsbG8KaGVsbG9fMjoKcHJvdG8gMSAxCnB1c2hieXRlcyAweCAvLyAiIgpwdXNoYnl0ZXMgMHg0ODY1NmM2YzZmMmMyMCAvLyAiSGVsbG8sICIKZnJhbWVfZGlnIC0xCmV4dHJhY3QgMiAwCmNvbmNhdApmcmFtZV9idXJ5IDAKZnJhbWVfZGlnIDAKbGVuCml0b2IKZXh0cmFjdCA2IDAKZnJhbWVfZGlnIDAKY29uY2F0CmZyYW1lX2J1cnkgMApyZXRzdWI=",
+    "approval": "I3ByYWdtYSB2ZXJzaW9uIDgKaW50Y2Jsb2NrIDAgMQp0eG4gTnVtQXBwQXJncwppbnRjXzAgLy8gMAo9PQpibnogbWFpbl9sNgp0eG5hIEFwcGxpY2F0aW9uQXJncyAwCnB1c2hieXRlcyAweDAyYmVjZTExIC8vICJoZWxsbyhzdHJpbmcpc3RyaW5nIgo9PQpibnogbWFpbl9sNQp0eG5hIEFwcGxpY2F0aW9uQXJncyAwCnB1c2hieXRlcyAweGJmOWMxZWRmIC8vICJoZWxsb193b3JsZF9jaGVjayhzdHJpbmcpdm9pZCIKPT0KYm56IG1haW5fbDQKZXJyCm1haW5fbDQ6CnR4biBPbkNvbXBsZXRpb24KaW50Y18wIC8vIE5vT3AKPT0KdHhuIEFwcGxpY2F0aW9uSUQKaW50Y18wIC8vIDAKIT0KJiYKYXNzZXJ0CnR4bmEgQXBwbGljYXRpb25BcmdzIDEKY2FsbHN1YiBoZWxsb3dvcmxkY2hlY2tfMwppbnRjXzEgLy8gMQpyZXR1cm4KbWFpbl9sNToKdHhuIE9uQ29tcGxldGlvbgppbnRjXzAgLy8gTm9PcAo9PQp0eG4gQXBwbGljYXRpb25JRAppbnRjXzAgLy8gMAohPQomJgphc3NlcnQKdHhuYSBBcHBsaWNhdGlvbkFyZ3MgMQpjYWxsc3ViIGhlbGxvXzIKc3RvcmUgMApwdXNoYnl0ZXMgMHgxNTFmN2M3NSAvLyAweDE1MWY3Yzc1CmxvYWQgMApjb25jYXQKbG9nCmludGNfMSAvLyAxCnJldHVybgptYWluX2w2Ogp0eG4gT25Db21wbGV0aW9uCmludGNfMCAvLyBOb09wCj09CmJueiBtYWluX2wxMgp0eG4gT25Db21wbGV0aW9uCnB1c2hpbnQgNCAvLyBVcGRhdGVBcHBsaWNhdGlvbgo9PQpibnogbWFpbl9sMTEKdHhuIE9uQ29tcGxldGlvbgpwdXNoaW50IDUgLy8gRGVsZXRlQXBwbGljYXRpb24KPT0KYm56IG1haW5fbDEwCmVycgptYWluX2wxMDoKdHhuIEFwcGxpY2F0aW9uSUQKaW50Y18wIC8vIDAKIT0KYXNzZXJ0CmNhbGxzdWIgZGVsZXRlXzEKaW50Y18xIC8vIDEKcmV0dXJuCm1haW5fbDExOgp0eG4gQXBwbGljYXRpb25JRAppbnRjXzAgLy8gMAohPQphc3NlcnQKY2FsbHN1YiB1cGRhdGVfMAppbnRjXzEgLy8gMQpyZXR1cm4KbWFpbl9sMTI6CnR4biBBcHBsaWNhdGlvbklECmludGNfMCAvLyAwCj09CmFzc2VydAppbnRjXzEgLy8gMQpyZXR1cm4KCi8vIHVwZGF0ZQp1cGRhdGVfMDoKcHJvdG8gMCAwCnR4biBTZW5kZXIKZ2xvYmFsIENyZWF0b3JBZGRyZXNzCj09Ci8vIHVuYXV0aG9yaXplZAphc3NlcnQKcHVzaGludCBUTVBMX1VQREFUQUJMRSAvLyBUTVBMX1VQREFUQUJMRQovLyBDaGVjayBhcHAgaXMgdXBkYXRhYmxlCmFzc2VydApyZXRzdWIKCi8vIGRlbGV0ZQpkZWxldGVfMToKcHJvdG8gMCAwCnR4biBTZW5kZXIKZ2xvYmFsIENyZWF0b3JBZGRyZXNzCj09Ci8vIHVuYXV0aG9yaXplZAphc3NlcnQKcHVzaGludCBUTVBMX0RFTEVUQUJMRSAvLyBUTVBMX0RFTEVUQUJMRQovLyBDaGVjayBhcHAgaXMgZGVsZXRhYmxlCmFzc2VydApyZXRzdWIKCi8vIGhlbGxvCmhlbGxvXzI6CnByb3RvIDEgMQpwdXNoYnl0ZXMgMHggLy8gIiIKcHVzaGJ5dGVzIDB4NDg2NTZjNmM2ZjJjMjAgLy8gIkhlbGxvLCAiCmZyYW1lX2RpZyAtMQpleHRyYWN0IDIgMApjb25jYXQKZnJhbWVfYnVyeSAwCmZyYW1lX2RpZyAwCmxlbgppdG9iCmV4dHJhY3QgNiAwCmZyYW1lX2RpZyAwCmNvbmNhdApmcmFtZV9idXJ5IDAKcmV0c3ViCgovLyBoZWxsb193b3JsZF9jaGVjawpoZWxsb3dvcmxkY2hlY2tfMzoKcHJvdG8gMSAwCmZyYW1lX2RpZyAtMQpleHRyYWN0IDIgMApwdXNoYnl0ZXMgMHg1NzZmNzI2YzY0IC8vICJXb3JsZCIKPT0KYXNzZXJ0CnJldHN1Yg==",
     "clear": "I3ByYWdtYSB2ZXJzaW9uIDgKcHVzaGludCAwIC8vIDAKcmV0dXJu"
   },
   "state": {
@@ -62,7 +68,21 @@ export const APP_SPEC: AppSpec = {
         ],
         "returns": {
           "type": "string"
-        }
+        },
+        "desc": "Returns Hello, {name}"
+      },
+      {
+        "name": "hello_world_check",
+        "args": [
+          {
+            "type": "string",
+            "name": "name"
+          }
+        ],
+        "returns": {
+          "type": "void"
+        },
+        "desc": "Asserts {name} is \"World\""
       }
     ],
     "networks": {}
@@ -78,20 +98,41 @@ export type CallRequest<TReturn, TArgs = undefined> = {
   method: string
   methodArgs: TArgs
 } & AppClientCallCoreParams & CoreAppCallArgs
-export type CallResult<TReturn> = {
-  return: TReturn
-} & Omit<AppCallTransactionResult, 'return'>
+export type BareCallArgs = Omit<RawAppCallArgs, keyof CoreAppCallArgs>
 
 export type HelloArgsObj = {
   'name': string
 }
-export type HelloArgsTuple = [string]
+export type HelloArgsTuple = [name: string]
+export type HelloArgs = HelloArgsObj | HelloArgsTuple
+export type HelloWorldCheckArgsObj = {
+  'name': string
+}
+export type HelloWorldCheckArgsTuple = [name: string]
+export type HelloWorldCheckArgs = HelloWorldCheckArgsObj | HelloWorldCheckArgsTuple
+
+export type HelloWorldAppCreateArgs = BareCallArgs
+export type HelloWorldAppUpdateArgs = BareCallArgs
+export type HelloWorldAppDeleteArgs = BareCallArgs
+export type HelloWorldAppDeployArgs = {
+  deployTimeParams?: TealTemplateParams
+  createArgs?: HelloWorldAppCreateArgs & CoreAppCallArgs
+  updateArgs?: HelloWorldAppUpdateArgs & CoreAppCallArgs
+  deleteArgs?: HelloWorldAppDeleteArgs & CoreAppCallArgs
+}
 
 export abstract class HelloWorldAppCallFactory {
-  static hello(args: HelloArgsObj, params?: AppClientCallCoreParams & AppClientCompilationParams = {}): CallRequest<string, HelloArgsTuple>  {
+  static hello(args: HelloArgs, params: AppClientCallCoreParams & AppClientCompilationParams = {}): CallRequest<string, HelloArgs>  {
     return {
       method: 'hello(string)string',
-      methodArgs: [args.name], 
+      methodArgs: Array.isArray(args) ? args : [args.name],
+      ...params,
+    }
+  }
+  static helloWorldCheck(args: HelloWorldCheckArgs, params: AppClientCallCoreParams & AppClientCompilationParams = {}): CallRequest<void, HelloWorldCheckArgs>  {
+    return {
+      method: 'hello_world_check(string)void',
+      methodArgs: Array.isArray(args) ? args : [args.name],
       ...params,
     }
   }
@@ -99,6 +140,7 @@ export abstract class HelloWorldAppCallFactory {
 
 export class HelloWorldAppClient {
   public readonly appClient: ApplicationClient
+
   constructor(appDetails: AppDetails, algod: Algodv2) {
     this.appClient = algokit.getAppClient({
       ...appDetails,
@@ -106,7 +148,7 @@ export class HelloWorldAppClient {
     }, algod)
   }
 
-  public async call<TReturn>(params: CallRequest<TReturn, any>): Promise<CallResult<TReturn>> {
+  public async call<TReturn>(params: CallRequest<TReturn, any>): Promise<AppCallTransactionResultOfType<TReturn>> {
     const result = await this.appClient.call(params)
     if(result.return?.decodeError) {
       throw result.return.decodeError
@@ -114,7 +156,29 @@ export class HelloWorldAppClient {
     const returnValue = result.return?.returnValue as TReturn
     return { ...result, return: returnValue }
   }
-  public hello(args: HelloArgsObj, params?: AppClientCallCoreParams & AppClientCompilationParams) {
+
+  public hello(args: HelloArgs, params?: AppClientCallCoreParams & AppClientCompilationParams) {
     return this.call(HelloWorldAppCallFactory.hello(args, params))
   }
+
+  public helloWorldCheck(args: HelloWorldCheckArgs, params?: AppClientCallCoreParams & AppClientCompilationParams) {
+    return this.call(HelloWorldAppCallFactory.helloWorldCheck(args, params))
+  }
+
+  public deploy(args?: HelloWorldAppDeployArgs, params?: AppClientDeployCoreParams) {
+    return this.appClient.deploy({ ...args, ...params, })
+  }
+
+  public create(args?: HelloWorldAppCreateArgs, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
+    return this.appClient.create({ ...args, ...params, })
+  }
+
+  public update(args?: HelloWorldAppUpdateArgs, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
+    return this.appClient.update({ ...args, ...params, })
+  }
+
+  public delete(args?: HelloWorldAppDeleteArgs, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
+    return this.appClient.delete({ ...args, ...params, })
+  }
+
 }

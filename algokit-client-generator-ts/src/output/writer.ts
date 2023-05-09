@@ -2,6 +2,7 @@ import type fs from 'fs'
 
 export const IncIndent = Symbol('Increase Indent')
 export const DecIndent = Symbol('Decrease Indent')
+export const DecIndentAndCloseBlock = Symbol('Decrease Indent and write a closing brace')
 export const NewLineMode = Symbol('New Line Mode')
 export const RestoreLineMode = Symbol('Restore Line Mode')
 export const PropertyDelimiter = Symbol('Property Delimiter')
@@ -13,6 +14,7 @@ export type Part =
   | typeof IncIndent
   | typeof DecIndent
   | typeof NewLineMode
+  | typeof DecIndentAndCloseBlock
   | typeof InlineMode
   | typeof NewLine
   | typeof RestoreLineMode
@@ -96,6 +98,10 @@ function writeDocumentPartsTo(document: DocumentParts, { indent = '  ', ...optio
         break
       case DecIndent:
         curIndent = curIndent.slice(0, -indent.length)
+        break
+      case DecIndentAndCloseBlock:
+        curIndent = curIndent.slice(0, -indent.length)
+        writer.write(`${curIndent}}\n`)
         break
       case NewLineMode:
         lineModes.push(NewLineMode)

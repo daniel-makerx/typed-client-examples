@@ -39,30 +39,6 @@ export type HelloWorldCheckArgsObj = {
 export type HelloWorldCheckArgsTuple = [name: string]
 export type HelloWorldCheckArgs = HelloWorldCheckArgsObj | HelloWorldCheckArgsTuple
 
-export abstract class HelloWorldAppCallFactory {
-  static hello(
-    args: HelloArgs,
-    params: AppClientCallCoreParams & CoreAppCallArgs = {},
-  ): CallRequest<string, HelloArgsTuple> {
-    return {
-      method: 'hello(string)string',
-      methodArgs: Array.isArray(args) ? args : [args.name],
-      ...params,
-    }
-  }
-
-  static hello_world_check(
-    args: HelloWorldCheckArgs,
-    params: AppClientCallCoreParams & CoreAppCallArgs = {},
-  ): CallRequest<void, HelloWorldCheckArgsTuple> {
-    return {
-      method: 'hello_world_check(string)void',
-      methodArgs: Array.isArray(args) ? args : [args.name],
-      ...params,
-    }
-  }
-}
-
 export type HelloWorldCreateArgs = BareCallArgs
 export type HelloWorldUpdateArgs = BareCallArgs
 export type HelloWorldDeleteArgs = BareCallArgs
@@ -77,6 +53,31 @@ export type HelloWorldAppDeployArgs = {
   /** Any args to pass to any delete transaction that is issued as part of deployment */
   deleteArgs?: HelloWorldDeleteArgs & CoreAppCallArgs
 }
+
+export abstract class HelloWorldAppCallFactory {
+  static hello(
+    args: HelloArgs,
+    params: AppClientCallCoreParams & CoreAppCallArgs = {},
+  ): CallRequest<string, HelloArgsTuple> {
+    return {
+      method: 'hello(string)string',
+      methodArgs: Array.isArray(args) ? args : [args.name],
+      ...params,
+    }
+  }
+
+  static helloWorldCheck(
+    args: HelloWorldCheckArgs,
+    params: AppClientCallCoreParams & CoreAppCallArgs = {},
+  ): CallRequest<void, HelloWorldCheckArgsTuple> {
+    return {
+      method: 'hello_world_check(string)void',
+      methodArgs: Array.isArray(args) ? args : [args.name],
+      ...params,
+    }
+  }
+}
+
 
 /** A client to make calls to the HelloWorldApp smart contract */
 export class HelloWorldAppClient {
@@ -196,10 +197,10 @@ export class HelloWorldAppClient {
    * @param params Any additional parameters for the call
    * @returns The result of the call
    */
-  public async hello_world_check(
+  public async helloWorldCheck(
     args: HelloArgs,
     params: AppClientCallCoreParams & CoreAppCallArgs = {},
   ): Promise<AppCallTransactionResultOfType<void>> {
-    return this.call(HelloWorldAppCallFactory.hello_world_check(args, params))
+    return this.call(HelloWorldAppCallFactory.helloWorldCheck(args, params))
   }
 }

@@ -1,6 +1,6 @@
 import { algorandFixture } from '@algorandfoundation/algokit-utils/testing'
 import { beforeEach, describe, expect, test } from '@jest/globals'
-import { HelloWorldAppClient } from './client'
+import { HelloWorldAppClient } from './client.actual'
 
 describe('hello world typed client', () => {
   const localnet = algorandFixture()
@@ -25,7 +25,7 @@ describe('hello world typed client', () => {
     const response2 = await client.hello(['World!'])
     expect(response2.return).toBe('Hello, World!')
 
-    const response3 = await client.hello_world_check({ name: 'World' })
+    const response3 = await client.helloWorldCheck({ name: 'World' })
     expect(response3.return).toBe(undefined)
   })
 })

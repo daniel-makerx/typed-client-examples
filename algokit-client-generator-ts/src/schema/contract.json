@@ -46,6 +46,9 @@
             "$ref": "#/definitions/ContractMethodArg"
           }
         },
+        "desc": {
+          "type": "string"
+        },
         "returns": {
           "type": "object",
           "additionalProperties": false,
@@ -77,28 +80,8 @@
       }
     },
     "ABIType": {
-      "oneOf": [
-        {
-          "enum": [
-            "string[]",
-            "byte[]",
-            "uint64",
-            "uint64[]",
-            "uint8",
-            "uint8[]",
-            "bool[]",
-            "pay",
-            "address",
-            "account",
-            "asset",
-            "application"
-          ]
-        },
-        {
-          "description": "Catch all for fixed length arrays and tuples",
-          "type": "string"
-        }
-      ]
+      "description": "Catch all for fixed length arrays and tuples",
+      "type": "string"
     }
   }
 }
