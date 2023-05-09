@@ -4,6 +4,7 @@ from typing import cast
 import beaker
 import pyteal as pt
 from beaker.lib.iter import Iterate
+from beaker.lib.strings import Itoa
 
 from smart_contracts.helpers.deployment_standard import (
     deploy_time_immutability_control,
@@ -45,8 +46,7 @@ def create_1arg(greeting: pt.abi.String, *, output: pt.abi.String) -> pt.Expr:
     return pt.Seq(
         app.state.greeting.set(greeting.get()),
         app.state.times.set(pt.Int(1)),
-        output.set(pt.Concat(greeting.get(), pt.Bytes("_"), pt.Itob(app.state.times.get()))),
-        pt.Approve(),
+        output.set(pt.Concat(greeting.get(), pt.Bytes("_"), Itoa(app.state.times.get()))),
     )
 
 

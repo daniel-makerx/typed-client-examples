@@ -42,23 +42,21 @@ export type Create_2argArgsObj = {
 export type Create_2argArgsTuple = [greeting: string, times: number]
 export type Create_2argArgs = Create_2argArgsObj | Create_2argArgsTuple
 
-export type MethodSelector<TMethod extends string | undefined> = {
+export type MethodSelector<TMethod extends string> = {
   method: TMethod
 }
-export type BareMethodSelector = MethodSelector<undefined>
-
-export type LifeCycleAppCreateMethods = 'create_1' | 'create_2' | undefined
+export type LifeCycleAppCreateMethods = 'create_1' | 'create_2' | 'BARE'
 export type LifeCycleAppCreateReturn<TMethod extends LifeCycleAppCreateMethods> = TMethod extends 'create_1'
   ? string
   : TMethod extends 'create_2'
   ? void
-  : TMethod extends undefined
+  : TMethod extends 'BARE'
   ? undefined
   : never
 export type LifeCycleAppCreateArgs =
-  | (BareCallArgs & BareMethodSelector)
-  | (Create_1argArgs & MethodSelector<'create_1'>)
-  | (Create_2argArgs & MethodSelector<'create_2'>)
+  | (MethodSelector<'BARE'> & BareCallArgs)
+  | (MethodSelector<'create_1'> & Create_1argArgs)
+  | (MethodSelector<'create_2'> & Create_2argArgs)
 
 export type LifeCycleAppUpdateArgs = BareCallArgs
 
@@ -137,7 +135,7 @@ export class LifeCycleAppClient {
   }
 
   private getCreateArgs(createArgs: LifeCycleAppCreateArgs & CoreAppCallArgs): AppClientCallArgs {
-    if (!createArgs.method) {
+    if (createArgs.method === 'BARE') {
       return createArgs
     }
     switch (createArgs.method) {
