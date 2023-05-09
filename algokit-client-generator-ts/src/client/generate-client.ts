@@ -6,7 +6,7 @@ import {
   makeSafePropertyIdentifier,
   makeSafeTypeIdentifier,
   makeSafeVariableIdentifier,
-} from '../sanitization'
+} from '../util/sanitization'
 import { AlgoAppSpec, ContractMethod } from '../schema/application'
 
 export function* generateClient(app: AlgoAppSpec): DocumentParts {
@@ -48,6 +48,29 @@ function* deployTypes(app: AlgoAppSpec): DocumentParts {
   yield `deleteArgs?: ${name}DeleteArgs & CoreAppCallArgs`
   yield DecIndentAndCloseBlock
   yield NewLine
+}
+
+function getEquivalentType(abiType: string): string {
+  if (abiType.endsWith('[]')) return `${getEquivalentType(abiType.slice(0, -2))}[]`
+  // TODO: Improve this: current version is super dodgy, doesn't account for nested tuples
+  if (abiType.startsWith('(') && abiType.endsWith(')')) {
+    return `[${abiType.slice(1, -1).split(',').map(getEquivalentType).join(',')}]`
+  }
+
+  const uintRegex = /^uint(\d+)$/
+  const [isUint, size] = uintRegex.exec(abiType) ?? [false, 0]
+  if (isUint) {
+    if (Number(size) >= 51) return 'bigint'
+    return 'number'
+  }
+  switch (abiType) {
+    case 'byte':
+      return 'number'
+    case 'void':
+      return 'void'
+    default:
+      return 'string'
+  }
 }
 
 function* client(app: AlgoAppSpec): DocumentParts {
@@ -168,13 +191,13 @@ function* argTypes({ name, args }: ContractMethod): DocumentParts {
   yield `export type ${safeIdentifier}ArgsObj = {`
   yield IncIndent
   for (const arg of args) {
-    yield `'${makeSafePropertyIdentifier(arg.name)}': ${arg.type}`
+    yield `'${makeSafePropertyIdentifier(arg.name)}': ${getEquivalentType(arg.type)}`
   }
   yield DecIndent
   yield '}'
   yield* inline(
     `export type ${safeIdentifier}ArgsTuple = [`,
-    args.map((t) => `${makeSafeVariableIdentifier(t.name)}: ${t.type}`).join(','),
+    args.map((t) => `${makeSafeVariableIdentifier(t.name)}: ${getEquivalentType(t.type)}`).join(', '),
     ']',
   )
   yield `export type ${safeIdentifier}Args = ${safeIdentifier}ArgsObj | ${safeIdentifier}ArgsTuple`
@@ -193,9 +216,9 @@ function* callFactory(app: AlgoAppSpec): DocumentParts {
 function* callFactoryMethod(method: ContractMethod) {
   yield `static ${makeSafeMethodIdentifier(method.name)}(args: ${makeSafeTypeIdentifier(
     method.name,
-  )}Args, params: AppClientCallCoreParams & CoreAppCallArgs = {}): CallRequest<${method.returns?.type ?? 'void'}, ${makeSafeTypeIdentifier(
-    method.name,
-  )}ArgsTuple>  {`
+  )}Args, params: AppClientCallCoreParams & CoreAppCallArgs = {}): CallRequest<${getEquivalentType(
+    method.returns?.type ?? 'void',
+  )}, ${makeSafeTypeIdentifier(method.name)}ArgsTuple>  {`
   yield IncIndent
   yield `return {`
   yield IncIndent

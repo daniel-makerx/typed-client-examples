@@ -63,46 +63,22 @@ export interface AbiContract {
 }
 export interface ContractMethod {
   name: string;
-  desc?: string;
   args: ContractMethodArg[];
+  desc?: string;
   returns: {
     desc?: string;
-    type:
-      | (
-          | "string[]"
-          | "byte[]"
-          | "uint64"
-          | "uint64[]"
-          | "uint8"
-          | "uint8[]"
-          | "bool[]"
-          | "pay"
-          | "address"
-          | "account"
-          | "asset"
-          | "application"
-        )
-      | string;
+    /**
+     * Catch all for fixed length arrays and tuples
+     */
+    type: string;
   };
 }
 export interface ContractMethodArg {
   desc?: string;
-  type:
-    | (
-        | "string[]"
-        | "byte[]"
-        | "uint64"
-        | "uint64[]"
-        | "uint8"
-        | "uint8[]"
-        | "bool[]"
-        | "pay"
-        | "address"
-        | "account"
-        | "asset"
-        | "application"
-      )
-    | string;
+  /**
+   * Catch all for fixed length arrays and tuples
+   */
+  type: string;
   name: string;
 }
 /**
@@ -117,7 +93,7 @@ export interface Schema {
     [k: string]: DeclaredSchemaValueSpec;
   };
   reserved?: {
-    [k: string]: DeclaredSchemaValueSpec;
+    [k: string]: ReservedSchemaValueSpec;
   };
 }
 export interface DeclaredSchemaValueSpec {
@@ -136,7 +112,22 @@ export interface DeclaredSchemaValueSpec {
   /**
    * Whether the value is set statically (at create time only) or dynamically
    */
-  static: boolean;
+  static?: boolean;
+  [k: string]: unknown;
+}
+export interface ReservedSchemaValueSpec {
+  /**
+   * The type of the value
+   */
+  type: "uint64" | "bytes";
+  /**
+   * A description of the variable
+   */
+  desc?: string;
+  /**
+   * The maximum number of slots to reserve
+   */
+  max_keys?: number;
   [k: string]: unknown;
 }
 export interface StateSchemaSpec {

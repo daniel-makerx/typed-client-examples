@@ -1,10 +1,10 @@
-import { Command, Option } from 'commander'
+import { Command } from 'commander'
 import { load } from './schema/load'
 import * as path from 'path'
 import { generateClient } from './client/generate-client'
 import { writeDocumentPartsToStream } from './output/writer'
 import fs from 'fs'
-import { boom } from './boom'
+import { boom } from './util/boom'
 
 export function cli(workingDirectory: string, args: string[]) {
   const program = new Command()

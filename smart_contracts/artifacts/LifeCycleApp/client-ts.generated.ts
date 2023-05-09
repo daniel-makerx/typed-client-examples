@@ -143,9 +143,9 @@ export type Create_1argArgsTuple = [greeting: string]
 export type Create_1argArgs = Create_1argArgsObj | Create_1argArgsTuple
 export type Create_2argArgsObj = {
   'greeting': string
-  'times': uint32
+  'times': number
 }
-export type Create_2argArgsTuple = [greeting: string,times: uint32]
+export type Create_2argArgsTuple = [greeting: string, times: number]
 export type Create_2argArgs = Create_2argArgsObj | Create_2argArgsTuple
 
 export type LifeCycleAppCreateArgs = BareCallArgs

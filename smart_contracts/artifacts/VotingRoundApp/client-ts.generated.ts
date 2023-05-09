@@ -271,36 +271,36 @@ export type BareCallArgs = Omit<RawAppCallArgs, keyof CoreAppCallArgs>
 
 export type CreateArgsObj = {
   'vote_id': string
-  'snapshot_public_key': byte[]
+  'snapshot_public_key': number[]
   'metadata_ipfs_cid': string
-  'start_time': uint64
-  'end_time': uint64
-  'option_counts': uint8[]
-  'quorum': uint64
+  'start_time': bigint
+  'end_time': bigint
+  'option_counts': number[]
+  'quorum': bigint
   'nft_image_url': string
 }
-export type CreateArgsTuple = [vote_id: string,snapshot_public_key: byte[],metadata_ipfs_cid: string,start_time: uint64,end_time: uint64,option_counts: uint8[],quorum: uint64,nft_image_url: string]
+export type CreateArgsTuple = [vote_id: string, snapshot_public_key: number[], metadata_ipfs_cid: string, start_time: bigint, end_time: bigint, option_counts: number[], quorum: bigint, nft_image_url: string]
 export type CreateArgs = CreateArgsObj | CreateArgsTuple
 export type BootstrapArgsObj = {
-  'fund_min_bal_req': pay
+  'fund_min_bal_req': string
 }
-export type BootstrapArgsTuple = [fund_min_bal_req: pay]
+export type BootstrapArgsTuple = [fund_min_bal_req: string]
 export type BootstrapArgs = BootstrapArgsObj | BootstrapArgsTuple
 export type CloseArgsObj = {
 }
 export type CloseArgsTuple = []
 export type CloseArgs = CloseArgsObj | CloseArgsTuple
 export type GetPreconditionsArgsObj = {
-  'signature': byte[]
+  'signature': number[]
 }
-export type GetPreconditionsArgsTuple = [signature: byte[]]
+export type GetPreconditionsArgsTuple = [signature: number[]]
 export type GetPreconditionsArgs = GetPreconditionsArgsObj | GetPreconditionsArgsTuple
 export type VoteArgsObj = {
-  'fund_min_bal_req': pay
-  'signature': byte[]
-  'answer_ids': uint8[]
+  'fund_min_bal_req': string
+  'signature': number[]
+  'answer_ids': number[]
 }
-export type VoteArgsTuple = [fund_min_bal_req: pay,signature: byte[],answer_ids: uint8[]]
+export type VoteArgsTuple = [fund_min_bal_req: string, signature: number[], answer_ids: number[]]
 export type VoteArgs = VoteArgsObj | VoteArgsTuple
 
 export type VotingRoundAppCreateArgs = BareCallArgs
@@ -335,7 +335,7 @@ export abstract class VotingRoundAppCallFactory {
       ...params,
     }
   }
-  static getPreconditions(args: GetPreconditionsArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}): CallRequest<(uint64,uint64,uint64,uint64), GetPreconditionsArgsTuple>  {
+  static getPreconditions(args: GetPreconditionsArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}): CallRequest<[bigint,bigint,bigint,bigint], GetPreconditionsArgsTuple>  {
     return {
       method: 'get_preconditions(byte[])(uint64,uint64,uint64,uint64)',
       methodArgs: Array.isArray(args) ? args : [args.signature],

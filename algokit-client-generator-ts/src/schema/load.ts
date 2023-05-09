@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import { Schema, Validator } from 'jsonschema'
 import appJsonSchema from './application.json'
 import contractSchema from './contract.json'
-import { boom } from '../boom'
+import { boom } from '../util/boom'
 import { AlgoAppSpec } from './application'
 
 export function load(appJsonPath: string) {
