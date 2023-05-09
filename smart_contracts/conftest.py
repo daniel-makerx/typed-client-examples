@@ -1,7 +1,10 @@
+import uuid
 from pathlib import Path
 
 import pytest
 from algokit_utils import (
+    Account,
+    get_account,
     get_algod_client,
     get_indexer_client,
     is_localnet,
@@ -32,3 +35,9 @@ def indexer_client() -> IndexerClient:
     client = get_indexer_client()
 
     return client
+
+
+@pytest.fixture
+def new_account(algod_client: AlgodClient) -> Account:
+    unique_name = str(uuid.uuid4()).replace("-", "")
+    return get_account(algod_client, unique_name)
