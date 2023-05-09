@@ -2,7 +2,7 @@ import { algorandFixture } from '@algorandfoundation/algokit-utils/testing'
 import { beforeEach, describe, expect, test } from '@jest/globals'
 import invariant from 'tiny-invariant'
 import { expectType } from 'tsd'
-import { LifeCycleAppClient } from './client-ts'
+import { LifeCycleAppClient } from './client-ts.generated'
 
 describe('hello world typed client', () => {
   const localnet = algorandFixture()
@@ -24,7 +24,7 @@ describe('hello world typed client', () => {
   })
 
   test('create_bare', async () => {
-    const createResult = await client.create({ method: 'BARE' }, { updatable: true })
+    const createResult = await client.create({ method: undefined }, { updatable: true })
     expectType<undefined>(createResult.return)
 
     const response = await client.hello(['Bare'])
@@ -33,7 +33,7 @@ describe('hello world typed client', () => {
   })
 
   test('deploy_create_1arg', async () => {
-    const createResult = await client.deploy({ createArgs: { method: 'BARE' } })
+    const createResult = await client.deploy({ createArgs: { method: undefined } })
     invariant(createResult.operationPerformed === 'create')
     // The return in deploy isn't strongly typed since it's too complex to do
     expect(createResult.return?.returnValue).toBe(undefined)
@@ -44,7 +44,7 @@ describe('hello world typed client', () => {
   })
 
   test('create_1arg', async () => {
-    const createResult = await client.create({ method: 'create_1', greeting: 'greeting' }, { updatable: true })
+    const createResult = await client.create({ method: 'create_1arg', greeting: 'greeting' }, { updatable: true })
     expectType<string | undefined>(createResult.return)
     expect(createResult.return).toBe('greeting_1')
 
@@ -54,7 +54,7 @@ describe('hello world typed client', () => {
   })
 
   test('deploy_create_1arg', async () => {
-    const createResult = await client.deploy({ createArgs: { method: 'create_1', greeting: 'greeting' } })
+    const createResult = await client.deploy({ createArgs: { method: 'create_1arg', greeting: 'greeting' } })
     invariant(createResult.operationPerformed === 'create')
     // The return in deploy isn't strongly typed since it's too complex to do
     expect(createResult.return?.returnValue).toBe('greeting_1')
@@ -66,7 +66,7 @@ describe('hello world typed client', () => {
 
   test('create_2arg', async () => {
     const createResult = await client.create(
-      { method: 'create_2', greeting: 'Greetings', times: 2 },
+      { method: 'create_2arg', greeting: 'Greetings', times: 2 },
       { updatable: true },
     )
     expectType<void | undefined>(createResult.return)

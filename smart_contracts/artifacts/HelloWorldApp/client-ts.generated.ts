@@ -9,8 +9,10 @@ import {
   CoreAppCallArgs,
   RawAppCallArgs,
   TealTemplateParams,
+  AppCallTransactionResult,
 } from '@algorandfoundation/algokit-utils/types/app'
 import {
+  AppClientCallArgs,
   AppClientCallCoreParams,
   AppClientCompilationParams,
   AppClientDeployCoreParams,
@@ -95,19 +97,28 @@ export const APP_SPEC: AppSpec = {
   }
 }
 
-export type CallRequest<TReturn, TArgs = undefined> = {
-  method: string
+export type CallRequest<TSignature extends string, TArgs = undefined> = {
+  method: TSignature
   methodArgs: TArgs
 } & AppClientCallCoreParams & CoreAppCallArgs
 export type BareCallArgs = Omit<RawAppCallArgs, keyof CoreAppCallArgs>
 
+export type HelloWorldAppReturnTypes = {
+  'hello(string)string': string
+  'hello': string
+  'hello_world_check(string)void': void
+  'hello_world_check': void
+}
+export type HelloWorldAppReturnTypeFor<TSignatureOrMethod> = TSignatureOrMethod extends keyof HelloWorldAppReturnTypes
+  ? HelloWorldAppReturnTypes[TSignatureOrMethod]
+  : undefined
 export type HelloArgsObj = {
-  'name': string
+  name: string
 }
 export type HelloArgsTuple = [name: string]
 export type HelloArgs = HelloArgsObj | HelloArgsTuple
 export type HelloWorldCheckArgsObj = {
-  'name': string
+  name: string
 }
 export type HelloWorldCheckArgsTuple = [name: string]
 export type HelloWorldCheckArgs = HelloWorldCheckArgsObj | HelloWorldCheckArgsTuple
@@ -123,16 +134,16 @@ export type HelloWorldAppDeployArgs = {
 }
 
 export abstract class HelloWorldAppCallFactory {
-  static hello(args: HelloArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}): CallRequest<string, HelloArgsTuple>  {
+  static hello(args: HelloArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
     return {
-      method: 'hello(string)string',
+      method: 'hello(string)string' as const,
       methodArgs: Array.isArray(args) ? args : [args.name],
       ...params,
     }
   }
-  static helloWorldCheck(args: HelloWorldCheckArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}): CallRequest<void, HelloWorldCheckArgsTuple>  {
+  static helloWorldCheck(args: HelloWorldCheckArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
     return {
-      method: 'hello_world_check(string)void',
+      method: 'hello_world_check(string)void' as const,
       methodArgs: Array.isArray(args) ? args : [args.name],
       ...params,
     }
@@ -156,13 +167,17 @@ export class HelloWorldAppClient {
     }, algod)
   }
 
-  public async call<TReturn>(params: CallRequest<TReturn, any>): Promise<AppCallTransactionResultOfType<TReturn>> {
-    const result = await this.appClient.call(params)
+  public async mapReturnValue<TSignatureOrMethod extends string>(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult): Promise<AppCallTransactionResultOfType<HelloWorldAppReturnTypeFor<TSignatureOrMethod>>> {
+    const result = await resultPromise
     if(result.return?.decodeError) {
       throw result.return.decodeError
     }
-    const returnValue = result.return?.returnValue as TReturn
+    const returnValue = result.return?.returnValue as HelloWorldAppReturnTypeFor<TSignatureOrMethod>
     return { ...result, return: returnValue }
+  }
+
+  public call<TSignature extends string>(params: CallRequest<TSignature, any>) {
+    return this.mapReturnValue<TSignature>(this.appClient.call(params))
   }
 
   /**
@@ -180,7 +195,7 @@ export class HelloWorldAppClient {
    * @param params Any additional parameters for the call
    * @returns The creation result
    */
-  public create(args: HelloWorldAppCreateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
+  public create<TMethod extends string>(args: { method?: TMethod } & HelloWorldAppCreateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
     return this.appClient.create({ ...args, ...params, })
   }
 

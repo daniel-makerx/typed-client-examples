@@ -135,7 +135,7 @@ export class LifeCycleAppClient {
   }
 
   private getCreateArgs(createArgs: LifeCycleAppCreateArgs & CoreAppCallArgs): AppClientCallArgs {
-    if (createArgs.method === 'BARE') {
+    if (createArgs.method === undefined) {
       return createArgs
     }
     switch (createArgs.method) {

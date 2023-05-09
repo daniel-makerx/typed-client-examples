@@ -1,7 +1,7 @@
 import { Command } from 'commander'
 import { load } from './schema/load'
 import * as path from 'path'
-import { generateClient } from './client/generate-client'
+import { generate } from './client/generate'
 import { writeDocumentPartsToStream } from './output/writer'
 import fs from 'fs'
 import { boom } from './util/boom'
@@ -18,7 +18,7 @@ export function cli(workingDirectory: string, args: string[]) {
       if (!output) return boom('Please specify an output path for the client')
       const spec = load(path.resolve(workingDirectory, application))
 
-      const parts = generateClient(spec)
+      const parts = generate(spec)
 
       const file = fs.createWriteStream(path.resolve(workingDirectory, output), {
         flags: 'w',

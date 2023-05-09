@@ -9,8 +9,10 @@ import {
   CoreAppCallArgs,
   RawAppCallArgs,
   TealTemplateParams,
+  AppCallTransactionResult,
 } from '@algorandfoundation/algokit-utils/types/app'
 import {
+  AppClientCallArgs,
   AppClientCallCoreParams,
   AppClientCompilationParams,
   AppClientDeployCoreParams,
@@ -263,26 +265,41 @@ export const APP_SPEC: AppSpec = {
   }
 }
 
-export type CallRequest<TReturn, TArgs = undefined> = {
-  method: string
+export type CallRequest<TSignature extends string, TArgs = undefined> = {
+  method: TSignature
   methodArgs: TArgs
 } & AppClientCallCoreParams & CoreAppCallArgs
 export type BareCallArgs = Omit<RawAppCallArgs, keyof CoreAppCallArgs>
 
+export type VotingRoundAppReturnTypes = {
+  'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void': void
+  'create': void
+  'bootstrap(pay)void': void
+  'bootstrap': void
+  'close()void': void
+  'close': void
+  'get_preconditions(byte[])(uint64,uint64,uint64,uint64)': [bigint,bigint,bigint,bigint]
+  'get_preconditions': [bigint,bigint,bigint,bigint]
+  'vote(pay,byte[],uint8[])void': void
+  'vote': void
+}
+export type VotingRoundAppReturnTypeFor<TSignatureOrMethod> = TSignatureOrMethod extends keyof VotingRoundAppReturnTypes
+  ? VotingRoundAppReturnTypes[TSignatureOrMethod]
+  : undefined
 export type CreateArgsObj = {
-  'vote_id': string
-  'snapshot_public_key': number[]
-  'metadata_ipfs_cid': string
-  'start_time': bigint
-  'end_time': bigint
-  'option_counts': number[]
-  'quorum': bigint
-  'nft_image_url': string
+  vote_id: string
+  snapshot_public_key: number[]
+  metadata_ipfs_cid: string
+  start_time: bigint
+  end_time: bigint
+  option_counts: number[]
+  quorum: bigint
+  nft_image_url: string
 }
 export type CreateArgsTuple = [vote_id: string, snapshot_public_key: number[], metadata_ipfs_cid: string, start_time: bigint, end_time: bigint, option_counts: number[], quorum: bigint, nft_image_url: string]
 export type CreateArgs = CreateArgsObj | CreateArgsTuple
 export type BootstrapArgsObj = {
-  'fund_min_bal_req': string
+  fund_min_bal_req: string
 }
 export type BootstrapArgsTuple = [fund_min_bal_req: string]
 export type BootstrapArgs = BootstrapArgsObj | BootstrapArgsTuple
@@ -291,19 +308,20 @@ export type CloseArgsObj = {
 export type CloseArgsTuple = []
 export type CloseArgs = CloseArgsObj | CloseArgsTuple
 export type GetPreconditionsArgsObj = {
-  'signature': number[]
+  signature: number[]
 }
 export type GetPreconditionsArgsTuple = [signature: number[]]
 export type GetPreconditionsArgs = GetPreconditionsArgsObj | GetPreconditionsArgsTuple
 export type VoteArgsObj = {
-  'fund_min_bal_req': string
-  'signature': number[]
-  'answer_ids': number[]
+  fund_min_bal_req: string
+  signature: number[]
+  answer_ids: number[]
 }
 export type VoteArgsTuple = [fund_min_bal_req: string, signature: number[], answer_ids: number[]]
 export type VoteArgs = VoteArgsObj | VoteArgsTuple
 
 export type VotingRoundAppCreateArgs = BareCallArgs
+  | ({ method: 'create' } & CreateArgsObj)
 export type VotingRoundAppUpdateArgs = BareCallArgs
 export type VotingRoundAppDeleteArgs = BareCallArgs
 export type VotingRoundAppDeployArgs = {
@@ -314,38 +332,38 @@ export type VotingRoundAppDeployArgs = {
 }
 
 export abstract class VotingRoundAppCallFactory {
-  static create(args: CreateArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}): CallRequest<void, CreateArgsTuple>  {
+  static create(args: CreateArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
     return {
-      method: 'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void',
-      methodArgs: Array.isArray(args) ? args : [args.vote_id,args.snapshot_public_key,args.metadata_ipfs_cid,args.start_time,args.end_time,args.option_counts,args.quorum,args.nft_image_url],
+      method: 'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void' as const,
+      methodArgs: Array.isArray(args) ? args : [args.vote_id, args.snapshot_public_key, args.metadata_ipfs_cid, args.start_time, args.end_time, args.option_counts, args.quorum, args.nft_image_url],
       ...params,
     }
   }
-  static bootstrap(args: BootstrapArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}): CallRequest<void, BootstrapArgsTuple>  {
+  static bootstrap(args: BootstrapArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
     return {
-      method: 'bootstrap(pay)void',
+      method: 'bootstrap(pay)void' as const,
       methodArgs: Array.isArray(args) ? args : [args.fund_min_bal_req],
       ...params,
     }
   }
-  static close(args: CloseArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}): CallRequest<void, CloseArgsTuple>  {
+  static close(args: CloseArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
     return {
-      method: 'close()void',
+      method: 'close()void' as const,
       methodArgs: Array.isArray(args) ? args : [],
       ...params,
     }
   }
-  static getPreconditions(args: GetPreconditionsArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}): CallRequest<[bigint,bigint,bigint,bigint], GetPreconditionsArgsTuple>  {
+  static getPreconditions(args: GetPreconditionsArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
     return {
-      method: 'get_preconditions(byte[])(uint64,uint64,uint64,uint64)',
+      method: 'get_preconditions(byte[])(uint64,uint64,uint64,uint64)' as const,
       methodArgs: Array.isArray(args) ? args : [args.signature],
       ...params,
     }
   }
-  static vote(args: VoteArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}): CallRequest<void, VoteArgsTuple>  {
+  static vote(args: VoteArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
     return {
-      method: 'vote(pay,byte[],uint8[])void',
-      methodArgs: Array.isArray(args) ? args : [args.fund_min_bal_req,args.signature,args.answer_ids],
+      method: 'vote(pay,byte[],uint8[])void' as const,
+      methodArgs: Array.isArray(args) ? args : [args.fund_min_bal_req, args.signature, args.answer_ids],
       ...params,
     }
   }
@@ -368,13 +386,26 @@ export class VotingRoundAppClient {
     }, algod)
   }
 
-  public async call<TReturn>(params: CallRequest<TReturn, any>): Promise<AppCallTransactionResultOfType<TReturn>> {
-    const result = await this.appClient.call(params)
+  public async mapReturnValue<TSignatureOrMethod extends string>(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult): Promise<AppCallTransactionResultOfType<VotingRoundAppReturnTypeFor<TSignatureOrMethod>>> {
+    const result = await resultPromise
     if(result.return?.decodeError) {
       throw result.return.decodeError
     }
-    const returnValue = result.return?.returnValue as TReturn
+    const returnValue = result.return?.returnValue as VotingRoundAppReturnTypeFor<TSignatureOrMethod>
     return { ...result, return: returnValue }
+  }
+
+  public call<TSignature extends string>(params: CallRequest<TSignature, any>) {
+    return this.mapReturnValue<TSignature>(this.appClient.call(params))
+  }
+
+  private mapCreateArgs(args: VotingRoundAppCreateArgs & CoreAppCallArgs): AppClientCallArgs {
+    switch (args.method) {
+      case 'create':
+        return VotingRoundAppCallFactory.create(args)
+      default:
+        return args
+    }
   }
 
   /**
@@ -383,7 +414,7 @@ export class VotingRoundAppClient {
    * @returns The deployment result
    */
   public deploy(params: VotingRoundAppDeployArgs & AppClientDeployCoreParams = {}) {
-    return this.appClient.deploy({ ...params, })
+    return this.appClient.deploy({ ...params, createArgs: params.createArgs && this.mapCreateArgs(params.createArgs)})
   }
 
   /**
@@ -392,8 +423,8 @@ export class VotingRoundAppClient {
    * @param params Any additional parameters for the call
    * @returns The creation result
    */
-  public create(args: VotingRoundAppCreateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.appClient.create({ ...args, ...params, })
+  public create<TMethod extends string>(args: { method?: TMethod } & VotingRoundAppCreateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
+    return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapCreateArgs(args), ...params, }))
   }
 
   /**
@@ -414,17 +445,6 @@ export class VotingRoundAppClient {
    */
   public delete(args: VotingRoundAppDeleteArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
     return this.appClient.delete({ ...args, ...params, })
-  }
-
-  /**
-   * Calls the create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void ABI method.
-   *
-   * @param args The arguments for the ABI method
-   * @param params Any additional parameters for the call
-   * @returns The result of the call
-   */
-  public create(args: CreateArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-    return this.call(VotingRoundAppCallFactory.create(args, params))
   }
 
   /**

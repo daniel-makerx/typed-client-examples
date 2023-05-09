@@ -9,8 +9,10 @@ import {
   CoreAppCallArgs,
   RawAppCallArgs,
   TealTemplateParams,
+  AppCallTransactionResult,
 } from '@algorandfoundation/algokit-utils/types/app'
 import {
+  AppClientCallArgs,
   AppClientCallCoreParams,
   AppClientCompilationParams,
   AppClientDeployCoreParams,
@@ -126,30 +128,43 @@ export const APP_SPEC: AppSpec = {
   }
 }
 
-export type CallRequest<TReturn, TArgs = undefined> = {
-  method: string
+export type CallRequest<TSignature extends string, TArgs = undefined> = {
+  method: TSignature
   methodArgs: TArgs
 } & AppClientCallCoreParams & CoreAppCallArgs
 export type BareCallArgs = Omit<RawAppCallArgs, keyof CoreAppCallArgs>
 
+export type LifeCycleAppReturnTypes = {
+  'hello(string)string': string
+  'hello': string
+  'create_1arg(string)string': string
+  'create_1arg': string
+  'create_2arg(string,uint32)void': void
+  'create_2arg': void
+}
+export type LifeCycleAppReturnTypeFor<TSignatureOrMethod> = TSignatureOrMethod extends keyof LifeCycleAppReturnTypes
+  ? LifeCycleAppReturnTypes[TSignatureOrMethod]
+  : undefined
 export type HelloArgsObj = {
-  'name': string
+  name: string
 }
 export type HelloArgsTuple = [name: string]
 export type HelloArgs = HelloArgsObj | HelloArgsTuple
 export type Create_1argArgsObj = {
-  'greeting': string
+  greeting: string
 }
 export type Create_1argArgsTuple = [greeting: string]
 export type Create_1argArgs = Create_1argArgsObj | Create_1argArgsTuple
 export type Create_2argArgsObj = {
-  'greeting': string
-  'times': number
+  greeting: string
+  times: number
 }
 export type Create_2argArgsTuple = [greeting: string, times: number]
 export type Create_2argArgs = Create_2argArgsObj | Create_2argArgsTuple
 
 export type LifeCycleAppCreateArgs = BareCallArgs
+  | ({ method: 'create_1arg' } & Create_1argArgsObj)
+  | ({ method: 'create_2arg' } & Create_2argArgsObj)
 export type LifeCycleAppUpdateArgs = BareCallArgs
 export type LifeCycleAppDeleteArgs = BareCallArgs
 export type LifeCycleAppDeployArgs = {
@@ -160,24 +175,24 @@ export type LifeCycleAppDeployArgs = {
 }
 
 export abstract class LifeCycleAppCallFactory {
-  static hello(args: HelloArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}): CallRequest<string, HelloArgsTuple>  {
+  static hello(args: HelloArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
     return {
-      method: 'hello(string)string',
+      method: 'hello(string)string' as const,
       methodArgs: Array.isArray(args) ? args : [args.name],
       ...params,
     }
   }
-  static create_1arg(args: Create_1argArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}): CallRequest<string, Create_1argArgsTuple>  {
+  static create_1arg(args: Create_1argArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
     return {
-      method: 'create_1arg(string)string',
+      method: 'create_1arg(string)string' as const,
       methodArgs: Array.isArray(args) ? args : [args.greeting],
       ...params,
     }
   }
-  static create_2arg(args: Create_2argArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}): CallRequest<void, Create_2argArgsTuple>  {
+  static create_2arg(args: Create_2argArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
     return {
-      method: 'create_2arg(string,uint32)void',
-      methodArgs: Array.isArray(args) ? args : [args.greeting,args.times],
+      method: 'create_2arg(string,uint32)void' as const,
+      methodArgs: Array.isArray(args) ? args : [args.greeting, args.times],
       ...params,
     }
   }
@@ -200,13 +215,28 @@ export class LifeCycleAppClient {
     }, algod)
   }
 
-  public async call<TReturn>(params: CallRequest<TReturn, any>): Promise<AppCallTransactionResultOfType<TReturn>> {
-    const result = await this.appClient.call(params)
+  public async mapReturnValue<TSignatureOrMethod extends string>(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult): Promise<AppCallTransactionResultOfType<LifeCycleAppReturnTypeFor<TSignatureOrMethod>>> {
+    const result = await resultPromise
     if(result.return?.decodeError) {
       throw result.return.decodeError
     }
-    const returnValue = result.return?.returnValue as TReturn
+    const returnValue = result.return?.returnValue as LifeCycleAppReturnTypeFor<TSignatureOrMethod>
     return { ...result, return: returnValue }
+  }
+
+  public call<TSignature extends string>(params: CallRequest<TSignature, any>) {
+    return this.mapReturnValue<TSignature>(this.appClient.call(params))
+  }
+
+  private mapCreateArgs(args: LifeCycleAppCreateArgs & CoreAppCallArgs): AppClientCallArgs {
+    switch (args.method) {
+      case 'create_1arg':
+        return LifeCycleAppCallFactory.create_1arg(args)
+      case 'create_2arg':
+        return LifeCycleAppCallFactory.create_2arg(args)
+      default:
+        return args
+    }
   }
 
   /**
@@ -215,7 +245,7 @@ export class LifeCycleAppClient {
    * @returns The deployment result
    */
   public deploy(params: LifeCycleAppDeployArgs & AppClientDeployCoreParams = {}) {
-    return this.appClient.deploy({ ...params, })
+    return this.appClient.deploy({ ...params, createArgs: params.createArgs && this.mapCreateArgs(params.createArgs)})
   }
 
   /**
@@ -224,8 +254,8 @@ export class LifeCycleAppClient {
    * @param params Any additional parameters for the call
    * @returns The creation result
    */
-  public create(args: LifeCycleAppCreateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.appClient.create({ ...args, ...params, })
+  public create<TMethod extends string>(args: { method?: TMethod } & LifeCycleAppCreateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
+    return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapCreateArgs(args), ...params, }))
   }
 
   /**
@@ -257,32 +287,6 @@ export class LifeCycleAppClient {
    */
   public hello(args: HelloArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
     return this.call(LifeCycleAppCallFactory.hello(args, params))
-  }
-
-  /**
-   * ABI create method with 1 argument
-   *
-   * Calls the create_1arg(string)string ABI method.
-   *
-   * @param args The arguments for the ABI method
-   * @param params Any additional parameters for the call
-   * @returns The result of the call
-   */
-  public create_1arg(args: Create_1argArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-    return this.call(LifeCycleAppCallFactory.create_1arg(args, params))
-  }
-
-  /**
-   * ABI create method with 2 arguments
-   *
-   * Calls the create_2arg(string,uint32)void ABI method.
-   *
-   * @param args The arguments for the ABI method
-   * @param params Any additional parameters for the call
-   * @returns The result of the call
-   */
-  public create_2arg(args: Create_2argArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-    return this.call(LifeCycleAppCallFactory.create_2arg(args, params))
   }
 
 }
