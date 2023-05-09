@@ -101,6 +101,14 @@ class HelloWorldAppClient:
         name: str,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[str]:
+        """Returns Hello, {name}
+
+        Calls the hello(name) ABI method, using OnComplete = NoOp.
+
+        :params str name:
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return str: The result of the call
+        """
         args = HelloArgs(name=name)
 
         # call is used because the ABI method call config for hello is no_op
