@@ -45,7 +45,7 @@ def create_1arg(greeting: pt.abi.String, *, output: pt.abi.String) -> pt.Expr:
     return pt.Seq(
         app.state.greeting.set(greeting.get()),
         app.state.times.set(pt.Int(1)),
-        output.set(pt.Concat(greeting.get(), pt.Bytes("_"), app.state.times.get())),
+        output.set(pt.Concat(greeting.get(), pt.Bytes("_"), pt.Itob(app.state.times.get()))),
         pt.Approve(),
     )
 

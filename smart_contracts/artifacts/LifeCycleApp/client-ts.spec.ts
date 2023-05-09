@@ -17,7 +17,7 @@ describe('hello world typed client', () => {
       },
       algod,
     )
-    const x = await client.create({ method: 'create_1', greeting: 'a' })
+    const x = await client.create({ method: 'create_1', greeting: 'a' }, { updatable: true })
     x.return // This should be string, not unknown
 
     const response = await client.hello({ name: 'World' })

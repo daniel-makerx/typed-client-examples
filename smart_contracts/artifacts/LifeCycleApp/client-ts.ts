@@ -42,17 +42,28 @@ export type Create_2argArgsObj = {
 export type Create_2argArgsTuple = [greeting: string, times: number]
 export type Create_2argArgs = Create_2argArgsObj | Create_2argArgsTuple
 
-export type MethodSelector<TMethod extends string | undefined, TResult> = {
+export type MethodSelector<TMethod extends string | undefined> = {
   method: TMethod
 }
-export type BareMethodSelector = MethodSelector<undefined, undefined>
+export type BareMethodSelector = MethodSelector<undefined>
 
+export type LifeCycleAppCreateMethods = 'create_1' | 'create_2' | undefined
+export type LifeCycleAppCreateReturn<TMethod extends LifeCycleAppCreateMethods> = TMethod extends 'create_1'
+  ? string
+  : TMethod extends 'create_2'
+  ? void
+  : TMethod extends undefined
+  ? undefined
+  : never
 export type LifeCycleAppCreateArgs =
   | (BareCallArgs & BareMethodSelector)
-  | (Create_1argArgs & MethodSelector<'create_1', string>)
-  | (Create_2argArgs & MethodSelector<'create_2', void>)
+  | (Create_1argArgs & MethodSelector<'create_1'>)
+  | (Create_2argArgs & MethodSelector<'create_2'>)
+
 export type LifeCycleAppUpdateArgs = BareCallArgs
+
 export type LifeCycleAppDeleteArgs = undefined
+
 export type LifeCycleAppDeployArgs = {
   deployTimeParams?: TealTemplateParams
   createArgs: LifeCycleAppCreateArgs & CoreAppCallArgs
@@ -152,8 +163,8 @@ export class LifeCycleAppClient {
    * @param params Any additional parameters for the call
    * @returns The creation result
    */
-  public async create<TMethod extends string, TReturn>(
-    args: LifeCycleAppCreateArgs & MethodSelector<TMethod, TReturn>,
+  public async create<TMethod extends LifeCycleAppCreateMethods, TReturn extends LifeCycleAppCreateReturn<TMethod>>(
+    args: LifeCycleAppCreateArgs & MethodSelector<TMethod>,
     params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs,
   ) {
     const call = this.getCreateArgs(args)

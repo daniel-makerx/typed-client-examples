@@ -22,8 +22,9 @@
                 }
             ],
             "returns": {
-                "type": "void"
-            }
+                "type": "string"
+            },
+            "desc": "ABI create method with 1 argument"
         },
         {
             "name": "create_2arg",
@@ -39,7 +40,8 @@
             ],
             "returns": {
                 "type": "void"
-            }
+            },
+            "desc": "ABI create method with 2 arguments"
         }
     ],
     "networks": {}
