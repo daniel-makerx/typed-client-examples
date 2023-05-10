@@ -18,5 +18,5 @@ import {
   ApplicationClient,
 } from '@algorandfoundation/algokit-utils/types/app-client'
 import { AppSpec } from '@algorandfoundation/algokit-utils/types/app-spec'
-import { Algodv2 } from 'algosdk'`
+import { Algodv2, TransactionWithSigner } from 'algosdk'`
 }

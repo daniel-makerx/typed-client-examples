@@ -1,26 +1,63 @@
-export function getEquivalentType(abiType: string): string {
-  if (abiType.endsWith('[]')) {
-    return `${getEquivalentType(abiType.slice(0, -2))}[]`
-  }
-  // TODO: Improve this: current version is super dodgy, doesn't account for nested tuples
-  if (abiType.startsWith('(') && abiType.endsWith(')')) {
-    return `[${abiType.slice(1, -1).split(',').map(getEquivalentType).join(',')}]`
-  }
+import {
+  ABIType,
+  ABIUintType,
+  ABIArrayDynamicType,
+  ABIArrayStaticType,
+  ABIAddressType,
+  ABIBoolType,
+  ABIUfixedType,
+  ABITupleType,
+  ABIByteType,
+  ABIStringType,
+} from 'algosdk'
 
-  const uintRegex = /^uint(\d+)$/
-  const [isUint, size] = uintRegex.exec(abiType) ?? [false, 0]
-  if (isUint) {
-    if (Number(size) >= 51) {
-      return 'bigint'
-    }
-    return 'number'
-  }
-  switch (abiType) {
-    case 'byte':
-      return 'number'
+export function getEquivalentType(abiTypeStr: string): string {
+  switch (abiTypeStr) {
     case 'void':
       return 'void'
-    default:
+    case 'txn':
+    case 'pay':
+    case 'keyreg':
+    case 'acfg':
+    case 'axfer':
+    case 'afrz':
+    case 'appl':
+      return 'TransactionWithSigner'
+  }
+
+  const abiType = ABIType.from(abiTypeStr)
+
+  return abiTypeToTs(abiType)
+
+  function abiTypeToTs(abiType: ABIType): string {
+    if (abiType instanceof ABIUintType) {
+      if (abiType.bitSize <= 51) return 'number'
+      return 'bigint'
+    }
+    if (abiType instanceof ABIArrayDynamicType) {
+      return `${abiTypeToTs(abiType.childType)}[]`
+    }
+    if (abiType instanceof ABIArrayStaticType) {
+      return `[${new Array(abiType.staticLength).fill(abiTypeToTs(abiType.childType)).join(', ')}]`
+    }
+    if (abiType instanceof ABIAddressType) {
       return 'string'
+    }
+    if (abiType instanceof ABIBoolType) {
+      return 'boolean'
+    }
+    if (abiType instanceof ABIUfixedType) {
+      return 'number'
+    }
+    if (abiType instanceof ABITupleType) {
+      return `[${abiType.childTypes.map(abiTypeToTs).join(', ')}]`
+    }
+    if (abiType instanceof ABIByteType) {
+      return 'Uint8Array'
+    }
+    if (abiType instanceof ABIStringType) {
+      return 'string'
+    }
+    return 'unknown'
   }
 }

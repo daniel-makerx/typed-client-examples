@@ -20,7 +20,7 @@ import {
   ApplicationClient,
 } from '@algorandfoundation/algokit-utils/types/app-client'
 import { AppSpec } from '@algorandfoundation/algokit-utils/types/app-spec'
-import { Algodv2 } from 'algosdk'
+import { Algodv2, TransactionWithSigner } from 'algosdk'
 export const APP_SPEC: AppSpec = {
   "hints": {
     "create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void": {
@@ -278,8 +278,8 @@ export type VotingRoundAppReturnTypes = {
   'bootstrap': void
   'close()void': void
   'close': void
-  'get_preconditions(byte[])(uint64,uint64,uint64,uint64)': [bigint,bigint,bigint,bigint]
-  'get_preconditions': [bigint,bigint,bigint,bigint]
+  'get_preconditions(byte[])(uint64,uint64,uint64,uint64)': [bigint, bigint, bigint, bigint]
+  'get_preconditions': [bigint, bigint, bigint, bigint]
   'vote(pay,byte[],uint8[])void': void
   'vote': void
 }
@@ -288,7 +288,7 @@ export type VotingRoundAppReturnTypeFor<TSignatureOrMethod> = TSignatureOrMethod
   : undefined
 export type CreateArgsObj = {
   vote_id: string
-  snapshot_public_key: number[]
+  snapshot_public_key: Uint8Array[]
   metadata_ipfs_cid: string
   start_time: bigint
   end_time: bigint
@@ -296,28 +296,28 @@ export type CreateArgsObj = {
   quorum: bigint
   nft_image_url: string
 }
-export type CreateArgsTuple = [vote_id: string, snapshot_public_key: number[], metadata_ipfs_cid: string, start_time: bigint, end_time: bigint, option_counts: number[], quorum: bigint, nft_image_url: string]
+export type CreateArgsTuple = [vote_id: string, snapshot_public_key: Uint8Array[], metadata_ipfs_cid: string, start_time: bigint, end_time: bigint, option_counts: number[], quorum: bigint, nft_image_url: string]
 export type CreateArgs = CreateArgsObj | CreateArgsTuple
 export type BootstrapArgsObj = {
-  fund_min_bal_req: string
+  fund_min_bal_req: TransactionWithSigner
 }
-export type BootstrapArgsTuple = [fund_min_bal_req: string]
+export type BootstrapArgsTuple = [fund_min_bal_req: TransactionWithSigner]
 export type BootstrapArgs = BootstrapArgsObj | BootstrapArgsTuple
 export type CloseArgsObj = {
 }
 export type CloseArgsTuple = []
 export type CloseArgs = CloseArgsObj | CloseArgsTuple
 export type GetPreconditionsArgsObj = {
-  signature: number[]
+  signature: Uint8Array[]
 }
-export type GetPreconditionsArgsTuple = [signature: number[]]
+export type GetPreconditionsArgsTuple = [signature: Uint8Array[]]
 export type GetPreconditionsArgs = GetPreconditionsArgsObj | GetPreconditionsArgsTuple
 export type VoteArgsObj = {
-  fund_min_bal_req: string
-  signature: number[]
+  fund_min_bal_req: TransactionWithSigner
+  signature: Uint8Array[]
   answer_ids: number[]
 }
-export type VoteArgsTuple = [fund_min_bal_req: string, signature: number[], answer_ids: number[]]
+export type VoteArgsTuple = [fund_min_bal_req: TransactionWithSigner, signature: Uint8Array[], answer_ids: number[]]
 export type VoteArgs = VoteArgsObj | VoteArgsTuple
 
 export type VotingRoundAppCreateArgs = BareCallArgs
