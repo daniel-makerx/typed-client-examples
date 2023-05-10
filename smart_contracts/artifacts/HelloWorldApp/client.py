@@ -1,14 +1,24 @@
 import dataclasses
 import pathlib
-from typing import Any, TypeVar, cast, overload
+from abc import ABC, abstractmethod
+from typing import Any, Generic, TypeVar, cast, overload
 
 import algokit_utils
 import algosdk
 from algosdk.atomic_transaction_composer import TransactionSigner
 
+TReturn = TypeVar("TReturn")
+
+
+class ArgsBase(ABC, Generic[TReturn]):
+    @staticmethod
+    @abstractmethod
+    def method() -> str:
+        ...
+
 
 @dataclasses.dataclass(kw_only=True)
-class HelloArgs:
+class HelloArgs(ArgsBase[str]):
     name: str
 
     @staticmethod
@@ -17,7 +27,7 @@ class HelloArgs:
 
 
 @dataclasses.dataclass(kw_only=True)
-class HelloCheckArgs:
+class HelloCheckArgs(ArgsBase[None]):
     name: str
 
     @staticmethod

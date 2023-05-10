@@ -1,20 +1,24 @@
 import dataclasses
 import pathlib
-from typing import Any, Generic, Protocol, TypeVar, cast, overload
+from abc import ABC, abstractmethod
+from typing import Any, Generic, TypeVar, cast, overload
 
 import algokit_utils
 import algosdk
 from algosdk.atomic_transaction_composer import TransactionSigner
 
+TReturn = TypeVar("TReturn")
 
-class TypedABIArgs(Protocol):
+
+class ArgsBase(ABC, Generic[TReturn]):
     @staticmethod
+    @abstractmethod
     def method() -> str:
         ...
 
 
 @dataclasses.dataclass(kw_only=True)
-class HelloArgs:
+class HelloArgs(ArgsBase[str]):
     name: str
 
     @staticmethod
@@ -23,16 +27,16 @@ class HelloArgs:
 
 
 @dataclasses.dataclass(kw_only=True)
-class Create1Arg:
+class Create1Arg(ArgsBase[str]):
     greeting: str
 
     @staticmethod
     def method() -> str:
-        return "create_1arg(string)void"
+        return "create_1arg(string)string"
 
 
 @dataclasses.dataclass(kw_only=True)
-class Create2Arg:
+class Create2Arg(ArgsBase[None]):
     greeting: str
     times: int
 
@@ -41,7 +45,7 @@ class Create2Arg:
         return "create_2arg(string,uint32)void"
 
 
-TArgs = TypeVar("TArgs", bound=TypedABIArgs)
+TArgs = TypeVar("TArgs", bound=ArgsBase)
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -174,12 +178,45 @@ class LifeCycleAppClient:
             **as_dict(args),
         )
 
+    @overload
     def create(  # from $.bare_call_config.no_op == 'CREATE'
         self,
         *,
-        args: Create1Arg | Create2Arg | None,  # 2 ABI methods and 1 bare method
+        args: None,
         transaction_parameters: algokit_utils.CreateTransactionParameters | None = None,
     ) -> algokit_utils.TransactionResponse:
+        ...
+
+    @overload
+    def create(  # from $.contract.methods[name="create_1arg"] and
+        # $.hints["create_1arg(str)str"].call_config.no_op == 'CREATE'
+        self,
+        *,
+        args: Create1Arg,
+        transaction_parameters: algokit_utils.CreateTransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[str]:  # TODO: get from Create1Arg
+        ...
+
+    @overload
+    def create(  # from $.contract.methods[name="create_2arg"] and
+        # $.hints["create_2arg(str, uint32)void"].call_config.no_op == 'CREATE'
+        self,
+        *,
+        args: Create2Arg,
+        transaction_parameters: algokit_utils.CreateTransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[None]:  # TODO: get from Create2Arg
+        ...
+
+    def create(
+        self,
+        *,
+        args: Create1Arg | Create2Arg | None,
+        transaction_parameters: algokit_utils.CreateTransactionParameters | None = None,
+    ) -> (
+        algokit_utils.TransactionResponse
+        | algokit_utils.ABITransactionResponse[str]
+        | algokit_utils.ABITransactionResponse[None]
+    ):
         return self.app_client.create(
             call_abi_method=False if args is None else args.method(),
             transaction_parameters=convert_create(transaction_parameters),

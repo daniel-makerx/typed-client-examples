@@ -69,7 +69,7 @@ def test_bootstrap(algod_client: AlgodClient, created_voting_client: VotingRound
         amt=200_000 + 1_000 + 2_500 + 400 * (1 + 8 * TOTAL_OPTION_COUNTS),
         note=b"Bootstrap payment",
         sp=algod_client.suggested_params(),
-    )  # type: ignore[no-untyped-call]
+    )
     payment_with_signer = TransactionWithSigner(payment, created_voting_client.app_client.signer)
 
     created_voting_client.bootstrap(fund_min_bal_req=payment_with_signer, transaction_parameters=parameters)
