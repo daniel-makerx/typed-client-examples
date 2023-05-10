@@ -123,9 +123,12 @@ export type HelloWorldCheckArgsObj = {
 export type HelloWorldCheckArgsTuple = [name: string]
 export type HelloWorldCheckArgs = HelloWorldCheckArgsObj | HelloWorldCheckArgsTuple
 
-export type HelloWorldAppCreateArgs = BareCallArgs
-export type HelloWorldAppUpdateArgs = BareCallArgs
-export type HelloWorldAppDeleteArgs = BareCallArgs
+export type HelloWorldAppCreateArgs =
+  | BareCallArgs
+export type HelloWorldAppUpdateArgs =
+  | BareCallArgs
+export type HelloWorldAppDeleteArgs =
+  | BareCallArgs
 export type HelloWorldAppDeployArgs = {
   deployTimeParams?: TealTemplateParams
   createArgs?: HelloWorldAppCreateArgs & CoreAppCallArgs
@@ -186,7 +189,9 @@ export class HelloWorldAppClient {
    * @returns The deployment result
    */
   public deploy(params: HelloWorldAppDeployArgs & AppClientDeployCoreParams = {}) {
-    return this.appClient.deploy({ ...params, })
+    return this.appClient.deploy({ 
+      ...params,
+    })
   }
 
   /**
@@ -205,8 +210,8 @@ export class HelloWorldAppClient {
    * @param params Any additional parameters for the call
    * @returns The update result
    */
-  public update(args: HelloWorldAppUpdateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.appClient.update({ ...args, ...params, })
+  public update<TMethod extends string>(args: { method?: TMethod } & HelloWorldAppUpdateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
+    return this.appClient.create({ ...args, ...params, })
   }
 
   /**
@@ -215,8 +220,8 @@ export class HelloWorldAppClient {
    * @param params Any additional parameters for the call
    * @returns The deletion result
    */
-  public delete(args: HelloWorldAppDeleteArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.appClient.delete({ ...args, ...params, })
+  public delete<TMethod extends string>(args: { method?: TMethod } & HelloWorldAppDeleteArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
+    return this.appClient.create({ ...args, ...params, })
   }
 
   /**

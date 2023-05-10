@@ -3,9 +3,10 @@ import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, indent, in
 import { makeSafeMethodIdentifier, makeSafeTypeIdentifier } from '../util/sanitization'
 import * as algokit from '@algorandfoundation/algokit-utils'
 import { extractMethodNameFromSignature } from './helpers/extract-method-name-from-signature'
-import { getCreateMethods } from './helpers/get-create-methods'
+import { BARE_CALL, CallConfigSummary } from './helpers/get-call-config-summary'
+import { notFalsy } from '../util/not-falsy'
 
-export function* callClient(app: AlgoAppSpec): DocumentParts {
+export function* callClient(app: AlgoAppSpec, callConfig: CallConfigSummary): DocumentParts {
   const name = makeSafeTypeIdentifier(app.contract.name)
 
   yield `/** A client to make calls to the ${app.contract.name} smart contract */`
@@ -49,22 +50,28 @@ export function* callClient(app: AlgoAppSpec): DocumentParts {
   yield DecIndentAndCloseBlock
   yield NewLine
 
-  yield* deployMethods(app)
-  yield* clientCallMethods(app)
+  yield* deployMethods(app, callConfig)
+  yield* clientCallMethods(app, callConfig)
   yield DecIndentAndCloseBlock
 }
 
-function* deployMethods(app: AlgoAppSpec): DocumentParts {
+function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): DocumentParts {
   const name = makeSafeTypeIdentifier(app.contract.name)
+  const createUpdateDeleteMethods = callConfig.createMethods.concat(callConfig.updateMethods).concat(callConfig.deleteMethods)
 
-  const createMethods = getCreateMethods(app)
+  if (createUpdateDeleteMethods.some((m) => m !== BARE_CALL)) {
+    const args = [
+      callConfig.createMethods.length && `${name}CreateArgs`,
+      callConfig.updateMethods.length && `${name}UpdateArgs`,
+      callConfig.deleteMethods.length && `${name}DeleteArgs`,
+    ].filter(notFalsy)
 
-  if (createMethods?.length) {
-    yield `private mapCreateArgs(args: ${name}CreateArgs & CoreAppCallArgs): AppClientCallArgs {`
+    yield `private mapMethodArgs(args: ${args.join(' | ')}): AppClientCallArgs {`
     yield IncIndent
     yield `switch (args.method) {`
     yield IncIndent
-    for (const [methodSignature] of createMethods) {
+    for (const methodSignature of createUpdateDeleteMethods) {
+      if (methodSignature == BARE_CALL) continue
       const methodName = extractMethodNameFromSignature(methodSignature)
       yield `case '${methodName}':`
       yield* indent(`return ${makeSafeTypeIdentifier(app.contract.name)}CallFactory.${makeSafeMethodIdentifier(methodName)}(args)`)
@@ -82,64 +89,75 @@ function* deployMethods(app: AlgoAppSpec): DocumentParts {
   yield ` */`
   yield `public deploy(params: ${name}DeployArgs & AppClientDeployCoreParams = {}) {`
   yield IncIndent
-  if (createMethods?.length) {
-    yield `return this.appClient.deploy({ ...params, createArgs: params.createArgs && this.mapCreateArgs(params.createArgs)})`
-  } else {
-    yield `return this.appClient.deploy({ ...params, })`
+  yield `return this.appClient.deploy({ `
+  yield IncIndent
+  yield `...params,`
+  if (callConfig.createMethods.some((m) => m !== BARE_CALL)) yield `createArgs: params.createArgs && this.mapMethodArgs(params.createArgs),`
+  if (callConfig.updateMethods.some((m) => m !== BARE_CALL)) yield `updateArgs: params.updateArgs && this.mapMethodArgs(params.updateArgs),`
+  if (callConfig.deleteMethods.some((m) => m !== BARE_CALL)) yield `deleteArgs: params.deleteArgs && this.mapMethodArgs(params.deleteArgs),`
+  yield DecIndent
+  yield `})`
+  yield DecIndentAndCloseBlock
+  yield NewLine
+  if (callConfig.createMethods.length) {
+    yield `/**`
+    yield ` * Creates a new instance of the ${app.contract.name} smart contract.`
+    yield ` * @param args The arguments for the contract call`
+    yield ` * @param params Any additional parameters for the call`
+    yield ` * @returns The creation result`
+    yield ` */`
+    yield `public create<TMethod extends string>(args: { method?: TMethod } & ${name}CreateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
+    yield IncIndent
+    if (callConfig.createMethods.some((m) => m !== BARE_CALL)) {
+      yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))`
+    } else {
+      yield `return this.appClient.create({ ...args, ...params, })`
+    }
+    yield DecIndentAndCloseBlock
+    yield NewLine
   }
-  yield DecIndentAndCloseBlock
-  yield NewLine
-
-  yield `/**`
-  yield ` * Creates a new instance of the ${app.contract.name} smart contract.`
-  yield ` * @param args The arguments for the contract call`
-  yield ` * @param params Any additional parameters for the call`
-  yield ` * @returns The creation result`
-  yield ` */`
-  yield `public create<TMethod extends string>(args: { method?: TMethod } & ${name}CreateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
-  yield IncIndent
-  if (createMethods?.length) {
-    yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapCreateArgs(args), ...params, }))`
-  } else {
-    yield `return this.appClient.create({ ...args, ...params, })`
+  if (callConfig.updateMethods.length) {
+    yield `/**`
+    yield ` * Updates an existing instance of the ${app.contract.name} smart contract.`
+    yield ` * @param args The arguments for the contract call`
+    yield ` * @param params Any additional parameters for the call`
+    yield ` * @returns The update result`
+    yield ` */`
+    yield `public update<TMethod extends string>(args: { method?: TMethod } & ${name}UpdateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
+    yield IncIndent
+    if (callConfig.updateMethods.some((m) => m !== BARE_CALL)) {
+      yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))`
+    } else {
+      yield `return this.appClient.create({ ...args, ...params, })`
+    }
+    yield DecIndentAndCloseBlock
+    yield NewLine
   }
-  yield DecIndentAndCloseBlock
-  yield NewLine
 
-  yield `/**`
-  yield ` * Updates an existing instance of the ${app.contract.name} smart contract.`
-  yield ` * @param args The arguments for the contract call`
-  yield ` * @param params Any additional parameters for the call`
-  yield ` * @returns The update result`
-  yield ` */`
-  yield `public update(args: ${name}UpdateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
-  yield IncIndent
-  yield `return this.appClient.update({ ...args, ...params, })`
-  yield DecIndentAndCloseBlock
-  yield NewLine
-
-  yield `/**`
-  yield ` * Deletes an existing instance of the ${app.contract.name} smart contract.`
-  yield ` * @param args The arguments for the contract call`
-  yield ` * @param params Any additional parameters for the call`
-  yield ` * @returns The deletion result`
-  yield ` */`
-  yield `public delete(args: ${name}DeleteArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
-  yield IncIndent
-  yield `return this.appClient.delete({ ...args, ...params, })`
-  yield DecIndentAndCloseBlock
-  yield NewLine
+  if (callConfig.deleteMethods.length) {
+    yield `/**`
+    yield ` * Deletes an existing instance of the ${app.contract.name} smart contract.`
+    yield ` * @param args The arguments for the contract call`
+    yield ` * @param params Any additional parameters for the call`
+    yield ` * @returns The deletion result`
+    yield ` */`
+    yield `public delete<TMethod extends string>(args: { method?: TMethod } & ${name}DeleteArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
+    yield IncIndent
+    if (callConfig.deleteMethods.some((m) => m !== BARE_CALL)) {
+      yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))`
+    } else {
+      yield `return this.appClient.create({ ...args, ...params, })`
+    }
+    yield DecIndentAndCloseBlock
+    yield NewLine
+  }
 }
 
-function getMethodHint(hints: undefined | AlgoAppSpec['hints'], methodName: string): Hint | undefined {
-  return hints && Object.entries(hints).find(([methodSignature]) => extractMethodNameFromSignature(methodSignature) === methodName)?.[1]
-}
-
-function* clientCallMethods(app: AlgoAppSpec): DocumentParts {
+function* clientCallMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): DocumentParts {
   for (const method of app.contract.methods) {
-    const methodHint = getMethodHint(app.hints, method.name)
-    // Skip create only methods as they will be covered by the deploy methods
-    if (methodHint?.call_config?.no_op === 'CREATE') continue
+    const methodSignature = algokit.getABIMethodSignature(method)
+    // Skip methods which don't support a no_op call config
+    if (!callConfig.callMethods.includes(methodSignature)) continue
     yield `/**`
     if (method.desc) {
       yield ` * ${method.desc}`

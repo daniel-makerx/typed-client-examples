@@ -288,7 +288,7 @@ export type VotingRoundAppReturnTypeFor<TSignatureOrMethod> = TSignatureOrMethod
   : undefined
 export type CreateArgsObj = {
   vote_id: string
-  snapshot_public_key: Uint8Array[]
+  snapshot_public_key: Uint8Array
   metadata_ipfs_cid: string
   start_time: bigint
   end_time: bigint
@@ -296,7 +296,7 @@ export type CreateArgsObj = {
   quorum: bigint
   nft_image_url: string
 }
-export type CreateArgsTuple = [vote_id: string, snapshot_public_key: Uint8Array[], metadata_ipfs_cid: string, start_time: bigint, end_time: bigint, option_counts: number[], quorum: bigint, nft_image_url: string]
+export type CreateArgsTuple = [vote_id: string, snapshot_public_key: Uint8Array, metadata_ipfs_cid: string, start_time: bigint, end_time: bigint, option_counts: number[], quorum: bigint, nft_image_url: string]
 export type CreateArgs = CreateArgsObj | CreateArgsTuple
 export type BootstrapArgsObj = {
   fund_min_bal_req: TransactionWithSigner
@@ -308,26 +308,25 @@ export type CloseArgsObj = {
 export type CloseArgsTuple = []
 export type CloseArgs = CloseArgsObj | CloseArgsTuple
 export type GetPreconditionsArgsObj = {
-  signature: Uint8Array[]
+  signature: Uint8Array
 }
-export type GetPreconditionsArgsTuple = [signature: Uint8Array[]]
+export type GetPreconditionsArgsTuple = [signature: Uint8Array]
 export type GetPreconditionsArgs = GetPreconditionsArgsObj | GetPreconditionsArgsTuple
 export type VoteArgsObj = {
   fund_min_bal_req: TransactionWithSigner
-  signature: Uint8Array[]
+  signature: Uint8Array
   answer_ids: number[]
 }
-export type VoteArgsTuple = [fund_min_bal_req: TransactionWithSigner, signature: Uint8Array[], answer_ids: number[]]
+export type VoteArgsTuple = [fund_min_bal_req: TransactionWithSigner, signature: Uint8Array, answer_ids: number[]]
 export type VoteArgs = VoteArgsObj | VoteArgsTuple
 
-export type VotingRoundAppCreateArgs = BareCallArgs
+export type VotingRoundAppCreateArgs =
   | ({ method: 'create' } & CreateArgsObj)
-export type VotingRoundAppUpdateArgs = BareCallArgs
-export type VotingRoundAppDeleteArgs = BareCallArgs
+export type VotingRoundAppDeleteArgs =
+  | BareCallArgs
 export type VotingRoundAppDeployArgs = {
   deployTimeParams?: TealTemplateParams
   createArgs?: VotingRoundAppCreateArgs & CoreAppCallArgs
-  updateArgs?: VotingRoundAppUpdateArgs & CoreAppCallArgs
   deleteArgs?: VotingRoundAppDeleteArgs & CoreAppCallArgs
 }
 
@@ -399,7 +398,7 @@ export class VotingRoundAppClient {
     return this.mapReturnValue<TSignature>(this.appClient.call(params))
   }
 
-  private mapCreateArgs(args: VotingRoundAppCreateArgs & CoreAppCallArgs): AppClientCallArgs {
+  private mapMethodArgs(args: VotingRoundAppCreateArgs | VotingRoundAppDeleteArgs): AppClientCallArgs {
     switch (args.method) {
       case 'create':
         return VotingRoundAppCallFactory.create(args)
@@ -414,7 +413,10 @@ export class VotingRoundAppClient {
    * @returns The deployment result
    */
   public deploy(params: VotingRoundAppDeployArgs & AppClientDeployCoreParams = {}) {
-    return this.appClient.deploy({ ...params, createArgs: params.createArgs && this.mapCreateArgs(params.createArgs)})
+    return this.appClient.deploy({ 
+      ...params,
+      createArgs: params.createArgs && this.mapMethodArgs(params.createArgs),
+    })
   }
 
   /**
@@ -424,17 +426,7 @@ export class VotingRoundAppClient {
    * @returns The creation result
    */
   public create<TMethod extends string>(args: { method?: TMethod } & VotingRoundAppCreateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapCreateArgs(args), ...params, }))
-  }
-
-  /**
-   * Updates an existing instance of the VotingRoundApp smart contract.
-   * @param args The arguments for the contract call
-   * @param params Any additional parameters for the call
-   * @returns The update result
-   */
-  public update(args: VotingRoundAppUpdateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.appClient.update({ ...args, ...params, })
+    return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))
   }
 
   /**
@@ -443,8 +435,8 @@ export class VotingRoundAppClient {
    * @param params Any additional parameters for the call
    * @returns The deletion result
    */
-  public delete(args: VotingRoundAppDeleteArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.appClient.delete({ ...args, ...params, })
+  public delete<TMethod extends string>(args: { method?: TMethod } & VotingRoundAppDeleteArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
+    return this.appClient.create({ ...args, ...params, })
   }
 
   /**

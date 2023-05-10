@@ -162,16 +162,16 @@ export type Create_2argArgsObj = {
 export type Create_2argArgsTuple = [greeting: string, times: number]
 export type Create_2argArgs = Create_2argArgsObj | Create_2argArgsTuple
 
-export type LifeCycleAppCreateArgs = BareCallArgs
+export type LifeCycleAppCreateArgs =
+  | BareCallArgs
   | ({ method: 'create_1arg' } & Create_1argArgsObj)
   | ({ method: 'create_2arg' } & Create_2argArgsObj)
-export type LifeCycleAppUpdateArgs = BareCallArgs
-export type LifeCycleAppDeleteArgs = BareCallArgs
+export type LifeCycleAppUpdateArgs =
+  | BareCallArgs
 export type LifeCycleAppDeployArgs = {
   deployTimeParams?: TealTemplateParams
   createArgs?: LifeCycleAppCreateArgs & CoreAppCallArgs
   updateArgs?: LifeCycleAppUpdateArgs & CoreAppCallArgs
-  deleteArgs?: LifeCycleAppDeleteArgs & CoreAppCallArgs
 }
 
 export abstract class LifeCycleAppCallFactory {
@@ -228,7 +228,7 @@ export class LifeCycleAppClient {
     return this.mapReturnValue<TSignature>(this.appClient.call(params))
   }
 
-  private mapCreateArgs(args: LifeCycleAppCreateArgs & CoreAppCallArgs): AppClientCallArgs {
+  private mapMethodArgs(args: LifeCycleAppCreateArgs | LifeCycleAppUpdateArgs): AppClientCallArgs {
     switch (args.method) {
       case 'create_1arg':
         return LifeCycleAppCallFactory.create_1arg(args)
@@ -245,7 +245,10 @@ export class LifeCycleAppClient {
    * @returns The deployment result
    */
   public deploy(params: LifeCycleAppDeployArgs & AppClientDeployCoreParams = {}) {
-    return this.appClient.deploy({ ...params, createArgs: params.createArgs && this.mapCreateArgs(params.createArgs)})
+    return this.appClient.deploy({ 
+      ...params,
+      createArgs: params.createArgs && this.mapMethodArgs(params.createArgs),
+    })
   }
 
   /**
@@ -255,7 +258,7 @@ export class LifeCycleAppClient {
    * @returns The creation result
    */
   public create<TMethod extends string>(args: { method?: TMethod } & LifeCycleAppCreateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapCreateArgs(args), ...params, }))
+    return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))
   }
 
   /**
@@ -264,18 +267,8 @@ export class LifeCycleAppClient {
    * @param params Any additional parameters for the call
    * @returns The update result
    */
-  public update(args: LifeCycleAppUpdateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.appClient.update({ ...args, ...params, })
-  }
-
-  /**
-   * Deletes an existing instance of the LifeCycleApp smart contract.
-   * @param args The arguments for the contract call
-   * @param params Any additional parameters for the call
-   * @returns The deletion result
-   */
-  public delete(args: LifeCycleAppDeleteArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.appClient.delete({ ...args, ...params, })
+  public update<TMethod extends string>(args: { method?: TMethod } & LifeCycleAppUpdateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
+    return this.appClient.create({ ...args, ...params, })
   }
 
   /**

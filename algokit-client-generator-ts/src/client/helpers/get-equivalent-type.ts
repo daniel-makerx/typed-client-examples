@@ -35,9 +35,11 @@ export function getEquivalentType(abiTypeStr: string): string {
       return 'bigint'
     }
     if (abiType instanceof ABIArrayDynamicType) {
+      if (abiType.childType instanceof ABIByteType) return 'Uint8Array'
       return `${abiTypeToTs(abiType.childType)}[]`
     }
     if (abiType instanceof ABIArrayStaticType) {
+      if (abiType.childType instanceof ABIByteType) return 'Uint8Array'
       return `[${new Array(abiType.staticLength).fill(abiTypeToTs(abiType.childType)).join(', ')}]`
     }
     if (abiType instanceof ABIAddressType) {
@@ -53,7 +55,7 @@ export function getEquivalentType(abiTypeStr: string): string {
       return `[${abiType.childTypes.map(abiTypeToTs).join(', ')}]`
     }
     if (abiType instanceof ABIByteType) {
-      return 'Uint8Array'
+      return 'number'
     }
     if (abiType instanceof ABIStringType) {
       return 'string'

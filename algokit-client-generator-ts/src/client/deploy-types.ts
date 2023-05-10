@@ -2,35 +2,58 @@ import { AlgoAppSpec } from '../schema/application'
 import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, NewLine } from '../output/writer'
 import { makeSafeTypeIdentifier } from '../util/sanitization'
 import { extractMethodNameFromSignature } from './helpers/extract-method-name-from-signature'
-import { getCreateMethods } from './helpers/get-create-methods'
+import { BARE_CALL, CallConfigSummary } from './helpers/get-call-config-summary'
 
-export function* deployTypes(app: AlgoAppSpec): DocumentParts {
+export function* deployTypes(app: AlgoAppSpec, callConfig: CallConfigSummary): DocumentParts {
   const name = makeSafeTypeIdentifier(app.contract.name)
 
-  const createMethods = getCreateMethods(app)
-  if (createMethods?.length) {
-    // Multiple create methods
-    yield `export type ${name}CreateArgs = BareCallArgs`
+  if (callConfig.createMethods.length > 0) {
+    yield `export type ${name}CreateArgs =`
     yield IncIndent
-    for (const [methodSignature] of createMethods) {
-      const methodName = extractMethodNameFromSignature(methodSignature)
-      yield `| ({ method: '${methodName}' } & ${makeSafeTypeIdentifier(methodName)}ArgsObj)`
+    for (const method of callConfig.createMethods) {
+      if (method === BARE_CALL) {
+        yield `| BareCallArgs`
+      } else {
+        const methodName = extractMethodNameFromSignature(method)
+        yield `| ({ method: '${methodName}' } & ${makeSafeTypeIdentifier(methodName)}ArgsObj)`
+      }
     }
-
     yield DecIndent
-  } else {
-    // Only bare create
-    yield `export type ${name}CreateArgs = BareCallArgs`
+  }
+  if (callConfig.updateMethods.length > 0) {
+    yield `export type ${name}UpdateArgs =`
+    yield IncIndent
+    for (const method of callConfig.updateMethods) {
+      if (method === BARE_CALL) {
+        yield `| BareCallArgs`
+      } else {
+        const methodName = extractMethodNameFromSignature(method)
+        yield `| ({ method: '${methodName}' } & ${makeSafeTypeIdentifier(methodName)}ArgsObj)`
+      }
+    }
+    yield DecIndent
   }
 
-  yield `export type ${name}UpdateArgs = BareCallArgs`
-  yield `export type ${name}DeleteArgs = BareCallArgs`
+  if (callConfig.deleteMethods.length > 0) {
+    yield `export type ${name}DeleteArgs =`
+    yield IncIndent
+    for (const method of callConfig.deleteMethods) {
+      if (method === BARE_CALL) {
+        yield `| BareCallArgs`
+      } else {
+        const methodName = extractMethodNameFromSignature(method)
+        yield `| ({ method: '${methodName}' } & ${makeSafeTypeIdentifier(methodName)}ArgsObj)`
+      }
+    }
+    yield DecIndent
+  }
+
   yield `export type ${name}DeployArgs = {`
   yield IncIndent
   yield `deployTimeParams?: TealTemplateParams`
-  yield `createArgs?: ${name}CreateArgs & CoreAppCallArgs`
-  yield `updateArgs?: ${name}UpdateArgs & CoreAppCallArgs`
-  yield `deleteArgs?: ${name}DeleteArgs & CoreAppCallArgs`
+  if (callConfig.createMethods.length) yield `createArgs?: ${name}CreateArgs & CoreAppCallArgs`
+  if (callConfig.updateMethods.length) yield `updateArgs?: ${name}UpdateArgs & CoreAppCallArgs`
+  if (callConfig.deleteMethods.length) yield `deleteArgs?: ${name}DeleteArgs & CoreAppCallArgs`
   yield DecIndentAndCloseBlock
   yield NewLine
 }

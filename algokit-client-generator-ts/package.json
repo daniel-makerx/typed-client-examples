@@ -15,6 +15,7 @@
     "dev:helloworld": "ts-node src/index.ts generate -a ../smart_contracts/artifacts/HelloWorldApp/application.json -o ../smart_contracts/artifacts/HelloWorldApp/client-ts.generated.ts",
     "dev:lifecycle": "ts-node src/index.ts generate -a ../smart_contracts/artifacts/LifeCycleApp/application.json -o ../smart_contracts/artifacts/LifeCycleApp/client-ts.generated.ts",
     "dev:voting": "ts-node src/index.ts generate -a ../smart_contracts/artifacts/VotingRoundApp/application.json -o ../smart_contracts/artifacts/VotingRoundApp/client-ts.generated.ts",
+    "dev:testing-app": "ts-node src/index.ts generate -a ../smart_contracts/artifacts/TestingApp/application.json -o ../smart_contracts/artifacts/TestingApp/client-ts.generated.ts",
     "format": "prettier --write .",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
