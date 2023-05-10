@@ -1,6 +1,6 @@
 import dataclasses
 import pathlib
-from typing import cast, overload
+from typing import Any, TypeVar, cast, overload
 
 import algokit_utils
 import algosdk
@@ -16,6 +16,26 @@ class HelloArgs:
         return "hello(string)string"
 
 
+@dataclasses.dataclass(kw_only=True)
+class HelloCheckArgs:
+    name: str
+
+    @staticmethod
+    def method() -> str:
+        return "hello_world_check(string)void"
+
+
+T = TypeVar("T")
+
+
+def as_dict(data: T | None) -> dict[str, Any]:
+    if data is None:
+        return {}
+    if not dataclasses.is_dataclass(data):
+        raise TypeError(f"{data} must be a dataclass")
+    return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}
+
+
 def convert(
     transaction_parameters: algokit_utils.TransactionParameters | None,
 ) -> algokit_utils.CommonCallParametersDict | None:
@@ -23,7 +43,7 @@ def convert(
         return None
     # safe to cast this as the fields in TransactionParameters
     # are a subset of allowed keys in CommonCallParametersDict
-    return cast(algokit_utils.CommonCallParametersDict, transaction_parameters.__dict__.copy())
+    return cast(algokit_utils.CommonCallParametersDict, as_dict(transaction_parameters))
 
 
 def convert_create(
@@ -33,7 +53,7 @@ def convert_create(
         return None
     # safe to cast this as the fields in CreateTransactionParameters
     # are a subset of allowed keys in CreateCallParametersDict
-    return cast(algokit_utils.CreateCallParametersDict, transaction_parameters.__dict__.copy())
+    return cast(algokit_utils.CreateCallParametersDict, as_dict(transaction_parameters))
 
 
 class HelloWorldAppClient:
@@ -116,7 +136,31 @@ class HelloWorldAppClient:
         return self.app_client.call(
             call_abi_method=args.method(),
             transaction_parameters=convert(transaction_parameters),
-            **args.__dict__,
+            **as_dict(args),
+        )
+
+    def hello_check_args(  # from $.contract.methods[name="hello_check_args"]
+        self,
+        *,
+        name: str,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[None]:
+        """Asserts {name} is "World"
+
+        Calls the hello_check_args(name) ABI method, using OnComplete = NoOp.
+
+        :params str name:
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return str: The result of the call
+        """
+        args = HelloCheckArgs(name=name)
+
+        # call is used because the ABI method call config for hello is no_op
+        # from $.hints["hello(string)string""].call_config
+        return self.app_client.call(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
         )
 
     def create(  # from $.bare_call_config.no_op == 'CREATE'

@@ -1,7 +1,5 @@
 import pytest
-from algokit_utils import (
-    get_localnet_default_account,
-)
+from algokit_utils import OnUpdate, get_localnet_default_account
 from algosdk.atomic_transaction_composer import AccountTransactionSigner
 from algosdk.v2client.algod import AlgodClient
 from algosdk.v2client.indexer import IndexerClient
@@ -16,14 +14,20 @@ def helloworld_client(algod_client: AlgodClient, indexer_client: IndexerClient) 
         indexer_client=indexer_client,
         creator=get_localnet_default_account(algod_client),
     )
-    client.deploy(allow_delete=True, allow_update=True)
+    client.deploy(allow_delete=True, allow_update=True, on_update=OnUpdate.UpdateApp)
     return client
 
 
-def test_says_hello(helloworld_client: HelloWorldAppClient) -> None:
+def test_hello(helloworld_client: HelloWorldAppClient) -> None:
     response = helloworld_client.hello(name="World")
 
     assert response.return_value == "Hello, World"
+
+
+def test_hello_check_args(helloworld_client: HelloWorldAppClient) -> None:
+    response = helloworld_client.hello_check_args(name="World")
+
+    assert response.return_value is None
 
 
 def test_lifecycle(algod_client: AlgodClient) -> None:
