@@ -401,6 +401,8 @@ export type TestingAppUpdateArgs =
 export type TestingAppDeleteArgs =
   | BareCallArgs
   | ({ method: 'delete_abi' } & DeleteAbiArgsObj)
+export type TestingAppOptInArgs =
+  | ({ method: 'opt_in' } & OptInArgsObj)
 export type TestingAppDeployArgs = {
   deployTimeParams?: TealTemplateParams
   createArgs?: TestingAppCreateArgs & CoreAppCallArgs
@@ -511,7 +513,7 @@ export class TestingAppClient {
     return this.mapReturnValue<TSignature>(this.appClient.call(params))
   }
 
-  private mapMethodArgs(args: TestingAppCreateArgs | TestingAppUpdateArgs | TestingAppDeleteArgs): AppClientCallArgs {
+  private mapMethodArgs(args: TestingAppCreateArgs | TestingAppUpdateArgs | TestingAppDeleteArgs | TestingAppOptInArgs): AppClientCallArgs {
     switch (args.method) {
       case 'create_abi':
         return TestingAppCallFactory.createAbi(args)
@@ -519,6 +521,8 @@ export class TestingAppClient {
         return TestingAppCallFactory.updateAbi(args)
       case 'delete_abi':
         return TestingAppCallFactory.deleteAbi(args)
+      case 'opt_in':
+        return TestingAppCallFactory.optIn(args)
       default:
         return args
     }
@@ -565,6 +569,16 @@ export class TestingAppClient {
    * @returns The deletion result
    */
   public delete<TMethod extends string>(args: { method?: TMethod } & TestingAppDeleteArgs = {}, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))
+  }
+
+  /**
+   * Opts the user into an existing instance of the TestingApp smart contract.
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The opt in result
+   */
+  public optIn<TMethod extends string>(args: { method?: TMethod } & TestingAppOptInArgs, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
     return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))
   }
 

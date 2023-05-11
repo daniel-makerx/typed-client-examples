@@ -1,13 +1,13 @@
-import * as algokit from '@algorandfoundation/algokit-utils'
 import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, indent, inline, NewLine } from '../output/writer'
-import { AlgoAppSpec } from '../schema/application'
+import * as algokit from '@algorandfoundation/algokit-utils'
 import { notFalsy } from '../util/not-falsy'
 import { makeSafeMethodIdentifier, makeSafeTypeIdentifier } from '../util/sanitization'
 import { extractMethodNameFromSignature } from './helpers/extract-method-name-from-signature'
-import { BARE_CALL, CallConfigSummary } from './helpers/get-call-config-summary'
+import { BARE_CALL } from './helpers/get-call-config-summary'
+import { GeneratorContext } from './generator-context'
 
-export function* callClient(app: AlgoAppSpec, callConfig: CallConfigSummary): DocumentParts {
-  const name = makeSafeTypeIdentifier(app.contract.name)
+export function* callClient(ctx: GeneratorContext): DocumentParts {
+  const { app, name } = ctx
 
   yield `/** A client to make calls to the ${app.contract.name} smart contract */`
   yield `export class ${makeSafeTypeIdentifier(app.contract.name)}Client {`
@@ -50,28 +50,35 @@ export function* callClient(app: AlgoAppSpec, callConfig: CallConfigSummary): Do
   yield DecIndentAndCloseBlock
   yield NewLine
 
-  yield* deployMethods(app, callConfig)
-  yield* clientCallMethods(app, callConfig)
+  yield* methodArgMapper(ctx)
+  yield* deployMethods(ctx)
+  yield* optInMethod(ctx)
+  yield* clientCallMethods(ctx)
+
   yield DecIndentAndCloseBlock
 }
 
-function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): DocumentParts {
-  const name = makeSafeTypeIdentifier(app.contract.name)
-  const createUpdateDeleteMethods = callConfig.createMethods.concat(callConfig.updateMethods).concat(callConfig.deleteMethods)
+function* methodArgMapper({ app, callConfig, name }: GeneratorContext): DocumentParts {
+  const mappableMethods = [
+    ...callConfig.createMethods,
+    ...callConfig.updateMethods,
+    ...callConfig.deleteMethods,
+    ...callConfig.optInMethods,
+  ].filter((m): m is string => m !== BARE_CALL)
 
-  if (createUpdateDeleteMethods.some((m) => m !== BARE_CALL)) {
+  if (mappableMethods.length) {
     const args = [
       callConfig.createMethods.length && `${name}CreateArgs`,
       callConfig.updateMethods.length && `${name}UpdateArgs`,
       callConfig.deleteMethods.length && `${name}DeleteArgs`,
+      callConfig.optInMethods.length && `${name}OptInArgs`,
     ].filter(notFalsy)
 
     yield `private mapMethodArgs(args: ${args.join(' | ')}): AppClientCallArgs {`
     yield IncIndent
     yield `switch (args.method) {`
     yield IncIndent
-    for (const methodSignature of createUpdateDeleteMethods) {
-      if (methodSignature == BARE_CALL) continue
+    for (const methodSignature of mappableMethods) {
       const methodName = extractMethodNameFromSignature(methodSignature)
       yield `case '${methodName}':`
       yield* indent(`return ${makeSafeTypeIdentifier(app.contract.name)}CallFactory.${makeSafeMethodIdentifier(methodName)}(args)`)
@@ -82,6 +89,9 @@ function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): Docume
     yield DecIndentAndCloseBlock
     yield NewLine
   }
+}
+
+function* deployMethods({ app, callConfig, name }: GeneratorContext): DocumentParts {
   yield `/**`
   yield ` * Idempotently deploys the ${app.contract.name} smart contract.`
   yield ` * @param params The arguments for the contract calls and any additional parameters for the call`
@@ -159,7 +169,29 @@ function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): Docume
   }
 }
 
-function* clientCallMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): DocumentParts {
+function* optInMethod({ app, name, callConfig }: GeneratorContext): DocumentParts {
+  if (callConfig.optInMethods.length) {
+    yield `/**`
+    yield ` * Opts the user into an existing instance of the ${app.contract.name} smart contract.`
+    yield ` * @param args The arguments for the contract call`
+    yield ` * @param params Any additional parameters for the call`
+    yield ` * @returns The opt in result`
+    yield ` */`
+    yield `public optIn<TMethod extends string>(args: { method?: TMethod } & ${name}OptInArgs${
+      callConfig.optInMethods.some((m) => m === BARE_CALL) ? ' = {}' : ''
+    }, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
+    yield IncIndent
+    if (callConfig.optInMethods.some((m) => m !== BARE_CALL)) {
+      yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))`
+    } else {
+      yield `return this.appClient.create({ ...args, ...params, })`
+    }
+    yield DecIndentAndCloseBlock
+    yield NewLine
+  }
+}
+
+function* clientCallMethods({ app, name, callConfig }: GeneratorContext): DocumentParts {
   for (const method of app.contract.methods) {
     const methodSignature = algokit.getABIMethodSignature(method)
     // Skip methods which don't support a no_op call config
@@ -179,7 +211,7 @@ function* clientCallMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): Do
       method.name,
     )}Args, params?: AppClientCallCoreParams & CoreAppCallArgs) {`
     yield IncIndent
-    yield `return this.call(${makeSafeTypeIdentifier(app.contract.name)}CallFactory.${makeSafeMethodIdentifier(method.name)}(args, params))`
+    yield `return this.call(${name}CallFactory.${makeSafeMethodIdentifier(method.name)}(args, params))`
     yield DecIndent
     yield '}'
     yield NewLine

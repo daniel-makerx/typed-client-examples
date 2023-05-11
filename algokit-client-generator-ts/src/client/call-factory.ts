@@ -1,4 +1,4 @@
-import { AlgoAppSpec, ContractMethod } from '../schema/application'
+import { ContractMethod } from '../schema/application'
 import { DecIndent, DocumentParts, IncIndent } from '../output/writer'
 import {
   isSafeVariableIdentifier,
@@ -7,8 +7,9 @@ import {
   makeSafeTypeIdentifier,
 } from '../util/sanitization'
 import * as algokit from '@algorandfoundation/algokit-utils'
+import { GeneratorContext } from './generator-context'
 
-export function* callFactory(app: AlgoAppSpec): DocumentParts {
+export function* callFactory({ app }: GeneratorContext): DocumentParts {
   yield `export abstract class ${makeSafeTypeIdentifier(app.contract.name)}CallFactory {`
   yield IncIndent
   for (const method of app.contract.methods) {

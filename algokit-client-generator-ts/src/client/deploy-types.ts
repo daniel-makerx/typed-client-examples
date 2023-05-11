@@ -1,10 +1,10 @@
-import { AlgoAppSpec } from '../schema/application'
 import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, NewLine } from '../output/writer'
 import { makeSafeTypeIdentifier } from '../util/sanitization'
 import { extractMethodNameFromSignature } from './helpers/extract-method-name-from-signature'
-import { BARE_CALL, CallConfigSummary } from './helpers/get-call-config-summary'
+import { BARE_CALL } from './helpers/get-call-config-summary'
+import { GeneratorContext } from './generator-context'
 
-export function* deployTypes(app: AlgoAppSpec, callConfig: CallConfigSummary): DocumentParts {
+export function* deployTypes({ app, callConfig }: GeneratorContext): DocumentParts {
   const name = makeSafeTypeIdentifier(app.contract.name)
 
   if (callConfig.createMethods.length > 0) {
@@ -38,6 +38,20 @@ export function* deployTypes(app: AlgoAppSpec, callConfig: CallConfigSummary): D
     yield `export type ${name}DeleteArgs =`
     yield IncIndent
     for (const method of callConfig.deleteMethods) {
+      if (method === BARE_CALL) {
+        yield `| BareCallArgs`
+      } else {
+        const methodName = extractMethodNameFromSignature(method)
+        yield `| ({ method: '${methodName}' } & ${makeSafeTypeIdentifier(methodName)}ArgsObj)`
+      }
+    }
+    yield DecIndent
+  }
+
+  if (callConfig.optInMethods.length > 0) {
+    yield `export type ${name}OptInArgs =`
+    yield IncIndent
+    for (const method of callConfig.optInMethods) {
       if (method === BARE_CALL) {
         yield `| BareCallArgs`
       } else {
