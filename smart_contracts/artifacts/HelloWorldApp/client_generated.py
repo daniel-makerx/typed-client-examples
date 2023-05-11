@@ -19,7 +19,7 @@ class ArgsBase(ABC, Generic[TReturn]):
 
 
 @dataclasses.dataclass(kw_only=True)
-class helloArgs(ArgsBase[str]):
+class HelloArgs(ArgsBase[str]):
     """Returns Hello, {name}"""
     name: str
 
@@ -30,7 +30,7 @@ class helloArgs(ArgsBase[str]):
 
 
 @dataclasses.dataclass(kw_only=True)
-class hello_world_checkArgs(ArgsBase[None]):
+class HelloWorldCheckArgs(ArgsBase[None]):
     """Asserts {name} is "World" """
     name: str
 
@@ -202,3 +202,30 @@ class HelloWorldAppClient:
             suggested_params=suggested_params,
             template_values=template_values,
         )
+
+    def hello(
+        self,
+        *,
+        name: str,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> str:
+        args = HelloArgs(name=name,)
+        return self.app_client.call(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
+        )
+
+    def hello_world_check(
+        self,
+        *,
+        name: str,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> None:
+        args = HelloWorldCheckArgs(name=name,)
+        return self.app_client.call(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
+        )
+
