@@ -1,7 +1,5 @@
 import { AlgoAppSpec, CallConfig, CallConfigValue } from '../../schema/application'
-import config from '../../../jest.config'
 
-export type OnCompletion = 'no_op' | 'opt_in' | 'close_out' | 'clear_state' | 'update_application' | 'delete_application'
 export const BARE_CALL = Symbol('bare')
 
 export type MethodIdentifier = string | typeof BARE_CALL
