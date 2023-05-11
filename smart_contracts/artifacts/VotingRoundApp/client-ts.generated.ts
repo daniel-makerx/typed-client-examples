@@ -425,7 +425,7 @@ export class VotingRoundAppClient {
    * @param params Any additional parameters for the call
    * @returns The creation result
    */
-  public create<TMethod extends string>(args: { method?: TMethod } & VotingRoundAppCreateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
+  public create<TMethod extends string>(args: { method?: TMethod } & VotingRoundAppCreateArgs, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
     return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))
   }
 

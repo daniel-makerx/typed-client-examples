@@ -1,4 +1,4 @@
-import { AlgoAppSpec, Hint } from '../schema/application'
+import { AlgoAppSpec } from '../schema/application'
 import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, indent, inline, NewLine } from '../output/writer'
 import { makeSafeMethodIdentifier, makeSafeTypeIdentifier } from '../util/sanitization'
 import * as algokit from '@algorandfoundation/algokit-utils'
@@ -106,7 +106,9 @@ function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): Docume
     yield ` * @param params Any additional parameters for the call`
     yield ` * @returns The creation result`
     yield ` */`
-    yield `public create<TMethod extends string>(args: { method?: TMethod } & ${name}CreateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
+    yield `public create<TMethod extends string>(args: { method?: TMethod } & ${name}CreateArgs${
+      callConfig.createMethods.some((m) => m === BARE_CALL) ? ' = {}' : ''
+    }, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
     yield IncIndent
     if (callConfig.createMethods.some((m) => m !== BARE_CALL)) {
       yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))`
@@ -123,7 +125,9 @@ function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): Docume
     yield ` * @param params Any additional parameters for the call`
     yield ` * @returns The update result`
     yield ` */`
-    yield `public update<TMethod extends string>(args: { method?: TMethod } & ${name}UpdateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
+    yield `public update<TMethod extends string>(args: { method?: TMethod } & ${name}UpdateArgs${
+      callConfig.updateMethods.some((m) => m === BARE_CALL) ? ' = {}' : ''
+    }, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
     yield IncIndent
     if (callConfig.updateMethods.some((m) => m !== BARE_CALL)) {
       yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))`
@@ -141,7 +145,9 @@ function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): Docume
     yield ` * @param params Any additional parameters for the call`
     yield ` * @returns The deletion result`
     yield ` */`
-    yield `public delete<TMethod extends string>(args: { method?: TMethod } & ${name}DeleteArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
+    yield `public delete<TMethod extends string>(args: { method?: TMethod } & ${name}DeleteArgs${
+      callConfig.deleteMethods.some((m) => m === BARE_CALL) ? ' = {}' : ''
+    }, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
     yield IncIndent
     if (callConfig.deleteMethods.some((m) => m !== BARE_CALL)) {
       yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))`
