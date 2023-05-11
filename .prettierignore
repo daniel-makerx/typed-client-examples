@@ -12,3 +12,4 @@ coverage
 .idea
 
 application.d.ts
+*.generated.ts
