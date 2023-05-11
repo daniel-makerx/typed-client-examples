@@ -6,7 +6,7 @@
   "scripts": {
     "build": "run-s build:*",
     "build:0-clean": "rimraf dist",
-    "build:1-schema-to-types": "cd src/schema && npx --yes json-schema-to-typescript application.json > application.d.ts",
+    "build:1-schema-to-types": "cd src/schema && npx --yes json-schema-to-typescript application.schema.json > application.d.ts",
     "build:2-lint": "eslint \"src/**/*.ts\" --max-warnings 0",
     "build:3-build": "tsc -p tsconfig.json",
     "build:4-copy-pkg-json": "npx --yes @makerx/ts-toolkit@latest copy-package-json --input-folder ./ --output-folder ./dist --main index.js --types index.d.ts",

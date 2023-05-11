@@ -51,6 +51,7 @@ export function* callClient(app: AlgoAppSpec, callConfig: CallConfigSummary): Do
   yield NewLine
 
   yield* deployMethods(app, callConfig)
+  yield* onCompleteMethods(app, callConfig)
   yield* clientCallMethods(app, callConfig)
   yield DecIndentAndCloseBlock
 }
@@ -66,7 +67,7 @@ function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): Docume
       callConfig.deleteMethods.length && `${name}DeleteArgs`,
     ].filter(notFalsy)
 
-    yield `private mapMethodArgs(args: ${args.join(' | ')}): AppClientCallArgs {`
+    yield `private mapDeployMethodArgs(args: ${args.join(' | ')}, params?: CoreAppCallArgs): AppClientCallArgs {`
     yield IncIndent
     yield `switch (args.method) {`
     yield IncIndent
@@ -74,7 +75,7 @@ function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): Docume
       if (methodSignature == BARE_CALL) continue
       const methodName = extractMethodNameFromSignature(methodSignature)
       yield `case '${methodName}':`
-      yield* indent(`return ${makeSafeTypeIdentifier(app.contract.name)}CallFactory.${makeSafeMethodIdentifier(methodName)}(args)`)
+      yield* indent(`return ${makeSafeTypeIdentifier(app.contract.name)}CallFactory.${makeSafeMethodIdentifier(methodName)}(args, params)`)
     }
     yield `default:`
     yield* indent(`return args`)
@@ -89,12 +90,25 @@ function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): Docume
   yield ` */`
   yield `public deploy(params: ${name}DeployArgs & AppClientDeployCoreParams = {}) {`
   yield IncIndent
+  if (callConfig.createMethods.some((m) => m !== BARE_CALL)) {
+    yield `const { boxes: create_boxes, lease: create_lease, onCompleteAction: createOnCompleteAction, ...createArgs } = params.createArgs ?? {}`
+  } else {
+    yield `const { onCompleteAction: createOnCompleteAction } = params.createArgs ?? {}`
+  }
+  if (callConfig.updateMethods.some((m) => m !== BARE_CALL))
+    yield `const { boxes: update_boxes, lease: update_lease, ...updateArgs } = params.updateArgs ?? {}`
+  if (callConfig.deleteMethods.some((m) => m !== BARE_CALL))
+    yield `const { boxes: delete_boxes, lease: delete_lease, ...deleteArgs } = params.deleteArgs ?? {}`
   yield `return this.appClient.deploy({ `
   yield IncIndent
   yield `...params,`
-  if (callConfig.createMethods.some((m) => m !== BARE_CALL)) yield `createArgs: params.createArgs && this.mapMethodArgs(params.createArgs),`
-  if (callConfig.updateMethods.some((m) => m !== BARE_CALL)) yield `updateArgs: params.updateArgs && this.mapMethodArgs(params.updateArgs),`
-  if (callConfig.deleteMethods.some((m) => m !== BARE_CALL)) yield `deleteArgs: params.deleteArgs && this.mapMethodArgs(params.deleteArgs),`
+  if (callConfig.createMethods.some((m) => m !== BARE_CALL))
+    yield `createArgs: params.createArgs ? this.mapDeployMethodArgs(createArgs, { boxes: create_boxes, lease: create_lease }) : undefined,`
+  yield `createOnCompleteAction,`
+  if (callConfig.updateMethods.some((m) => m !== BARE_CALL))
+    yield `updateArgs: params.updateArgs ? this.mapDeployMethodArgs(updateArgs, { boxes: update_boxes, lease: update_lease }) : undefined,`
+  if (callConfig.deleteMethods.some((m) => m !== BARE_CALL))
+    yield `deleteArgs: params.deleteArgs ? this.mapDeployMethodArgs(deleteArgs, { boxes: delete_boxes, lease: delete_lease }) : undefined,`
   yield DecIndent
   yield `})`
   yield DecIndentAndCloseBlock
@@ -110,10 +124,11 @@ function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): Docume
       callConfig.createMethods.some((m) => m === BARE_CALL) ? ' = {}' : ''
     }, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
     yield IncIndent
+    yield `const onCompleteAction = args.onCompleteAction`
     if (callConfig.createMethods.some((m) => m !== BARE_CALL)) {
-      yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))`
+      yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapDeployMethodArgs(args), ...params, ...{ onCompleteAction } }))`
     } else {
-      yield `return this.appClient.create({ ...args, ...params, })`
+      yield `return this.appClient.create({ ...args, ...params, ...{ onCompleteAction } })`
     }
     yield DecIndentAndCloseBlock
     yield NewLine
@@ -130,7 +145,7 @@ function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): Docume
     }, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
     yield IncIndent
     if (callConfig.updateMethods.some((m) => m !== BARE_CALL)) {
-      yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))`
+      yield `return this.mapReturnValue<TMethod>(this.appClient.update({ ...this.mapDeployMethodArgs(args), ...params, }))`
     } else {
       yield `return this.appClient.update({ ...args, ...params, })`
     }
@@ -150,9 +165,87 @@ function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): Docume
     }, params?: AppClientCallCoreParams & CoreAppCallArgs) {`
     yield IncIndent
     if (callConfig.deleteMethods.some((m) => m !== BARE_CALL)) {
-      yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))`
+      yield `return this.mapReturnValue<TMethod>(this.appClient.delete({ ...this.mapDeployMethodArgs(args), ...params, }))`
     } else {
       yield `return this.appClient.delete({ ...args, ...params, })`
+    }
+    yield DecIndentAndCloseBlock
+    yield NewLine
+  }
+}
+
+function* onCompleteMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): DocumentParts {
+  const name = makeSafeTypeIdentifier(app.contract.name)
+  const onCompleteMethods = callConfig.optInMethods.concat(callConfig.closeOutMethods)
+
+  if (onCompleteMethods.some((m) => m !== BARE_CALL)) {
+    const args = [callConfig.optInMethods.length && `${name}OptInArgs`, callConfig.closeOutMethods.length && `${name}CloseOutArgs`].filter(
+      notFalsy,
+    )
+
+    yield `private mapMethodArgs(args: ${args.join(' | ')}): AppClientCallArgs {`
+    yield IncIndent
+    yield `switch (args.method) {`
+    yield IncIndent
+    for (const methodSignature of onCompleteMethods) {
+      if (methodSignature == BARE_CALL) continue
+      const methodName = extractMethodNameFromSignature(methodSignature)
+      yield `case '${methodName}':`
+      yield* indent(`return ${makeSafeTypeIdentifier(app.contract.name)}CallFactory.${makeSafeMethodIdentifier(methodName)}(args)`)
+    }
+    yield `default:`
+    yield* indent(`return args`)
+    yield DecIndentAndCloseBlock
+    yield DecIndentAndCloseBlock
+    yield NewLine
+  }
+  yield `/**`
+  yield ` * Makes a clear_state call to an existing instance of the ${app.contract.name} smart contract.`
+  yield ` * @param args The arguments for the contract call`
+  yield ` * @param params Any additional parameters for the call`
+  yield ` * @returns The clear state result`
+  yield ` */`
+  yield `public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {`
+  yield IncIndent
+  yield `return this.appClient.clearState({ ...args, ...params })`
+  yield DecIndentAndCloseBlock
+  yield NewLine
+
+  if (callConfig.optInMethods.length) {
+    yield `/**`
+    yield ` * Makes an opt_in call to an existing instance of the ${app.contract.name} smart contract.`
+    yield ` * @param args The arguments for the contract call`
+    yield ` * @param params Any additional parameters for the call`
+    yield ` * @returns The opt_in result`
+    yield ` */`
+    yield `public optIn<TMethod extends string>(args: { method?: TMethod } & ${name}OptInArgs${
+      callConfig.optInMethods.some((m) => m === BARE_CALL) ? ' = {}' : ''
+    }, params?: AppClientCallCoreParams & CoreAppCallArgs) {`
+    yield IncIndent
+    if (callConfig.optInMethods.some((m) => m !== BARE_CALL)) {
+      yield `return this.mapReturnValue<TMethod>(this.appClient.optIn({ ...this.mapMethodArgs(args), ...params, }))`
+    } else {
+      yield `return this.appClient.optIn({ ...args, ...params, })`
+    }
+    yield DecIndentAndCloseBlock
+    yield NewLine
+  }
+
+  if (callConfig.closeOutMethods.length) {
+    yield `/**`
+    yield ` * Makes an close_out call to an existing instance of the ${app.contract.name} smart contract.`
+    yield ` * @param args The arguments for the contract call`
+    yield ` * @param params Any additional parameters for the call`
+    yield ` * @returns The close_out result`
+    yield ` */`
+    yield `public closeOut<TMethod extends string>(args: { method?: TMethod } & ${name}CloseOutArgs${
+      callConfig.closeOutMethods.some((m) => m === BARE_CALL) ? ' = {}' : ''
+    }, params?: AppClientCallCoreParams & CoreAppCallArgs) {`
+    yield IncIndent
+    if (callConfig.closeOutMethods.some((m) => m !== BARE_CALL)) {
+      yield `return this.mapReturnValue<TMethod>(this.appClient.closeOut({ ...this.mapMethodArgs(args), ...params, }))`
+    } else {
+      yield `return this.appClient.closeOut({ ...args, ...params, })`
     }
     yield DecIndentAndCloseBlock
     yield NewLine

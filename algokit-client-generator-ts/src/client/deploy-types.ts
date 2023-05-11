@@ -1,8 +1,8 @@
-import { AlgoAppSpec } from '../schema/application'
 import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, NewLine } from '../output/writer'
+import { AlgoAppSpec } from '../schema/application'
 import { makeSafeTypeIdentifier } from '../util/sanitization'
 import { extractMethodNameFromSignature } from './helpers/extract-method-name-from-signature'
-import { BARE_CALL, CallConfigSummary } from './helpers/get-call-config-summary'
+import { BARE_CALL, CallConfigSummary, getCreateOnComplete } from './helpers/get-call-config-summary'
 
 export function* deployTypes(app: AlgoAppSpec, callConfig: CallConfigSummary): DocumentParts {
   const name = makeSafeTypeIdentifier(app.contract.name)
@@ -12,10 +12,10 @@ export function* deployTypes(app: AlgoAppSpec, callConfig: CallConfigSummary): D
     yield IncIndent
     for (const method of callConfig.createMethods) {
       if (method === BARE_CALL) {
-        yield `| BareCallArgs`
+        yield `| BareCallArgs ${getCreateOnComplete(app, method)}`
       } else {
         const methodName = extractMethodNameFromSignature(method)
-        yield `| ({ method: '${methodName}' } & ${makeSafeTypeIdentifier(methodName)}ArgsObj)`
+        yield `| ({ method: '${methodName}' } & ${makeSafeTypeIdentifier(methodName)}ArgsObj) ${getCreateOnComplete(app, method)}`
       }
     }
     yield DecIndent

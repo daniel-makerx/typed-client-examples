@@ -1,9 +1,9 @@
 import * as fs from 'fs'
 import { Schema, Validator } from 'jsonschema'
-import appJsonSchema from './application.json'
-import contractSchema from './contract.json'
 import { boom } from '../util/boom'
 import { AlgoAppSpec } from './application'
+import appJsonSchema from './application.schema.json'
+import contractSchema from './contract.schema.json'
 
 export function load(appJsonPath: string) {
   if (!fs.existsSync(appJsonPath)) boom(`Could not find application.json file at ${appJsonPath}`)

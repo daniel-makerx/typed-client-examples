@@ -177,9 +177,6 @@
         "close_out": {
           "$ref": "#/definitions/CallConfigValue"
         },
-        "clear_state": {
-          "$ref": "#/definitions/CallConfigValue"
-        },
         "update_application": {
           "$ref": "#/definitions/CallConfigValue"
         },
