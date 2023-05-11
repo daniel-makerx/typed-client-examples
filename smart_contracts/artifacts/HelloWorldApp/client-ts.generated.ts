@@ -5,11 +5,11 @@
  */
 import * as algokit from '@algorandfoundation/algokit-utils'
 import {
+  AppCallTransactionResult,
   AppCallTransactionResultOfType,
   CoreAppCallArgs,
   RawAppCallArgs,
   TealTemplateParams,
-  AppCallTransactionResult,
 } from '@algorandfoundation/algokit-utils/types/app'
 import {
   AppClientCallArgs,
@@ -20,7 +20,8 @@ import {
   ApplicationClient,
 } from '@algorandfoundation/algokit-utils/types/app-client'
 import { AppSpec } from '@algorandfoundation/algokit-utils/types/app-spec'
-import { Algodv2, TransactionWithSigner } from 'algosdk'
+import { SendTransactionResult, TransactionToSign } from '@algorandfoundation/algokit-utils/types/transaction'
+import { Algodv2, Transaction } from 'algosdk'
 export const APP_SPEC: AppSpec = {
   "hints": {
     "hello(string)string": {
@@ -211,7 +212,7 @@ export class HelloWorldAppClient {
    * @returns The update result
    */
   public update<TMethod extends string>(args: { method?: TMethod } & HelloWorldAppUpdateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.appClient.create({ ...args, ...params, })
+    return this.appClient.update({ ...args, ...params, })
   }
 
   /**
@@ -220,8 +221,8 @@ export class HelloWorldAppClient {
    * @param params Any additional parameters for the call
    * @returns The deletion result
    */
-  public delete<TMethod extends string>(args: { method?: TMethod } & HelloWorldAppDeleteArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.appClient.create({ ...args, ...params, })
+  public delete<TMethod extends string>(args: { method?: TMethod } & HelloWorldAppDeleteArgs = {}, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.appClient.delete({ ...args, ...params, })
   }
 
   /**

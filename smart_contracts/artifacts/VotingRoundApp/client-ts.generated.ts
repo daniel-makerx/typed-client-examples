@@ -5,11 +5,11 @@
  */
 import * as algokit from '@algorandfoundation/algokit-utils'
 import {
+  AppCallTransactionResult,
   AppCallTransactionResultOfType,
   CoreAppCallArgs,
   RawAppCallArgs,
   TealTemplateParams,
-  AppCallTransactionResult,
 } from '@algorandfoundation/algokit-utils/types/app'
 import {
   AppClientCallArgs,
@@ -20,7 +20,8 @@ import {
   ApplicationClient,
 } from '@algorandfoundation/algokit-utils/types/app-client'
 import { AppSpec } from '@algorandfoundation/algokit-utils/types/app-spec'
-import { Algodv2, TransactionWithSigner } from 'algosdk'
+import { SendTransactionResult, TransactionToSign } from '@algorandfoundation/algokit-utils/types/transaction'
+import { Algodv2, Transaction } from 'algosdk'
 export const APP_SPEC: AppSpec = {
   "hints": {
     "create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void": {
@@ -299,9 +300,9 @@ export type CreateArgsObj = {
 export type CreateArgsTuple = [vote_id: string, snapshot_public_key: Uint8Array, metadata_ipfs_cid: string, start_time: bigint, end_time: bigint, option_counts: number[], quorum: bigint, nft_image_url: string]
 export type CreateArgs = CreateArgsObj | CreateArgsTuple
 export type BootstrapArgsObj = {
-  fund_min_bal_req: TransactionWithSigner
+  fund_min_bal_req: TransactionToSign | Transaction | Promise<SendTransactionResult>
 }
-export type BootstrapArgsTuple = [fund_min_bal_req: TransactionWithSigner]
+export type BootstrapArgsTuple = [fund_min_bal_req: TransactionToSign | Transaction | Promise<SendTransactionResult>]
 export type BootstrapArgs = BootstrapArgsObj | BootstrapArgsTuple
 export type CloseArgsObj = {
 }
@@ -313,11 +314,11 @@ export type GetPreconditionsArgsObj = {
 export type GetPreconditionsArgsTuple = [signature: Uint8Array]
 export type GetPreconditionsArgs = GetPreconditionsArgsObj | GetPreconditionsArgsTuple
 export type VoteArgsObj = {
-  fund_min_bal_req: TransactionWithSigner
+  fund_min_bal_req: TransactionToSign | Transaction | Promise<SendTransactionResult>
   signature: Uint8Array
   answer_ids: number[]
 }
-export type VoteArgsTuple = [fund_min_bal_req: TransactionWithSigner, signature: Uint8Array, answer_ids: number[]]
+export type VoteArgsTuple = [fund_min_bal_req: TransactionToSign | Transaction | Promise<SendTransactionResult>, signature: Uint8Array, answer_ids: number[]]
 export type VoteArgs = VoteArgsObj | VoteArgsTuple
 
 export type VotingRoundAppCreateArgs =
@@ -435,8 +436,8 @@ export class VotingRoundAppClient {
    * @param params Any additional parameters for the call
    * @returns The deletion result
    */
-  public delete<TMethod extends string>(args: { method?: TMethod } & VotingRoundAppDeleteArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.appClient.create({ ...args, ...params, })
+  public delete<TMethod extends string>(args: { method?: TMethod } & VotingRoundAppDeleteArgs = {}, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.appClient.delete({ ...args, ...params, })
   }
 
   /**

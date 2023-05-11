@@ -5,11 +5,11 @@
  */
 import * as algokit from '@algorandfoundation/algokit-utils'
 import {
+  AppCallTransactionResult,
   AppCallTransactionResultOfType,
   CoreAppCallArgs,
   RawAppCallArgs,
   TealTemplateParams,
-  AppCallTransactionResult,
 } from '@algorandfoundation/algokit-utils/types/app'
 import {
   AppClientCallArgs,
@@ -20,7 +20,8 @@ import {
   ApplicationClient,
 } from '@algorandfoundation/algokit-utils/types/app-client'
 import { AppSpec } from '@algorandfoundation/algokit-utils/types/app-spec'
-import { Algodv2, TransactionWithSigner } from 'algosdk'
+import { SendTransactionResult, TransactionToSign } from '@algorandfoundation/algokit-utils/types/transaction'
+import { Algodv2, Transaction } from 'algosdk'
 export const APP_SPEC: AppSpec = {
   "hints": {
     "hello(string)string": {
@@ -268,7 +269,7 @@ export class LifeCycleAppClient {
    * @returns The update result
    */
   public update<TMethod extends string>(args: { method?: TMethod } & LifeCycleAppUpdateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.appClient.create({ ...args, ...params, })
+    return this.appClient.update({ ...args, ...params, })
   }
 
   /**

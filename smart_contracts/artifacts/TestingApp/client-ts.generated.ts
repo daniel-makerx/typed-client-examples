@@ -5,11 +5,11 @@
  */
 import * as algokit from '@algorandfoundation/algokit-utils'
 import {
+  AppCallTransactionResult,
   AppCallTransactionResultOfType,
   CoreAppCallArgs,
   RawAppCallArgs,
   TealTemplateParams,
-  AppCallTransactionResult,
 } from '@algorandfoundation/algokit-utils/types/app'
 import {
   AppClientCallArgs,
@@ -20,7 +20,8 @@ import {
   ApplicationClient,
 } from '@algorandfoundation/algokit-utils/types/app-client'
 import { AppSpec } from '@algorandfoundation/algokit-utils/types/app-spec'
-import { Algodv2, TransactionWithSigner } from 'algosdk'
+import { SendTransactionResult, TransactionToSign } from '@algorandfoundation/algokit-utils/types/transaction'
+import { Algodv2, Transaction } from 'algosdk'
 export const APP_SPEC: AppSpec = {
   "hints": {
     "call_abi(string)string": {
@@ -340,10 +341,10 @@ export type CallAbiArgsObj = {
 export type CallAbiArgsTuple = [value: string]
 export type CallAbiArgs = CallAbiArgsObj | CallAbiArgsTuple
 export type CallAbiTxnArgsObj = {
-  txn: TransactionWithSigner
+  txn: TransactionToSign | Transaction | Promise<SendTransactionResult>
   value: string
 }
-export type CallAbiTxnArgsTuple = [txn: TransactionWithSigner, value: string]
+export type CallAbiTxnArgsTuple = [txn: TransactionToSign | Transaction | Promise<SendTransactionResult>, value: string]
 export type CallAbiTxnArgs = CallAbiTxnArgsObj | CallAbiTxnArgsTuple
 export type SetGlobalArgsObj = {
   int1: bigint
@@ -563,7 +564,7 @@ export class TestingAppClient {
    * @param params Any additional parameters for the call
    * @returns The deletion result
    */
-  public delete<TMethod extends string>(args: { method?: TMethod } & TestingAppDeleteArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
+  public delete<TMethod extends string>(args: { method?: TMethod } & TestingAppDeleteArgs = {}, params?: AppClientCallCoreParams & CoreAppCallArgs) {
     return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))
   }
 

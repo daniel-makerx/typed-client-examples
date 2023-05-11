@@ -1,10 +1,10 @@
-import { AlgoAppSpec } from '../schema/application'
-import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, indent, inline, NewLine } from '../output/writer'
-import { makeSafeMethodIdentifier, makeSafeTypeIdentifier } from '../util/sanitization'
 import * as algokit from '@algorandfoundation/algokit-utils'
+import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, indent, inline, NewLine } from '../output/writer'
+import { AlgoAppSpec } from '../schema/application'
+import { notFalsy } from '../util/not-falsy'
+import { makeSafeMethodIdentifier, makeSafeTypeIdentifier } from '../util/sanitization'
 import { extractMethodNameFromSignature } from './helpers/extract-method-name-from-signature'
 import { BARE_CALL, CallConfigSummary } from './helpers/get-call-config-summary'
-import { notFalsy } from '../util/not-falsy'
 
 export function* callClient(app: AlgoAppSpec, callConfig: CallConfigSummary): DocumentParts {
   const name = makeSafeTypeIdentifier(app.contract.name)
@@ -132,7 +132,7 @@ function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): Docume
     if (callConfig.updateMethods.some((m) => m !== BARE_CALL)) {
       yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))`
     } else {
-      yield `return this.appClient.create({ ...args, ...params, })`
+      yield `return this.appClient.update({ ...args, ...params, })`
     }
     yield DecIndentAndCloseBlock
     yield NewLine
@@ -147,12 +147,12 @@ function* deployMethods(app: AlgoAppSpec, callConfig: CallConfigSummary): Docume
     yield ` */`
     yield `public delete<TMethod extends string>(args: { method?: TMethod } & ${name}DeleteArgs${
       callConfig.deleteMethods.some((m) => m === BARE_CALL) ? ' = {}' : ''
-    }, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
+    }, params?: AppClientCallCoreParams & CoreAppCallArgs) {`
     yield IncIndent
     if (callConfig.deleteMethods.some((m) => m !== BARE_CALL)) {
       yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))`
     } else {
-      yield `return this.appClient.create({ ...args, ...params, })`
+      yield `return this.appClient.delete({ ...args, ...params, })`
     }
     yield DecIndentAndCloseBlock
     yield NewLine

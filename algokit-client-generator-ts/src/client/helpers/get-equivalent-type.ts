@@ -1,14 +1,14 @@
 import {
-  ABIType,
-  ABIUintType,
+  ABIAddressType,
   ABIArrayDynamicType,
   ABIArrayStaticType,
-  ABIAddressType,
   ABIBoolType,
-  ABIUfixedType,
-  ABITupleType,
   ABIByteType,
   ABIStringType,
+  ABITupleType,
+  ABIType,
+  ABIUfixedType,
+  ABIUintType,
 } from 'algosdk'
 
 export function getEquivalentType(abiTypeStr: string): string {
@@ -22,7 +22,7 @@ export function getEquivalentType(abiTypeStr: string): string {
     case 'axfer':
     case 'afrz':
     case 'appl':
-      return 'TransactionWithSigner'
+      return 'TransactionToSign | Transaction | Promise<SendTransactionResult>'
   }
 
   const abiType = ABIType.from(abiTypeStr)

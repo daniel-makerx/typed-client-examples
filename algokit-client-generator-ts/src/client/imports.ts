@@ -3,11 +3,11 @@ import { DocumentParts } from '../output/writer'
 export function* imports(): DocumentParts {
   yield `import * as algokit from '@algorandfoundation/algokit-utils'
 import {
+  AppCallTransactionResult,
   AppCallTransactionResultOfType,
   CoreAppCallArgs,
   RawAppCallArgs,
   TealTemplateParams,
-  AppCallTransactionResult,
 } from '@algorandfoundation/algokit-utils/types/app'
 import {
   AppClientCallArgs,
@@ -18,5 +18,6 @@ import {
   ApplicationClient,
 } from '@algorandfoundation/algokit-utils/types/app-client'
 import { AppSpec } from '@algorandfoundation/algokit-utils/types/app-spec'
-import { Algodv2, TransactionWithSigner } from 'algosdk'`
+import { SendTransactionResult, TransactionToSign } from '@algorandfoundation/algokit-utils/types/transaction'
+import { Algodv2, Transaction } from 'algosdk'`
 }
