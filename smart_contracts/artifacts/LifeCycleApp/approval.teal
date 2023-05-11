@@ -78,13 +78,17 @@ main_l8:
 txn OnCompletion
 intc_0 // NoOp
 ==
-bnz main_l12
+bnz main_l14
+txn OnCompletion
+intc_1 // OptIn
+==
+bnz main_l13
 txn OnCompletion
 pushint 4 // UpdateApplication
 ==
-bnz main_l11
+bnz main_l12
 err
-main_l11:
+main_l12:
 txn ApplicationID
 intc_0 // 0
 !=
@@ -92,7 +96,15 @@ assert
 callsub update_2
 intc_1 // 1
 return
-main_l12:
+main_l13:
+txn ApplicationID
+intc_0 // 0
+==
+assert
+callsub barecreate_4
+intc_1 // 1
+return
+main_l14:
 txn ApplicationID
 intc_0 // 0
 ==

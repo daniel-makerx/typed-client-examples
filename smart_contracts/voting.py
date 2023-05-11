@@ -486,3 +486,4 @@ def vote(
         app.state.votes[voter].set(answer_ids.encode()),
         app.state.voter_count.set(app.state.voter_count.get() + ONE),
     )
+

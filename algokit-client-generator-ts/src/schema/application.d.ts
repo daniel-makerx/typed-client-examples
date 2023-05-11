@@ -44,7 +44,6 @@ export interface CallConfig {
   no_op?: CallConfigValue;
   opt_in?: CallConfigValue;
   close_out?: CallConfigValue;
-  clear_state?: CallConfigValue;
   update_application?: CallConfigValue;
   delete_application?: CallConfigValue;
 }

@@ -1,5 +1,6 @@
 import { algorandFixture } from '@algorandfoundation/algokit-utils/testing'
 import { beforeEach, describe, expect, test } from '@jest/globals'
+import { OnApplicationComplete } from 'algosdk'
 import invariant from 'tiny-invariant'
 import { expectType } from 'tsd'
 import { LifeCycleAppClient } from './client-ts.generated'
@@ -24,19 +25,43 @@ describe('hello world typed client', () => {
   })
 
   test('create_bare', async () => {
-    const createResult = await client.create({ method: undefined }, { updatable: true })
+    const createResult = await client.create({}, { updatable: true })
     expectType<undefined>(createResult.return)
+    expect(createResult.transaction.appOnComplete).toBe(OnApplicationComplete.NoOpOC)
 
     const response = await client.hello(['Bare'])
     expectType<string | undefined>(response.return)
     expect(response.return).toBe('Hello, Bare\n')
   })
 
-  test('deploy_create_1arg', async () => {
-    const createResult = await client.deploy({ createArgs: { method: undefined } })
+  test('create_bare_optin', async () => {
+    const createResult = await client.create({ onCompleteAction: 'opt_in' }, { updatable: true })
+    expectType<undefined>(createResult.return)
+    expect(createResult.transaction.appOnComplete).toBe(OnApplicationComplete.OptInOC)
+
+    const response = await client.hello(['Bare'])
+    expectType<string | undefined>(response.return)
+    expect(response.return).toBe('Hello, Bare\n')
+  })
+
+  test('deploy_bare', async () => {
+    const createResult = await client.deploy()
     invariant(createResult.operationPerformed === 'create')
     // The return in deploy isn't strongly typed since it's too complex to do
     expect(createResult.return?.returnValue).toBe(undefined)
+    expect(createResult.transaction.appOnComplete).toBe(OnApplicationComplete.NoOpOC)
+
+    const response = await client.hello(['Bare'])
+    expectType<string | undefined>(response.return)
+    expect(response.return).toBe('Hello, Bare\n')
+  })
+
+  test('deploy_bare_opt_in', async () => {
+    const createResult = await client.deploy({ createArgs: { onCompleteAction: 'opt_in' } })
+    invariant(createResult.operationPerformed === 'create')
+    // The return in deploy isn't strongly typed since it's too complex to do
+    expect(createResult.return?.returnValue).toBe(undefined)
+    expect(createResult.transaction.appOnComplete).toBe(OnApplicationComplete.OptInOC)
 
     const response = await client.hello(['Bare'])
     expectType<string | undefined>(response.return)

@@ -1,7 +1,8 @@
 import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, NewLine } from '../output/writer'
+import { AlgoAppSpec } from '../schema/application'
 import { makeSafeTypeIdentifier } from '../util/sanitization'
 import { extractMethodNameFromSignature } from './helpers/extract-method-name-from-signature'
-import { BARE_CALL } from './helpers/get-call-config-summary'
+import { BARE_CALL, getCreateOnComplete } from './helpers/get-call-config-summary'
 import { GeneratorContext } from './generator-context'
 
 export function* deployTypes({ app, callConfig }: GeneratorContext): DocumentParts {
@@ -12,10 +13,10 @@ export function* deployTypes({ app, callConfig }: GeneratorContext): DocumentPar
     yield IncIndent
     for (const method of callConfig.createMethods) {
       if (method === BARE_CALL) {
-        yield `| BareCallArgs`
+        yield `| BareCallArgs ${getCreateOnComplete(app, method)}`
       } else {
         const methodName = extractMethodNameFromSignature(method)
-        yield `| ({ method: '${methodName}' } & ${makeSafeTypeIdentifier(methodName)}ArgsObj)`
+        yield `| ({ method: '${methodName}' } & ${makeSafeTypeIdentifier(methodName)}ArgsObj) ${getCreateOnComplete(app, method)}`
       }
     }
     yield DecIndent
@@ -52,6 +53,19 @@ export function* deployTypes({ app, callConfig }: GeneratorContext): DocumentPar
     yield `export type ${name}OptInArgs =`
     yield IncIndent
     for (const method of callConfig.optInMethods) {
+      if (method === BARE_CALL) {
+        yield `| BareCallArgs`
+      } else {
+        const methodName = extractMethodNameFromSignature(method)
+        yield `| ({ method: '${methodName}' } & ${makeSafeTypeIdentifier(methodName)}ArgsObj)`
+      }
+    }
+    yield DecIndent
+  }
+  if (callConfig.closeOutMethods.length > 0) {
+    yield `export type ${name}CloseOutArgs =`
+    yield IncIndent
+    for (const method of callConfig.closeOutMethods) {
       if (method === BARE_CALL) {
         yield `| BareCallArgs`
       } else {

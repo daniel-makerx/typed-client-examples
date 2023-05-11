@@ -21,7 +21,7 @@ import {
 } from '@algorandfoundation/algokit-utils/types/app-client'
 import { AppSpec } from '@algorandfoundation/algokit-utils/types/app-spec'
 import { SendTransactionResult, TransactionToSign } from '@algorandfoundation/algokit-utils/types/transaction'
-import { Algodv2, Transaction } from 'algosdk'
+import { Algodv2, OnApplicationComplete, Transaction } from 'algosdk'
 export const APP_SPEC: AppSpec = {
   "hints": {
     "create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void": {
@@ -322,7 +322,7 @@ export type VoteArgsTuple = [fund_min_bal_req: TransactionToSign | Transaction |
 export type VoteArgs = VoteArgsObj | VoteArgsTuple
 
 export type VotingRoundAppCreateArgs =
-  | ({ method: 'create' } & CreateArgsObj)
+  | ({ method: 'create' } & CreateArgsObj)  & { onCompleteAction?: 'no_op' | OnApplicationComplete.NoOpOC }
 export type VotingRoundAppDeleteArgs =
   | BareCallArgs
 export type VotingRoundAppDeployArgs = {
@@ -399,10 +399,10 @@ export class VotingRoundAppClient {
     return this.mapReturnValue<TSignature>(this.appClient.call(params))
   }
 
-  private mapMethodArgs(args: VotingRoundAppCreateArgs | VotingRoundAppDeleteArgs): AppClientCallArgs {
+  private mapMethodArgs(args: VotingRoundAppCreateArgs | VotingRoundAppDeleteArgs, params?: CoreAppCallArgs): AppClientCallArgs {
     switch (args.method) {
       case 'create':
-        return VotingRoundAppCallFactory.create(args)
+        return VotingRoundAppCallFactory.create(args, params)
       default:
         return args
     }
@@ -414,9 +414,11 @@ export class VotingRoundAppClient {
    * @returns The deployment result
    */
   public deploy(params: VotingRoundAppDeployArgs & AppClientDeployCoreParams = {}) {
+    const { boxes: create_boxes, lease: create_lease, onCompleteAction: createOnCompleteAction, ...createArgs } = params.createArgs ?? {}
     return this.appClient.deploy({ 
       ...params,
-      createArgs: params.createArgs && this.mapMethodArgs(params.createArgs),
+      createArgs: params.createArgs ? this.mapMethodArgs(createArgs, { boxes: create_boxes, lease: create_lease }) : undefined,
+      createOnCompleteAction,
     })
   }
 
@@ -427,7 +429,8 @@ export class VotingRoundAppClient {
    * @returns The creation result
    */
   public create<TMethod extends string>(args: { method?: TMethod } & VotingRoundAppCreateArgs, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))
+    const onCompleteAction = args.onCompleteAction
+    return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, ...{ onCompleteAction } }))
   }
 
   /**
@@ -438,6 +441,16 @@ export class VotingRoundAppClient {
    */
   public delete<TMethod extends string>(args: { method?: TMethod } & VotingRoundAppDeleteArgs = {}, params?: AppClientCallCoreParams & CoreAppCallArgs) {
     return this.appClient.delete({ ...args, ...params, })
+  }
+
+  /**
+   * Makes a clear_state call to an existing instance of the VotingRoundApp smart contract.
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The clear_state result
+   */
+  public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.appClient.clearState({ ...args, ...params, })
   }
 
   /**

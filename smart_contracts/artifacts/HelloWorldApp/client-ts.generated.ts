@@ -21,7 +21,7 @@ import {
 } from '@algorandfoundation/algokit-utils/types/app-client'
 import { AppSpec } from '@algorandfoundation/algokit-utils/types/app-spec'
 import { SendTransactionResult, TransactionToSign } from '@algorandfoundation/algokit-utils/types/transaction'
-import { Algodv2, Transaction } from 'algosdk'
+import { Algodv2, OnApplicationComplete, Transaction } from 'algosdk'
 export const APP_SPEC: AppSpec = {
   "hints": {
     "hello(string)string": {
@@ -125,7 +125,7 @@ export type HelloWorldCheckArgsTuple = [name: string]
 export type HelloWorldCheckArgs = HelloWorldCheckArgsObj | HelloWorldCheckArgsTuple
 
 export type HelloWorldAppCreateArgs =
-  | BareCallArgs
+  | BareCallArgs  & { onCompleteAction?: 'no_op' | OnApplicationComplete.NoOpOC }
 export type HelloWorldAppUpdateArgs =
   | BareCallArgs
 export type HelloWorldAppDeleteArgs =
@@ -190,8 +190,10 @@ export class HelloWorldAppClient {
    * @returns The deployment result
    */
   public deploy(params: HelloWorldAppDeployArgs & AppClientDeployCoreParams = {}) {
+    const { onCompleteAction: createOnCompleteAction } = params.createArgs ?? {}
     return this.appClient.deploy({ 
       ...params,
+      createOnCompleteAction,
     })
   }
 
@@ -202,7 +204,8 @@ export class HelloWorldAppClient {
    * @returns The creation result
    */
   public create<TMethod extends string>(args: { method?: TMethod } & HelloWorldAppCreateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.appClient.create({ ...args, ...params, })
+    const onCompleteAction = args.onCompleteAction
+    return this.appClient.create({ ...args, ...params, ...{ onCompleteAction } })
   }
 
   /**
@@ -223,6 +226,16 @@ export class HelloWorldAppClient {
    */
   public delete<TMethod extends string>(args: { method?: TMethod } & HelloWorldAppDeleteArgs = {}, params?: AppClientCallCoreParams & CoreAppCallArgs) {
     return this.appClient.delete({ ...args, ...params, })
+  }
+
+  /**
+   * Makes a clear_state call to an existing instance of the HelloWorldApp smart contract.
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The clear_state result
+   */
+  public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.appClient.clearState({ ...args, ...params, })
   }
 
   /**
