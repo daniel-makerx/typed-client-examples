@@ -69,7 +69,8 @@ describe('hello world typed client', () => {
   })
 
   test('create_1arg', async () => {
-    const createResult = await client.create({ method: 'create_1arg', greeting: 'greeting' }, { updatable: true })
+
+    const createResult = await client.create('create(string)string', {greeting: ''}, {updatable: true})
     expectType<string | undefined>(createResult.return)
     expect(createResult.return).toBe('greeting_1')
 

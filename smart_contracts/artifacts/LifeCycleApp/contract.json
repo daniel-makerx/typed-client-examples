@@ -14,7 +14,14 @@
             }
         },
         {
-            "name": "create_1arg",
+            "name": "hello",
+            "args": [],
+            "returns": {
+                "type": "string"
+            }
+        },
+        {
+            "name": "create",
             "args": [
                 {
                     "type": "string",
@@ -27,7 +34,7 @@
             "desc": "ABI create method with 1 argument"
         },
         {
-            "name": "create_2arg",
+            "name": "create",
             "args": [
                 {
                     "type": "string",
