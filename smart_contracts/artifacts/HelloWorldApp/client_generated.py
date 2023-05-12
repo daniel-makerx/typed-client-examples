@@ -112,6 +112,7 @@ def _convert(
 @dataclasses.dataclass(kw_only=True)
 class HelloArgs(_ArgsBase[str]):
     """Returns Hello, {name}"""
+
     name: str
 
     @staticmethod
@@ -121,7 +122,8 @@ class HelloArgs(_ArgsBase[str]):
 
 @dataclasses.dataclass(kw_only=True)
 class HelloWorldCheckArgs(_ArgsBase[None]):
-    """Asserts {name} is "World\""""
+    """Asserts {name} is "World" """
+
     name: str
 
     @staticmethod
@@ -193,7 +195,9 @@ class HelloWorldAppClient:
         name: str,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[str]:
-        args = HelloArgs(name=name,)
+        args = HelloArgs(
+            name=name,
+        )
         return self.app_client.call(
             call_abi_method=args.method(),
             transaction_parameters=_convert(transaction_parameters),
@@ -206,7 +210,9 @@ class HelloWorldAppClient:
         name: str,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[None]:
-        args = HelloWorldCheckArgs(name=name,)
+        args = HelloWorldCheckArgs(
+            name=name,
+        )
         return self.app_client.call(
             call_abi_method=args.method(),
             transaction_parameters=_convert(transaction_parameters),
@@ -243,3 +249,38 @@ class HelloWorldAppClient:
             transaction_parameters=_convert(transaction_parameters),
         )
 
+    def clear_state(
+        self,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+        app_args: list[bytes] | None = None,
+    ) -> algokit_utils.TransactionResponse:
+        return self.app_client.clear_state(_convert(transaction_parameters), app_args)
+
+    def deploy(
+        self,
+        version: str | None = None,
+        *,
+        signer: TransactionSigner | None = None,
+        sender: str | None = None,
+        allow_update: bool | None = None,
+        allow_delete: bool | None = None,
+        on_update: algokit_utils.OnUpdate = algokit_utils.OnUpdate.Fail,
+        on_schema_break: algokit_utils.OnSchemaBreak = algokit_utils.OnSchemaBreak.Fail,
+        template_values: algokit_utils.TemplateValueMapping | None = None,
+        create_args: algokit_utils.DeployCallArgs | None = None,
+        update_args: algokit_utils.DeployCallArgs | None = None,
+        delete_args: algokit_utils.DeployCallArgs | None = None,
+    ) -> algokit_utils.DeployResponse:
+        return self.app_client.deploy(
+            version,
+            signer=signer,
+            sender=sender,
+            allow_update=allow_update,
+            allow_delete=allow_delete,
+            on_update=on_update,
+            on_schema_break=on_schema_break,
+            template_values=template_values,
+            create_args=create_args,
+            update_args=update_args,
+            delete_args=delete_args,
+        )

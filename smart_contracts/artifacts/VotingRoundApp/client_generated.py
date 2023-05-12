@@ -288,7 +288,6 @@ class BootstrapArgs(_ArgsBase[None]):
 
 @dataclasses.dataclass(kw_only=True)
 class CloseArgs(_ArgsBase[None]):
-
     @staticmethod
     def method() -> str:
         return "close()void"
@@ -394,7 +393,9 @@ class VotingRoundAppClient:
         fund_min_bal_req: TransactionWithSigner,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[None]:
-        args = BootstrapArgs(fund_min_bal_req=fund_min_bal_req,)
+        args = BootstrapArgs(
+            fund_min_bal_req=fund_min_bal_req,
+        )
         return self.app_client.call(
             call_abi_method=args.method(),
             transaction_parameters=_convert(transaction_parameters),
@@ -419,7 +420,9 @@ class VotingRoundAppClient:
         signature: bytes,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[tuple[int, int, int, int]]:
-        args = GetPreconditionsArgs(signature=signature,)
+        args = GetPreconditionsArgs(
+            signature=signature,
+        )
         return self.app_client.call(
             call_abi_method=args.method(),
             transaction_parameters=_convert(transaction_parameters),
@@ -454,7 +457,7 @@ class VotingRoundAppClient:
         return self.app_client.create(
             call_abi_method=args.method() if args else False,
             transaction_parameters=_convert(transaction_parameters),
-            **_as_dict(args)
+            **_as_dict(args),
         )
 
     def delete(
@@ -467,3 +470,38 @@ class VotingRoundAppClient:
             transaction_parameters=_convert(transaction_parameters),
         )
 
+    def clear_state(
+        self,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+        app_args: list[bytes] | None = None,
+    ) -> algokit_utils.TransactionResponse:
+        return self.app_client.clear_state(_convert(transaction_parameters), app_args)
+
+    def deploy(
+        self,
+        version: str | None = None,
+        *,
+        signer: TransactionSigner | None = None,
+        sender: str | None = None,
+        allow_update: bool | None = None,
+        allow_delete: bool | None = None,
+        on_update: algokit_utils.OnUpdate = algokit_utils.OnUpdate.Fail,
+        on_schema_break: algokit_utils.OnSchemaBreak = algokit_utils.OnSchemaBreak.Fail,
+        template_values: algokit_utils.TemplateValueMapping | None = None,
+        create_args: algokit_utils.DeployCallArgs | None = None,
+        update_args: algokit_utils.DeployCallArgs | None = None,
+        delete_args: algokit_utils.DeployCallArgs | None = None,
+    ) -> algokit_utils.DeployResponse:
+        return self.app_client.deploy(
+            version,
+            signer=signer,
+            sender=sender,
+            allow_update=allow_update,
+            allow_delete=allow_delete,
+            on_update=on_update,
+            on_schema_break=on_schema_break,
+            template_values=template_values,
+            create_args=create_args,
+            update_args=update_args,
+            delete_args=delete_args,
+        )

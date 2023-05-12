@@ -29,7 +29,16 @@ DocumentParts = Iterable[DocumentPart]
 ESCAPED_QUOTE = r"\""
 SINGLE_QUOTE = '"'
 TRIPLE_QUOTE = '"""'
-MAX_LINE_LENGTH = 80
+
+
+@dataclasses.dataclass(kw_only=True)
+class GenerationSettings:
+    indent: str = "    "
+    max_line_length: int = 80
+
+    @property
+    def indent_length(self) -> int:
+        return len(self.indent)
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -134,6 +143,7 @@ class GenerateContext:
     used_module_symbols: set[str] = dataclasses.field(default_factory=set)
     used_client_symbols: set[str] = dataclasses.field(default_factory=set)
     disable_linting: bool = True
+    settings: GenerationSettings = dataclasses.field(default_factory=GenerationSettings)
 
 
 def get_contract_methods(context: GenerateContext) -> ContractMethods:
@@ -198,14 +208,10 @@ def docstring(value: str) -> DocumentParts:
     last_idx = len(value_lines) - 1
     for idx, line in enumerate(value_lines):
         if idx == 0 and line.startswith(SINGLE_QUOTE):
-            quotes_at_start = len(line) - len(line.lstrip(SINGLE_QUOTE))
-            yield ESCAPED_QUOTE * quotes_at_start
-            line = line[quotes_at_start:]
-        if idx == last_idx and line.endswith(SINGLE_QUOTE) and not line.endswith(ESCAPED_QUOTE):
-            yield line[:-1].replace(TRIPLE_QUOTE, ESCAPED_QUOTE)
-            yield ESCAPED_QUOTE
-        else:
-            yield line.replace(TRIPLE_QUOTE, ESCAPED_QUOTE)
+            yield " "
+        yield line
+        if idx == last_idx and line.endswith(SINGLE_QUOTE):
+            yield " "
         if idx != last_idx:
             yield Part.NewLine
     yield TRIPLE_QUOTE
@@ -258,16 +264,17 @@ def typed_argument_class(contract_method: ContractMethod) -> DocumentParts:
     yield Part.IncIndent
     if method.desc:
         yield from docstring(method.desc)
-    for arg in contract_method.args:
-        yield Part.InlineMode
-        yield f"{arg.name}: {arg.python_type}"
-        if arg.has_default:
-            yield " | None = None"
-        yield Part.RestoreLineMode
-        if arg.desc:
-            yield from docstring(arg.desc)
-
-    yield Part.Gap1
+        yield Part.Gap1
+    if contract_method.args:
+        for arg in contract_method.args:
+            yield Part.InlineMode
+            yield f"{arg.name}: {arg.python_type}"
+            if arg.has_default:
+                yield " | None = None"
+            yield Part.RestoreLineMode
+            if arg.desc:
+                yield from docstring(arg.desc)
+        yield Part.Gap1
     yield "@staticmethod"
     yield "def method() -> str:"
     yield Part.IncIndent
@@ -413,7 +420,9 @@ class {app_client_name}:
     yield from special_method(context, "delete", context.methods.delete_application)
     yield from special_method(context, "opt_in", context.methods.opt_in)
     yield from special_method(context, "close_out", context.methods.close_out)
-    yield Part.DecIndent
+    yield from clear_method(context)
+    yield Part.Gap1
+    yield from deploy_method(context)
 
 
 def embed_app_spec(context: GenerateContext) -> DocumentParts:
@@ -442,18 +451,13 @@ def call_method(context: GenerateContext, contract_method: ContractMethod) -> Do
     yield Part.IncIndent
     # TODO: yield doc
 
-    # TODO: better control over when to inline
-    args = contract_method.args
-    declaration = f"args = {contract_method.args_class_name}("
-    #  line = indent + declaration + f"{name}={name}," + ")"
-    do_inline = 4 + len(declaration) + sum(len(a.name) * 2 + 2 for a in args) + 1 < MAX_LINE_LENGTH
-
-    yield (Part.InlineMode, declaration) if do_inline else (declaration, Part.IncIndent)
-
-    for arg in args:
-        yield f"{arg.name}={arg.name},"
-
-    yield (")", Part.RestoreLineMode) if do_inline else (Part.DecIndent, ")")
+    if not contract_method.args:
+        yield f"args = {contract_method.args_class_name}()"
+    else:
+        yield f"args = {contract_method.args_class_name}(", Part.IncIndent
+        for arg in contract_method.args:
+            yield f"{arg.name}={arg.name},"
+        yield Part.DecIndent, ")"
 
     yield from indented(
         """
@@ -491,6 +495,7 @@ def special_method(
     if not methods:
         return
     bare_only = all(m.is_bare for m in methods)
+    has_bare = any(m.is_bare for m in methods)
     # TODO: overloads
     yield f"def {method_name}("
     yield Part.IncIndent
@@ -506,18 +511,24 @@ def special_method(
                 yield "None"
             else:
                 yield method.args_class_name
-        if any(m.is_bare for m in context.methods.create):
+        if has_bare:
             yield " = None"
         yield ","
         yield Part.RestoreLineMode
     yield f"transaction_parameters: {transaction_parameters_type} | None = None,"
 
-    return_types = {
-        "algokit_utils.TransactionResponse" if m.is_bare else f"algokit_utils.ABITransactionResponse[{m.python_type}]"
-        for m in methods
-    }
-    if len(return_types) == 1:
-        yield Part.DecIndent, f") -> {return_types.pop()}:"
+    return_types = []
+    if has_bare:
+        return_types.append("algokit_utils.TransactionResponse")
+
+    return_types.extend(
+        sorted(f"algokit_utils.ABITransactionResponse[{m.python_type}]" for m in methods if not m.is_bare)
+    )
+
+    return_signature = f") -> {' | '.join(return_types)}:"
+
+    if context.settings.indent_length + len(return_signature) < context.settings.max_line_length:
+        yield Part.DecIndent, return_signature
     else:
         yield Part.DecIndent, ") -> ("
         yield Part.IncIndent
@@ -536,11 +547,58 @@ def special_method(
         yield "call_abi_method=args.method() if args else False,"
     yield "transaction_parameters=_convert(transaction_parameters),"
     if not bare_only:
-        yield "**_as_dict(args)"
+        yield "**_as_dict(args),"
     yield Part.DecIndent
     yield ")"
     yield Part.DecIndent
     yield Part.Gap1
+
+
+def clear_method(context: GenerateContext) -> DocumentParts:
+    yield from indented(
+        """
+def clear_state(
+    self,
+    transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    app_args: list[bytes] | None = None,
+) -> algokit_utils.TransactionResponse:
+    return self.app_client.clear_state(_convert(transaction_parameters), app_args)"""
+    )
+
+
+def deploy_method(context: GenerateContext) -> DocumentParts:
+    # TODO: typing
+    yield from indented(
+        """
+def deploy(
+    self,
+    version: str | None = None,
+    *,
+    signer: TransactionSigner | None = None,
+    sender: str | None = None,
+    allow_update: bool | None = None,
+    allow_delete: bool | None = None,
+    on_update: algokit_utils.OnUpdate = algokit_utils.OnUpdate.Fail,
+    on_schema_break: algokit_utils.OnSchemaBreak = algokit_utils.OnSchemaBreak.Fail,
+    template_values: algokit_utils.TemplateValueMapping | None = None,
+    create_args: algokit_utils.DeployCallArgs | None = None,
+    update_args: algokit_utils.DeployCallArgs | None = None,
+    delete_args: algokit_utils.DeployCallArgs | None = None,
+) -> algokit_utils.DeployResponse:
+    return self.app_client.deploy(
+        version,
+        signer=signer,
+        sender=sender,
+        allow_update=allow_update,
+        allow_delete=allow_delete,
+        on_update=on_update,
+        on_schema_break=on_schema_break,
+        template_values=template_values,
+        create_args=create_args,
+        update_args=update_args,
+        delete_args=delete_args,
+    )"""
+    )
 
 
 def _get_unique_symbol_by_incrementing(
@@ -570,7 +628,7 @@ def create_generate_context(app_spec: ApplicationSpecification) -> GenerateConte
         "delete",
         "opt_in",
         "close_out",
-        "clear",
+        "clear_state",
         "deploy",
     )
     context.client_name = _get_unique_symbol_by_incrementing(
@@ -607,9 +665,10 @@ def generate(context: GenerateContext) -> DocumentParts:
 @dataclasses.dataclass
 class RenderContext:
     line_mode_stack: list[str]
-    indent: str
     indent_inc: str
-    last_part: DocumentPart | None
+
+    last_part: DocumentPart | None = None
+    indent: str = ""
     last_rendered_part: str = ""
 
     @property
@@ -678,40 +737,48 @@ def convert_part(part: DocumentPart, context: RenderContext) -> list[str]:
     return results
 
 
-def render(parts: DocumentParts, indent_size: int = 4) -> str:
-    context = RenderContext(line_mode_stack=["\n"], indent="", indent_inc=" " * indent_size, last_part=None)
+def render(parts: DocumentParts, settings: GenerationSettings) -> str:
+    context = RenderContext(line_mode_stack=["\n"], indent_inc=settings.indent)
 
     return "".join(pp for p in parts for pp in convert_part(p, context))
 
 
-def generate_client(input_path: Path, output_path: Path) -> None:
+def generate_client(input_path: Path, output_path: Path, settings: GenerationSettings | None = None) -> None:
     app_spec = ApplicationSpecification.from_json(input_path.read_text())
 
     context = create_generate_context(app_spec)
-    output = render(generate(context))
+    if settings:
+        context.settings = settings
+    output = render(generate(context), context.settings)
     output_path.write_text(output)
 
 
-def walk_dir(path: Path, output_name: str = "client_generated.py") -> None:
+def walk_dir(path: Path, output_name: str, settings: GenerationSettings) -> None:
     for child in path.iterdir():
         if child.is_dir():
-            walk_dir(child)
+            walk_dir(child, output_name, settings)
         elif child.name.lower() == "application.json":
-            generate_client(child, child.parent / output_name)
+            generate_client(child, child.parent / output_name, settings)
 
 
 def main():
     # TODO: proper CLI parsing
-    input_path = Path(".").absolute() if len(sys.argv) < 2 else Path(sys.argv[1])
+    args = dict(enumerate(sys.argv))
+    input_path = Path(args.get(1, ".")).absolute()
+    output = args.get(2, "client_generated.py")
+
+    settings = GenerationSettings(max_line_length=120)
+
     if not input_path.exists():
         raise Exception(f"{input_path} not found")
 
     if input_path.is_dir():
-        output = "client_generated.py" if len(sys.argv) < 3 else sys.argv[2]
-        walk_dir(input_path, output)
+        walk_dir(input_path, output, settings)
     else:
-        output = input_path.parent / "client_generated.py" if len(sys.argv) < 3 else Path(sys.argv[2])
-        generate_client(input_path, output)
+        output = Path(output)
+        if not output.is_absolute():
+            output = input_path.parent / output
+        generate_client(input_path, output, settings)
 
 
 if __name__ == "__main__":
