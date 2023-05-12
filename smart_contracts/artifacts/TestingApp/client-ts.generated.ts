@@ -549,170 +549,173 @@ export class TestingAppClient {
    * @returns The deployment result
    */
   public deploy(params: TestingAppDeployArgs & AppClientDeployCoreParams = {}) {
-  return this.appClient.deploy({ 
-    ...params,
-    createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
-    deleteArgs: Array.isArray(params.deleteArgs) ? mapBySignature(...params.deleteArgs as [any, any, any]): params.deleteArgs,
-    updateArgs: Array.isArray(params.updateArgs) ? mapBySignature(...params.updateArgs as [any, any, any]): params.updateArgs,
-  })
-}
-
-/**
- * Creates a new instance of the TestingApp smart contract using a bare call.
- * @param args The arguments for the bare call
- * @returns The create result
- */
-public create(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs & (OnCompleteNoOp | OnCompleteOptIn)): Promise<AppCallTransactionResultOfType<undefined>>;
-/**
- * Creates a new instance of the TestingApp smart contract using the create_abi(string)string ABI method.
- * @param method The ABI method to use
- * @param args The arguments for the contract call
- * @param params Any additional parameters for the call
- * @returns The create result
- */
-public create(method: 'create_abi(string)string', args: MethodArgs<'create_abi(string)string'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create_abi(string)string'>>>;
-public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-  if(typeof args[0] !== 'string') {
-    return this.appClient.create({...args[0], })
-  } else {
-    return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    return this.appClient.deploy({ 
+      ...params,
+      createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
+      deleteArgs: Array.isArray(params.deleteArgs) ? mapBySignature(...params.deleteArgs as [any, any, any]): params.deleteArgs,
+      updateArgs: Array.isArray(params.updateArgs) ? mapBySignature(...params.updateArgs as [any, any, any]): params.updateArgs,
+    })
   }
-}
 
-/**
- * Updates an existing instance of the TestingApp smart contract using a bare call.
- * @param args The arguments for the bare call
- * @returns The update result
- */
-public update(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
-/**
- * Updates an existing instance of the TestingApp smart contract using the update_abi(string)string ABI method.
- * @param method The ABI method to use
- * @param args The arguments for the contract call
- * @param params Any additional parameters for the call
- * @returns The update result
- */
-public update(method: 'update_abi(string)string', args: MethodArgs<'update_abi(string)string'>, params?: AppClientCallCoreParams & AppClientCompilationParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'update_abi(string)string'>>>;
-public update(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-  if(typeof args[0] !== 'string') {
-    return this.appClient.update({...args[0], })
-  } else {
-    return this.appClient.update({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+  /**
+   * Creates a new instance of the TestingApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The create result
+   */
+  public create(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs & (OnCompleteNoOp | OnCompleteOptIn)): Promise<AppCallTransactionResultOfType<undefined>>;
+  /**
+   * Creates a new instance of the TestingApp smart contract using the create_abi(string)string ABI method.
+   * @param method The ABI method to use
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The create result
+   */
+  public create(method: 'create_abi(string)string', args: MethodArgs<'create_abi(string)string'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create_abi(string)string'>>>;
+  public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.create({...args[0], })
+    } else {
+      return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
   }
-}
 
-/**
- * Deletes an existing instance of the TestingApp smart contract using a bare call.
- * @param args The arguments for the bare call
- * @returns The delete result
- */
-public delete(args: BareCallArgs & AppClientCallCoreParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
-/**
- * Deletes an existing instance of the TestingApp smart contract using the delete_abi(string)string ABI method.
- * @param method The ABI method to use
- * @param args The arguments for the contract call
- * @param params Any additional parameters for the call
- * @returns The delete result
- */
-public delete(method: 'delete_abi(string)string', args: MethodArgs<'delete_abi(string)string'>, params?: AppClientCallCoreParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'delete_abi(string)string'>>>;
-public delete(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-  if(typeof args[0] !== 'string') {
-    return this.appClient.delete({...args[0], })
-  } else {
-    return this.appClient.delete({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+  /**
+   * Updates an existing instance of the TestingApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The update result
+   */
+  public update(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
+  /**
+   * Updates an existing instance of the TestingApp smart contract using the update_abi(string)string ABI method.
+   * @param method The ABI method to use
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The update result
+   */
+  public update(method: 'update_abi(string)string', args: MethodArgs<'update_abi(string)string'>, params?: AppClientCallCoreParams & AppClientCompilationParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'update_abi(string)string'>>>;
+  public update(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.update({...args[0], })
+    } else {
+      return this.appClient.update({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
   }
-}
 
-/**
- * Opts the user into an existing instance of the TestingApp smart contract using the opt_in()void ABI method.
- * @param method The ABI method to use
- * @param args The arguments for the contract call
- * @param params Any additional parameters for the call
- * @returns The optIn result
- */
-public optIn(method: 'opt_in()void', args: MethodArgs<'opt_in()void'>, params?: AppClientCallCoreParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'opt_in()void'>>>;
-public optIn(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-  if(typeof args[0] !== 'string') {
-    return this.appClient.optIn({...args[0], })
-  } else {
-    return this.appClient.optIn({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+  /**
+   * Deletes an existing instance of the TestingApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The delete result
+   */
+  public delete(args: BareCallArgs & AppClientCallCoreParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
+  /**
+   * Deletes an existing instance of the TestingApp smart contract using the delete_abi(string)string ABI method.
+   * @param method The ABI method to use
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The delete result
+   */
+  public delete(method: 'delete_abi(string)string', args: MethodArgs<'delete_abi(string)string'>, params?: AppClientCallCoreParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'delete_abi(string)string'>>>;
+  public delete(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.delete({...args[0], })
+    } else {
+      return this.appClient.delete({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
   }
-}
 
-/**
- * Makes a clear_state call to an existing instance of the TestingApp smart contract.
- * @param args The arguments for the contract call
- * @param params Any additional parameters for the call
- * @returns The clear_state result
- */
-public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.appClient.clearState({ ...args, ...params, })
-}
+  /**
+   * Opts the user into an existing instance of the TestingApp smart contract using the opt_in()void ABI method.
+   * @param method The ABI method to use
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The optIn result
+   */
+  public optIn(method: 'opt_in()void', args: MethodArgs<'opt_in()void'>, params?: AppClientCallCoreParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'opt_in()void'>>>;
+  public optIn(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.optIn({...args[0], })
+    } else {
+      return this.appClient.optIn({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
+  }
 
-/**
- * Calls the call_abi(string)string ABI method.
- *
- * @param args The arguments for the ABI method
- * @param params Any additional parameters for the call
- * @returns The result of the call
- */
-public callAbi(args: MethodArgs<'call_abi(string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.call(TestingAppCallFactory.callAbi(args, params))
-}
+  /**
+   * Makes a clear_state call to an existing instance of the TestingApp smart contract.
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The clear_state result
+   */
+  public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.appClient.clearState({ ...args, ...params, })
+  }
 
-/**
- * Calls the call_abi_txn(pay,string)string ABI method.
- *
- * @param args The arguments for the ABI method
- * @param params Any additional parameters for the call
- * @returns The result of the call
- */
-public callAbiTxn(args: MethodArgs<'call_abi_txn(pay,string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.call(TestingAppCallFactory.callAbiTxn(args, params))
-}
+  /**
+   * Calls the call_abi(string)string ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public callAbi(args: MethodArgs<'call_abi(string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(TestingAppCallFactory.callAbi(args, params))
+  }
 
-/**
- * Calls the set_global(uint64,uint64,string,byte[4])void ABI method.
- *
- * @param args The arguments for the ABI method
- * @param params Any additional parameters for the call
- * @returns The result of the call
- */
-public setGlobal(args: MethodArgs<'set_global(uint64,uint64,string,byte[4])void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.call(TestingAppCallFactory.setGlobal(args, params))
-}
+  /**
+   * Calls the call_abi_txn(pay,string)string ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public callAbiTxn(args: MethodArgs<'call_abi_txn(pay,string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(TestingAppCallFactory.callAbiTxn(args, params))
+  }
 
-/**
- * Calls the set_local(uint64,uint64,string,byte[4])void ABI method.
- *
- * @param args The arguments for the ABI method
- * @param params Any additional parameters for the call
- * @returns The result of the call
- */
-public setLocal(args: MethodArgs<'set_local(uint64,uint64,string,byte[4])void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.call(TestingAppCallFactory.setLocal(args, params))
-}
+  /**
+   * Calls the set_global(uint64,uint64,string,byte[4])void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public setGlobal(args: MethodArgs<'set_global(uint64,uint64,string,byte[4])void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(TestingAppCallFactory.setGlobal(args, params))
+  }
 
-/**
- * Calls the set_box(byte[4],string)void ABI method.
- *
- * @param args The arguments for the ABI method
- * @param params Any additional parameters for the call
- * @returns The result of the call
- */
-public setBox(args: MethodArgs<'set_box(byte[4],string)void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.call(TestingAppCallFactory.setBox(args, params))
-}
+  /**
+   * Calls the set_local(uint64,uint64,string,byte[4])void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public setLocal(args: MethodArgs<'set_local(uint64,uint64,string,byte[4])void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(TestingAppCallFactory.setLocal(args, params))
+  }
 
-/**
- * Calls the error()void ABI method.
- *
- * @param args The arguments for the ABI method
- * @param params Any additional parameters for the call
- * @returns The result of the call
- */
-public error(args: MethodArgs<'error()void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.call(TestingAppCallFactory.error(args, params))
-}
+  /**
+   * Calls the set_box(byte[4],string)void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public setBox(args: MethodArgs<'set_box(byte[4],string)void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(TestingAppCallFactory.setBox(args, params))
+  }
+
+  /**
+   * Calls the error()void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public error(args: MethodArgs<'error()void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(TestingAppCallFactory.error(args, params))
+  }
+
+  public getGlobalState(): void {
+  }
 
 }

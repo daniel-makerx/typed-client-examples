@@ -280,88 +280,88 @@ export class LifeCycleAppClient {
    * @returns The deployment result
    */
   public deploy(params: LifeCycleAppDeployArgs & AppClientDeployCoreParams = {}) {
-  return this.appClient.deploy({ 
-    ...params,
-    createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
-    updateArgs: Array.isArray(params.updateArgs) ? mapBySignature(...params.updateArgs as [any, any, any]): params.updateArgs,
-  })
-}
-
-/**
- * Creates a new instance of the LifeCycleApp smart contract using a bare call.
- * @param args The arguments for the bare call
- * @returns The create result
- */
-public create(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs & (OnCompleteNoOp | OnCompleteOptIn)): Promise<AppCallTransactionResultOfType<undefined>>;
-/**
- * Creates a new instance of the LifeCycleApp smart contract using the create(string)string ABI method.
- * @param method The ABI method to use
- * @param args The arguments for the contract call
- * @param params Any additional parameters for the call
- * @returns The create result
- */
-public create(method: 'create(string)string', args: MethodArgs<'create(string)string'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create(string)string'>>>;
-/**
- * Creates a new instance of the LifeCycleApp smart contract using the create(string,uint32)void ABI method.
- * @param method The ABI method to use
- * @param args The arguments for the contract call
- * @param params Any additional parameters for the call
- * @returns The create result
- */
-public create(method: 'create(string,uint32)void', args: MethodArgs<'create(string,uint32)void'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create(string,uint32)void'>>>;
-public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-  if(typeof args[0] !== 'string') {
-    return this.appClient.create({...args[0], })
-  } else {
-    return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    return this.appClient.deploy({ 
+      ...params,
+      createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
+      updateArgs: Array.isArray(params.updateArgs) ? mapBySignature(...params.updateArgs as [any, any, any]): params.updateArgs,
+    })
   }
-}
 
-/**
- * Updates an existing instance of the LifeCycleApp smart contract using a bare call.
- * @param args The arguments for the bare call
- * @returns The update result
- */
-public update(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
-public update(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-  if(typeof args[0] !== 'string') {
-    return this.appClient.update({...args[0], })
-  } else {
-    return this.appClient.update({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+  /**
+   * Creates a new instance of the LifeCycleApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The create result
+   */
+  public create(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs & (OnCompleteNoOp | OnCompleteOptIn)): Promise<AppCallTransactionResultOfType<undefined>>;
+  /**
+   * Creates a new instance of the LifeCycleApp smart contract using the create(string)string ABI method.
+   * @param method The ABI method to use
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The create result
+   */
+  public create(method: 'create(string)string', args: MethodArgs<'create(string)string'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create(string)string'>>>;
+  /**
+   * Creates a new instance of the LifeCycleApp smart contract using the create(string,uint32)void ABI method.
+   * @param method The ABI method to use
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The create result
+   */
+  public create(method: 'create(string,uint32)void', args: MethodArgs<'create(string,uint32)void'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create(string,uint32)void'>>>;
+  public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.create({...args[0], })
+    } else {
+      return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
   }
-}
 
-/**
- * Makes a clear_state call to an existing instance of the LifeCycleApp smart contract.
- * @param args The arguments for the contract call
- * @param params Any additional parameters for the call
- * @returns The clear_state result
- */
-public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.appClient.clearState({ ...args, ...params, })
-}
+  /**
+   * Updates an existing instance of the LifeCycleApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The update result
+   */
+  public update(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
+  public update(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.update({...args[0], })
+    } else {
+      return this.appClient.update({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
+  }
 
-/**
- * Calls the hello(string)string ABI method.
- *
- * @param args The arguments for the ABI method
- * @param params Any additional parameters for the call
- * @returns The result of the call
- */
-public helloStringString(args: MethodArgs<'hello(string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.call(LifeCycleAppCallFactory.helloStringString(args, params))
-}
+  /**
+   * Makes a clear_state call to an existing instance of the LifeCycleApp smart contract.
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The clear_state result
+   */
+  public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.appClient.clearState({ ...args, ...params, })
+  }
 
-/**
- * Calls the hello()string ABI method.
- *
- * @param args The arguments for the ABI method
- * @param params Any additional parameters for the call
- * @returns The result of the call
- */
-public helloString(args: MethodArgs<'hello()string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.call(LifeCycleAppCallFactory.helloString(args, params))
-}
+  /**
+   * Calls the hello(string)string ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public helloStringString(args: MethodArgs<'hello(string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(LifeCycleAppCallFactory.helloStringString(args, params))
+  }
+
+  /**
+   * Calls the hello()string ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public helloString(args: MethodArgs<'hello()string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(LifeCycleAppCallFactory.helloString(args, params))
+  }
 
   public getGlobalState(): void {
   }

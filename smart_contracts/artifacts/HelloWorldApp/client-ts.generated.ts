@@ -205,91 +205,91 @@ export class HelloWorldAppClient {
    * @returns The deployment result
    */
   public deploy(params: HelloWorldAppDeployArgs & AppClientDeployCoreParams = {}) {
-  return this.appClient.deploy({ 
-    ...params,
-    createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
-    deleteArgs: Array.isArray(params.deleteArgs) ? mapBySignature(...params.deleteArgs as [any, any, any]): params.deleteArgs,
-    updateArgs: Array.isArray(params.updateArgs) ? mapBySignature(...params.updateArgs as [any, any, any]): params.updateArgs,
-  })
-}
-
-/**
- * Creates a new instance of the HelloWorldApp smart contract using a bare call.
- * @param args The arguments for the bare call
- * @returns The create result
- */
-public create(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<undefined>>;
-public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-  if(typeof args[0] !== 'string') {
-    return this.appClient.create({...args[0], })
-  } else {
-    return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    return this.appClient.deploy({ 
+      ...params,
+      createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
+      deleteArgs: Array.isArray(params.deleteArgs) ? mapBySignature(...params.deleteArgs as [any, any, any]): params.deleteArgs,
+      updateArgs: Array.isArray(params.updateArgs) ? mapBySignature(...params.updateArgs as [any, any, any]): params.updateArgs,
+    })
   }
-}
 
-/**
- * Updates an existing instance of the HelloWorldApp smart contract using a bare call.
- * @param args The arguments for the bare call
- * @returns The update result
- */
-public update(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
-public update(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-  if(typeof args[0] !== 'string') {
-    return this.appClient.update({...args[0], })
-  } else {
-    return this.appClient.update({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+  /**
+   * Creates a new instance of the HelloWorldApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The create result
+   */
+  public create(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<undefined>>;
+  public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.create({...args[0], })
+    } else {
+      return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
   }
-}
 
-/**
- * Deletes an existing instance of the HelloWorldApp smart contract using a bare call.
- * @param args The arguments for the bare call
- * @returns The delete result
- */
-public delete(args: BareCallArgs & AppClientCallCoreParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
-public delete(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-  if(typeof args[0] !== 'string') {
-    return this.appClient.delete({...args[0], })
-  } else {
-    return this.appClient.delete({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+  /**
+   * Updates an existing instance of the HelloWorldApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The update result
+   */
+  public update(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
+  public update(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.update({...args[0], })
+    } else {
+      return this.appClient.update({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
   }
-}
 
-/**
- * Makes a clear_state call to an existing instance of the HelloWorldApp smart contract.
- * @param args The arguments for the contract call
- * @param params Any additional parameters for the call
- * @returns The clear_state result
- */
-public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.appClient.clearState({ ...args, ...params, })
-}
+  /**
+   * Deletes an existing instance of the HelloWorldApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The delete result
+   */
+  public delete(args: BareCallArgs & AppClientCallCoreParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
+  public delete(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.delete({...args[0], })
+    } else {
+      return this.appClient.delete({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
+  }
 
-/**
- * Returns Hello, {name}
- *
- * Calls the hello(string)string ABI method.
- *
- * @param args The arguments for the ABI method
- * @param params Any additional parameters for the call
- * @returns The result of the call
- */
-public hello(args: MethodArgs<'hello(string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.call(HelloWorldAppCallFactory.hello(args, params))
-}
+  /**
+   * Makes a clear_state call to an existing instance of the HelloWorldApp smart contract.
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The clear_state result
+   */
+  public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.appClient.clearState({ ...args, ...params, })
+  }
 
-/**
- * Asserts {name} is "World"
- *
- * Calls the hello_world_check(string)void ABI method.
- *
- * @param args The arguments for the ABI method
- * @param params Any additional parameters for the call
- * @returns The result of the call
- */
-public helloWorldCheck(args: MethodArgs<'hello_world_check(string)void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.call(HelloWorldAppCallFactory.helloWorldCheck(args, params))
-}
+  /**
+   * Returns Hello, {name}
+   *
+   * Calls the hello(string)string ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public hello(args: MethodArgs<'hello(string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(HelloWorldAppCallFactory.hello(args, params))
+  }
+
+  /**
+   * Asserts {name} is "World"
+   *
+   * Calls the hello_world_check(string)void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public helloWorldCheck(args: MethodArgs<'hello_world_check(string)void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(HelloWorldAppCallFactory.helloWorldCheck(args, params))
+  }
 
   public getGlobalState(): void {
   }

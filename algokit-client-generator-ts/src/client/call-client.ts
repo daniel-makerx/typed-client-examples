@@ -1,9 +1,6 @@
 import * as algokit from '@algorandfoundation/algokit-utils'
 import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, indent, inline, NewLine } from '../output/writer'
-import { notFalsy } from '../util/not-falsy'
 import { makeSafeMethodIdentifier, makeSafeTypeIdentifier } from '../util/sanitization'
-import { GeneratorContext } from './generator-context'
-import { extractMethodNameFromSignature } from './helpers/extract-method-name-from-signature'
 import { BARE_CALL, MethodList } from './helpers/get-call-config-summary'
 import { GeneratorContext } from './generator-context'
 import { getCreateOnCompleteOptions } from './deploy-types'
@@ -68,7 +65,7 @@ function* deployMethods({ app, callConfig, name }: GeneratorContext): DocumentPa
   yield ` * @returns The deployment result`
   yield ` */`
   yield `public deploy(params: ${name}DeployArgs & AppClientDeployCoreParams = {}) {`
-  // yield IncIndent
+  yield IncIndent
   // if (callConfig.createMethods.some((m) => m !== BARE_CALL)) {
   //   yield `const { boxes: create_boxes, lease: create_lease, onCompleteAction: createOnCompleteAction, ...createArgs } = params.createArgs ?? {}`
   // } else {

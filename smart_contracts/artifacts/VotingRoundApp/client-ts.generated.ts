@@ -426,95 +426,98 @@ export class VotingRoundAppClient {
    * @returns The deployment result
    */
   public deploy(params: VotingRoundAppDeployArgs & AppClientDeployCoreParams = {}) {
-  return this.appClient.deploy({ 
-    ...params,
-    createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
-    deleteArgs: Array.isArray(params.deleteArgs) ? mapBySignature(...params.deleteArgs as [any, any, any]): params.deleteArgs,
-  })
-}
-
-/**
- * Creates a new instance of the VotingRoundApp smart contract using the create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void ABI method.
- * @param method The ABI method to use
- * @param args The arguments for the contract call
- * @param params Any additional parameters for the call
- * @returns The create result
- */
-public create(method: 'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void', args: MethodArgs<'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void'>>>;
-public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-  if(typeof args[0] !== 'string') {
-    return this.appClient.create({...args[0], })
-  } else {
-    return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    return this.appClient.deploy({ 
+      ...params,
+      createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
+      deleteArgs: Array.isArray(params.deleteArgs) ? mapBySignature(...params.deleteArgs as [any, any, any]): params.deleteArgs,
+    })
   }
-}
 
-/**
- * Deletes an existing instance of the VotingRoundApp smart contract using a bare call.
- * @param args The arguments for the bare call
- * @returns The delete result
- */
-public delete(args: BareCallArgs & AppClientCallCoreParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
-public delete(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-  if(typeof args[0] !== 'string') {
-    return this.appClient.delete({...args[0], })
-  } else {
-    return this.appClient.delete({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+  /**
+   * Creates a new instance of the VotingRoundApp smart contract using the create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void ABI method.
+   * @param method The ABI method to use
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The create result
+   */
+  public create(method: 'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void', args: MethodArgs<'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void'>>>;
+  public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.create({...args[0], })
+    } else {
+      return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
   }
-}
 
-/**
- * Makes a clear_state call to an existing instance of the VotingRoundApp smart contract.
- * @param args The arguments for the contract call
- * @param params Any additional parameters for the call
- * @returns The clear_state result
- */
-public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.appClient.clearState({ ...args, ...params, })
-}
+  /**
+   * Deletes an existing instance of the VotingRoundApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The delete result
+   */
+  public delete(args: BareCallArgs & AppClientCallCoreParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
+  public delete(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.delete({...args[0], })
+    } else {
+      return this.appClient.delete({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
+  }
 
-/**
- * Calls the bootstrap(pay)void ABI method.
- *
- * @param args The arguments for the ABI method
- * @param params Any additional parameters for the call
- * @returns The result of the call
- */
-public bootstrap(args: MethodArgs<'bootstrap(pay)void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.call(VotingRoundAppCallFactory.bootstrap(args, params))
-}
+  /**
+   * Makes a clear_state call to an existing instance of the VotingRoundApp smart contract.
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The clear_state result
+   */
+  public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.appClient.clearState({ ...args, ...params, })
+  }
 
-/**
- * Calls the close()void ABI method.
- *
- * @param args The arguments for the ABI method
- * @param params Any additional parameters for the call
- * @returns The result of the call
- */
-public close(args: MethodArgs<'close()void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.call(VotingRoundAppCallFactory.close(args, params))
-}
+  /**
+   * Calls the bootstrap(pay)void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public bootstrap(args: MethodArgs<'bootstrap(pay)void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(VotingRoundAppCallFactory.bootstrap(args, params))
+  }
 
-/**
- * Calls the get_preconditions(byte[])(uint64,uint64,uint64,uint64) ABI method.
- *
- * @param args The arguments for the ABI method
- * @param params Any additional parameters for the call
- * @returns The result of the call
- */
-public getPreconditions(args: MethodArgs<'get_preconditions(byte[])(uint64,uint64,uint64,uint64)'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.call(VotingRoundAppCallFactory.getPreconditions(args, params))
-}
+  /**
+   * Calls the close()void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public close(args: MethodArgs<'close()void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(VotingRoundAppCallFactory.close(args, params))
+  }
 
-/**
- * Calls the vote(pay,byte[],uint8[])void ABI method.
- *
- * @param args The arguments for the ABI method
- * @param params Any additional parameters for the call
- * @returns The result of the call
- */
-public vote(args: MethodArgs<'vote(pay,byte[],uint8[])void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-  return this.call(VotingRoundAppCallFactory.vote(args, params))
-}
+  /**
+   * Calls the get_preconditions(byte[])(uint64,uint64,uint64,uint64) ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public getPreconditions(args: MethodArgs<'get_preconditions(byte[])(uint64,uint64,uint64,uint64)'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(VotingRoundAppCallFactory.getPreconditions(args, params))
+  }
+
+  /**
+   * Calls the vote(pay,byte[],uint8[])void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public vote(args: MethodArgs<'vote(pay,byte[],uint8[])void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(VotingRoundAppCallFactory.vote(args, params))
+  }
+
+  public getGlobalState(): void {
+  }
 
 }
