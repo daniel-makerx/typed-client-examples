@@ -1,7 +1,8 @@
-import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, indent, inline, NewLine } from '../output/writer'
 import * as algokit from '@algorandfoundation/algokit-utils'
+import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, indent, inline, NewLine } from '../output/writer'
 import { notFalsy } from '../util/not-falsy'
 import { makeSafeMethodIdentifier, makeSafeTypeIdentifier } from '../util/sanitization'
+import { GeneratorContext } from './generator-context'
 import { extractMethodNameFromSignature } from './helpers/extract-method-name-from-signature'
 import { BARE_CALL, MethodList } from './helpers/get-call-config-summary'
 import { GeneratorContext } from './generator-context'
@@ -55,7 +56,7 @@ export function* callClient(ctx: GeneratorContext): DocumentParts {
   yield* deployMethods(ctx)
   yield* clearState(ctx)
   yield* clientCallMethods(ctx)
-  // yield* getStateMethods(ctx)
+  yield* getStateMethods(ctx)
 
   yield DecIndentAndCloseBlock
 }
@@ -211,6 +212,7 @@ function* clientCallMethods({ app, name, callConfig, methodSignatureToUniqueName
 function* getStateMethods({ app }: GeneratorContext): DocumentParts {
   yield `public getGlobalState(): void {`
   yield IncIndent
+
   yield DecIndentAndCloseBlock
   yield NewLine
 }

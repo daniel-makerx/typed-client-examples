@@ -291,4 +291,7 @@ public helloWorldCheck(args: MethodArgs<'hello_world_check(string)void'>, params
   return this.call(HelloWorldAppCallFactory.helloWorldCheck(args, params))
 }
 
+  public getGlobalState(): void {
+  }
+
 }

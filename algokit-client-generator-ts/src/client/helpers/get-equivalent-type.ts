@@ -11,7 +11,7 @@ import {
   ABIUintType,
 } from 'algosdk'
 
-export function getEquivalentType(abiTypeStr: string): string {
+export function getEquivalentType(abiTypeStr: string, ioType: 'input' | 'output'): string {
   switch (abiTypeStr) {
     case 'void':
       return 'void'
@@ -27,20 +27,20 @@ export function getEquivalentType(abiTypeStr: string): string {
 
   const abiType = ABIType.from(abiTypeStr)
 
-  return abiTypeToTs(abiType)
+  return abiTypeToTs(abiType, ioType)
 
-  function abiTypeToTs(abiType: ABIType): string {
+  function abiTypeToTs(abiType: ABIType, ioType: 'input' | 'output'): string {
     if (abiType instanceof ABIUintType) {
       if (abiType.bitSize <= 51) return 'number'
-      return 'bigint'
+      return ioType === 'input' ? 'bigint | number' : 'bigint'
     }
     if (abiType instanceof ABIArrayDynamicType) {
       if (abiType.childType instanceof ABIByteType) return 'Uint8Array'
-      return `${abiTypeToTs(abiType.childType)}[]`
+      return `${abiTypeToTs(abiType.childType, ioType)}[]`
     }
     if (abiType instanceof ABIArrayStaticType) {
       if (abiType.childType instanceof ABIByteType) return 'Uint8Array'
-      return `[${new Array(abiType.staticLength).fill(abiTypeToTs(abiType.childType)).join(', ')}]`
+      return `[${new Array(abiType.staticLength).fill(abiTypeToTs(abiType.childType, ioType)).join(', ')}]`
     }
     if (abiType instanceof ABIAddressType) {
       return 'string'
@@ -52,7 +52,7 @@ export function getEquivalentType(abiTypeStr: string): string {
       return 'number'
     }
     if (abiType instanceof ABITupleType) {
-      return `[${abiType.childTypes.map(abiTypeToTs).join(', ')}]`
+      return `[${abiType.childTypes.map((c) => abiTypeToTs(c, ioType)).join(', ')}]`
     }
     if (abiType instanceof ABIByteType) {
       return 'number'

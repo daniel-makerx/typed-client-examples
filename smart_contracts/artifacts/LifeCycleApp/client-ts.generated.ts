@@ -363,4 +363,7 @@ public helloString(args: MethodArgs<'hello()string'>, params?: AppClientCallCore
   return this.call(LifeCycleAppCallFactory.helloString(args, params))
 }
 
+  public getGlobalState(): void {
+  }
+
 }
