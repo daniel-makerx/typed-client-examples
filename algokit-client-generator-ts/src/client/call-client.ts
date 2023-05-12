@@ -4,7 +4,6 @@ import { makeSafeMethodIdentifier, makeSafeTypeIdentifier } from '../util/saniti
 import { BARE_CALL, MethodList } from './helpers/get-call-config-summary'
 import { GeneratorContext } from './generator-context'
 import { getCreateOnCompleteOptions } from './deploy-types'
-import { AlgoAppSpec } from '../schema/application'
 
 export function* callClient(ctx: GeneratorContext): DocumentParts {
   const { app, name } = ctx
@@ -67,15 +66,6 @@ function* deployMethods(ctx: GeneratorContext): DocumentParts {
   yield ` */`
   yield `public deploy(params: ${name}DeployArgs & AppClientDeployCoreParams = {}) {`
   yield IncIndent
-  // if (callConfig.createMethods.some((m) => m !== BARE_CALL)) {
-  //   yield `const { boxes: create_boxes, lease: create_lease, onCompleteAction: createOnCompleteAction, ...createArgs } = params.createArgs ?? {}`
-  // } else {
-  //   yield `const { onCompleteAction: createOnCompleteAction } = params.createArgs ?? {}`
-  // }
-  // if (callConfig.updateMethods.some((m) => m !== BARE_CALL))
-  //   yield `const { boxes: update_boxes, lease: update_lease, ...updateArgs } = params.updateArgs ?? {}`
-  // if (callConfig.deleteMethods.some((m) => m !== BARE_CALL))
-  //   yield `const { boxes: delete_boxes, lease: delete_lease, ...deleteArgs } = params.deleteArgs ?? {}`
   yield `return this.appClient.deploy({ `
   yield IncIndent
   yield `...params,`
@@ -210,10 +200,84 @@ function* clientCallMethods({ app, name, callConfig, methodSignatureToUniqueName
   }
 }
 
-function* getStateMethods({ app }: GeneratorContext): DocumentParts {
-  yield `public getGlobalState(): void {`
-  yield IncIndent
+function* getStateMethods({ app, name }: GeneratorContext): DocumentParts {
+  const globalStateValues = app.schema.global?.declared && Object.values(app.schema.global?.declared)
+  const localStateValues = app.schema.local?.declared && Object.values(app.schema.local?.declared)
+  if (globalStateValues?.length || localStateValues?.length) {
+    yield `private static getBinaryState(state: AppState, key: string): BinaryState | undefined {`
+    yield IncIndent
+    yield `const value = state[key]`
+    yield `if (!value) return undefined`
+    yield `if (!('valueRaw' in value))`
+    yield* indent(`throw new Error(\`Failed to parse state value for \${key}; received an int when expected a byte array\`)`)
+    yield `return {`
+    yield IncIndent
+    yield `asString(): string {`
+    yield* indent(`return value.value`)
+    yield `},`
+    yield `asByteArray(): Uint8Array {`
+    yield* indent(`return value.valueRaw`)
+    yield `}`
+    yield DecIndentAndCloseBlock
+    yield DecIndentAndCloseBlock
+    yield NewLine
 
-  yield DecIndentAndCloseBlock
-  yield NewLine
+    yield `private static getIntegerState(state: AppState, key: string): IntegerState | undefined {`
+    yield IncIndent
+    yield `const value = state[key]`
+    yield `if (!value) return undefined`
+    yield `if ('valueRaw' in value)`
+    yield* indent(`throw new Error(\`Failed to parse state value for \${key}; received a byte array when expected a number\`)`)
+    yield `return {`
+    yield IncIndent
+    yield `asBigInt() {`
+    yield* indent(`return typeof value.value === 'bigint' ? value.value : BigInt(value.value)`)
+    yield `},`
+    yield `asNumber(): number {`
+    yield* indent(`return typeof value.value === 'bigint' ? Number(value.value) : value.value`)
+    yield `},`
+    yield DecIndentAndCloseBlock
+    yield DecIndentAndCloseBlock
+    yield NewLine
+  }
+
+  if (globalStateValues?.length) {
+    yield `public async getGlobalState(): Promise<${name}['state']['global']> {`
+    yield IncIndent
+    yield `const state = await this.appClient.getGlobalState()`
+    yield `return {`
+    yield IncIndent
+    for (const stateValue of globalStateValues) {
+      yield `get ${stateValue.key}() {`
+      if (stateValue.type === 'uint64') {
+        yield* indent(`return ${name}Client.getIntegerState(state, '${stateValue.key}')`)
+      } else {
+        yield* indent(`return ${name}Client.getBinaryState(state, '${stateValue.key}')`)
+      }
+      yield '},'
+    }
+    yield DecIndentAndCloseBlock
+    yield DecIndentAndCloseBlock
+    yield NewLine
+  }
+
+  if (localStateValues?.length) {
+    yield `public async getLocalState(account: string | SendTransactionFrom): Promise<${name}['state']['local']> {`
+    yield IncIndent
+    yield `const state = await this.appClient.getLocalState(account)`
+    yield `return {`
+    yield IncIndent
+    for (const stateValue of localStateValues) {
+      yield `get ${stateValue.key}() {`
+      if (stateValue.type === 'uint64') {
+        yield* indent(`return ${name}Client.getIntegerState(state, '${stateValue.key}')`)
+      } else {
+        yield* indent(`return ${name}Client.getBinaryState(state, '${stateValue.key}')`)
+      }
+      yield '},'
+    }
+    yield DecIndentAndCloseBlock
+    yield DecIndentAndCloseBlock
+    yield NewLine
+  }
 }

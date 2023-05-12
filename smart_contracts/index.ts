@@ -13,7 +13,7 @@ algokit.Config.configure({
     console.info(`Deploying ${app}`)
     let appSpec: AppSpec
     try {
-      const appSpecJson = await fs.readFile(path.join(__dirname, 'artifacts', app, 'application.json'))
+      const appSpecJson = await fs.readFile(path.join(__dirname, 'artifacts', app, 'application.schema.json'))
       appSpec = JSON.parse(appSpecJson.toString('utf-8')) as AppSpec
     } catch (e) {
       console.error(

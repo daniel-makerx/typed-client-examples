@@ -9,6 +9,7 @@ import {
   AppCallTransactionResultOfType,
   CoreAppCallArgs,
   RawAppCallArgs,
+  AppState,
   TealTemplateParams,
 } from '@algorandfoundation/algokit-utils/types/app'
 import {
@@ -20,7 +21,7 @@ import {
   ApplicationClient,
 } from '@algorandfoundation/algokit-utils/types/app-client'
 import { AppSpec } from '@algorandfoundation/algokit-utils/types/app-spec'
-import { SendTransactionResult, TransactionToSign } from '@algorandfoundation/algokit-utils/types/transaction'
+import { SendTransactionResult, TransactionToSign, SendTransactionFrom } from '@algorandfoundation/algokit-utils/types/transaction'
 import { Algodv2, OnApplicationComplete, Transaction } from 'algosdk'
 export const APP_SPEC: AppSpec = {
   "hints": {
@@ -322,7 +323,65 @@ export type VotingRoundApp = {
       argsTuple: [fund_min_bal_req: TransactionToSign | Transaction | Promise<SendTransactionResult>, signature: Uint8Array, answer_ids: number[]]
       returns: void
     }>
+    state: {
+      global: {
+        /**
+         * The unix timestamp of the time the vote was closed
+         */
+        'close_time'?: IntegerState
+        /**
+         * The unix timestamp of the ending time of voting
+         */
+        'end_time'?: IntegerState
+        /**
+         * Whether or not the contract has been bootstrapped with answers
+         */
+        'is_bootstrapped'?: IntegerState
+        /**
+         * The IPFS content ID of the voting metadata file
+         */
+        'metadata_ipfs_cid'?: BinaryState
+        /**
+         * The asset ID of a result NFT if one has been created
+         */
+        'nft_asset_id'?: IntegerState
+        /**
+         * The IPFS URL of the default image to use as the media of the result NFT
+         */
+        'nft_image_url'?: BinaryState
+        /**
+         * The number of options for each question
+         */
+        'option_counts'?: BinaryState
+        /**
+         * The minimum number of voters to reach quorum
+         */
+        'quorum'?: IntegerState
+        /**
+         * The public key of the Ed25519 compatible private key that was used to encrypt entries in the vote gating snapshot
+         */
+        'snapshot_public_key'?: BinaryState
+        /**
+         * The unix timestamp of the starting time of voting
+         */
+        'start_time'?: IntegerState
+        /**
+         * The total number of options
+         */
+        'total_options'?: IntegerState
+        /**
+         * The identifier of this voting round
+         */
+        'vote_id'?: BinaryState
+        /**
+         * The minimum number of voters who have voted
+         */
+        'voter_count'?: IntegerState
+      }
+    }
   }
+  export type IntegerState = { asBigInt(): bigint, asNumber(): number }
+  export type BinaryState = { asByteArray(): Uint8Array, asString(): string }
   export type MethodArgs<TSignature extends keyof VotingRoundApp['methods']> = VotingRoundApp['methods'][TSignature]['argsObj' | 'argsTuple']
   export type MethodReturn<TSignature extends keyof VotingRoundApp['methods']> = VotingRoundApp['methods'][TSignature]['returns']
   type MapperArgs<TSignature extends keyof VotingRoundApp['methods']> = TSignature extends any ? [signature: TSignature, args: MethodArgs<TSignature>, params: AppClientCallCoreParams & CoreAppCallArgs ] : never
@@ -521,7 +580,79 @@ export type VotingRoundApp = {
       return this.call(VotingRoundAppCallFactory.vote(args, params))
     }
 
-    public getGlobalState(): void {
+    private static getBinaryState(state: AppState, key: string): BinaryState | undefined {
+      const value = state[key]
+      if (!value) return undefined
+      if (!('valueRaw' in value))
+        throw new Error(`Failed to parse state value for ${key}; received an int when expected a byte array`)
+      return {
+        asString(): string {
+          return value.value
+        },
+        asByteArray(): Uint8Array {
+          return value.valueRaw
+        }
+      }
+    }
+
+    private static getIntegerState(state: AppState, key: string): IntegerState | undefined {
+      const value = state[key]
+      if (!value) return undefined
+      if ('valueRaw' in value)
+        throw new Error(`Failed to parse state value for ${key}; received a byte array when expected a number`)
+      return {
+        asBigInt() {
+          return typeof value.value === 'bigint' ? value.value : BigInt(value.value)
+        },
+        asNumber(): number {
+          return typeof value.value === 'bigint' ? Number(value.value) : value.value
+        },
+      }
+    }
+
+    public async getGlobalState(): Promise<VotingRoundApp['state']['global']> {
+      const state = await this.appClient.getGlobalState()
+      return {
+        get close_time() {
+          return VotingRoundAppClient.getIntegerState(state, 'close_time')
+        },
+        get end_time() {
+          return VotingRoundAppClient.getIntegerState(state, 'end_time')
+        },
+        get is_bootstrapped() {
+          return VotingRoundAppClient.getIntegerState(state, 'is_bootstrapped')
+        },
+        get metadata_ipfs_cid() {
+          return VotingRoundAppClient.getBinaryState(state, 'metadata_ipfs_cid')
+        },
+        get nft_asset_id() {
+          return VotingRoundAppClient.getIntegerState(state, 'nft_asset_id')
+        },
+        get nft_image_url() {
+          return VotingRoundAppClient.getBinaryState(state, 'nft_image_url')
+        },
+        get option_counts() {
+          return VotingRoundAppClient.getBinaryState(state, 'option_counts')
+        },
+        get quorum() {
+          return VotingRoundAppClient.getIntegerState(state, 'quorum')
+        },
+        get snapshot_public_key() {
+          return VotingRoundAppClient.getBinaryState(state, 'snapshot_public_key')
+        },
+        get start_time() {
+          return VotingRoundAppClient.getIntegerState(state, 'start_time')
+        },
+        get total_options() {
+          return VotingRoundAppClient.getIntegerState(state, 'total_options')
+        },
+        get vote_id() {
+          return VotingRoundAppClient.getBinaryState(state, 'vote_id')
+        },
+        get voter_count() {
+          return VotingRoundAppClient.getIntegerState(state, 'voter_count')
+        },
+      }
     }
 
   }

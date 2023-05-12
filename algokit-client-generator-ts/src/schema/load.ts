@@ -8,7 +8,7 @@ import contractSchema from './contract.schema.json'
 export function load(appJsonPath: string) {
   if (!fs.existsSync(appJsonPath)) boom(`Could not find application.json file at ${appJsonPath}`)
   const validator = new Validator()
-  validator.addSchema(contractSchema, '/contract.json')
+  validator.addSchema(contractSchema, '/contract.schema.json')
 
   const file = JSON.parse(fs.readFileSync(appJsonPath, 'utf-8'))
   const result = validator.validate(file, appJsonSchema as unknown as Schema)
