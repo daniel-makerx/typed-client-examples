@@ -29,17 +29,17 @@ describe('hello world typed client', () => {
     expectType<undefined>(createResult.return)
     expect(createResult.transaction.appOnComplete).toBe(OnApplicationComplete.NoOpOC)
 
-    const response = await client.hello(['Bare'])
+    const response = await client.helloStringString(['Bare'])
     expectType<string | undefined>(response.return)
     expect(response.return).toBe('Hello, Bare\n')
   })
 
   test('create_bare_optin', async () => {
-    const createResult = await client.create({ onCompleteAction: 'opt_in' }, { updatable: true })
+    const createResult = await client.create({  }, { updatable: true , onCompleteAction: 'opt_in'})
     expectType<undefined>(createResult.return)
     expect(createResult.transaction.appOnComplete).toBe(OnApplicationComplete.OptInOC)
 
-    const response = await client.hello(['Bare'])
+    const response = await client.helloStringString(['Bare'])
     expectType<string | undefined>(response.return)
     expect(response.return).toBe('Hello, Bare\n')
   })
@@ -51,7 +51,7 @@ describe('hello world typed client', () => {
     expect(createResult.return?.returnValue).toBe(undefined)
     expect(createResult.transaction.appOnComplete).toBe(OnApplicationComplete.NoOpOC)
 
-    const response = await client.hello(['Bare'])
+    const response = await client.helloStringString(['Bare'])
     expectType<string | undefined>(response.return)
     expect(response.return).toBe('Hello, Bare\n')
   })
@@ -63,7 +63,7 @@ describe('hello world typed client', () => {
     expect(createResult.return?.returnValue).toBe(undefined)
     expect(createResult.transaction.appOnComplete).toBe(OnApplicationComplete.OptInOC)
 
-    const response = await client.hello(['Bare'])
+    const response = await client.helloStringString(['Bare'])
     expectType<string | undefined>(response.return)
     expect(response.return).toBe('Hello, Bare\n')
   })
@@ -74,30 +74,30 @@ describe('hello world typed client', () => {
     expectType<string | undefined>(createResult.return)
     expect(createResult.return).toBe('greeting_1')
 
-    const response = await client.hello(['1 Arg'])
+    const response = await client.helloStringString(['1 Arg'])
     expectType<string | undefined>(response.return)
     expect(response.return).toBe('greeting, 1 Arg\n')
   })
 
   test('deploy_create_1arg', async () => {
-    const createResult = await client.deploy({ createArgs: { method: 'create_1arg', greeting: 'greeting' } })
+    const createResult = await client.deploy({ createArgs:[ 'create(string)string', { greeting: 'greeting' } ]})
     invariant(createResult.operationPerformed === 'create')
     // The return in deploy isn't strongly typed since it's too complex to do
     expect(createResult.return?.returnValue).toBe('greeting_1')
 
-    const response = await client.hello(['1 Arg'])
+    const response = await client.helloStringString(['1 Arg'])
     expectType<string | undefined>(response.return)
     expect(response.return).toBe('greeting, 1 Arg\n')
   })
 
   test('create_2arg', async () => {
-    const createResult = await client.create(
-      { method: 'create_2arg', greeting: 'Greetings', times: 2 },
+    const createResult = await client.create('create(string,uint32)void',
+      { greeting: 'Greetings', times: 2 },
       { updatable: true },
     )
     expectType<void | undefined>(createResult.return)
 
-    const response = await client.hello(['2 Arg'])
+    const response = await client.helloStringString(['2 Arg'])
     expectType<string | undefined>(response.return)
     expect(response.return).toBe('Greetings, 2 Arg\nGreetings, 2 Arg\n')
   })

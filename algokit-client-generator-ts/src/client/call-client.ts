@@ -5,6 +5,8 @@ import { makeSafeMethodIdentifier, makeSafeTypeIdentifier } from '../util/saniti
 import { extractMethodNameFromSignature } from './helpers/extract-method-name-from-signature'
 import { BARE_CALL, MethodList } from './helpers/get-call-config-summary'
 import { GeneratorContext } from './generator-context'
+import { getCreateOnCompleteOptions } from './deploy-types'
+import { AlgoAppSpec } from '../schema/application'
 
 export function* callClient(ctx: GeneratorContext): DocumentParts {
   const { app, name } = ctx
@@ -59,12 +61,12 @@ export function* callClient(ctx: GeneratorContext): DocumentParts {
 }
 
 function* deployMethods({ app, callConfig, name }: GeneratorContext): DocumentParts {
-  // yield `/**`
-  // yield ` * Idempotently deploys the ${app.contract.name} smart contract.`
-  // yield ` * @param params The arguments for the contract calls and any additional parameters for the call`
-  // yield ` * @returns The deployment result`
-  // yield ` */`
-  // yield `public deploy(params: ${name}DeployArgs & AppClientDeployCoreParams = {}) {`
+  yield `/**`
+  yield ` * Idempotently deploys the ${app.contract.name} smart contract.`
+  yield ` * @param params The arguments for the contract calls and any additional parameters for the call`
+  yield ` * @returns The deployment result`
+  yield ` */`
+  yield `public deploy(params: ${name}DeployArgs & AppClientDeployCoreParams = {}) {`
   // yield IncIndent
   // if (callConfig.createMethods.some((m) => m !== BARE_CALL)) {
   //   yield `const { boxes: create_boxes, lease: create_lease, onCompleteAction: createOnCompleteAction, ...createArgs } = params.createArgs ?? {}`
@@ -75,34 +77,47 @@ function* deployMethods({ app, callConfig, name }: GeneratorContext): DocumentPa
   //   yield `const { boxes: update_boxes, lease: update_lease, ...updateArgs } = params.updateArgs ?? {}`
   // if (callConfig.deleteMethods.some((m) => m !== BARE_CALL))
   //   yield `const { boxes: delete_boxes, lease: delete_lease, ...deleteArgs } = params.deleteArgs ?? {}`
-  // yield `return this.appClient.deploy({ `
-  // yield IncIndent
-  // yield `...params,`
-  // if (callConfig.createMethods.some((m) => m !== BARE_CALL))
-  //   yield `createArgs: params.createArgs ? this.mapMethodArgs(createArgs, { boxes: create_boxes, lease: create_lease }) : undefined,`
-  // yield `createOnCompleteAction,`
-  // if (callConfig.updateMethods.some((m) => m !== BARE_CALL))
-  //   yield `updateArgs: params.updateArgs ? this.mapMethodArgs(updateArgs, { boxes: update_boxes, lease: update_lease }) : undefined,`
-  // if (callConfig.deleteMethods.some((m) => m !== BARE_CALL))
-  //   yield `deleteArgs: params.deleteArgs ? this.mapMethodArgs(deleteArgs, { boxes: delete_boxes, lease: delete_lease }) : undefined,`
-  // yield DecIndent
-  // yield `})`
-  //  yield DecIndentAndCloseBlock
+  yield `return this.appClient.deploy({ `
+  yield IncIndent
+  yield `...params,`
+  if (callConfig.createMethods.length)
+    yield `createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,`
+  if (callConfig.deleteMethods.length)
+    yield `deleteArgs: Array.isArray(params.deleteArgs) ? mapBySignature(...params.deleteArgs as [any, any, any]): params.deleteArgs,`
+  if (callConfig.updateMethods.length)
+    yield `updateArgs: Array.isArray(params.updateArgs) ? mapBySignature(...params.updateArgs as [any, any, any]): params.updateArgs,`
+  yield DecIndent
+  yield `})`
+  yield DecIndentAndCloseBlock
   yield NewLine
-  yield* overloadedMethod(`Creates a new instance of the ${app.contract.name} smart contract`, callConfig.createMethods, 'create', true)
   yield* overloadedMethod(
+    app,
+    `Creates a new instance of the ${app.contract.name} smart contract`,
+    callConfig.createMethods,
+    'create',
+    true,
+  )
+  yield* overloadedMethod(
+    app,
     `Updates an existing instance of the ${app.contract.name} smart contract`,
     callConfig.updateMethods,
     'update',
     true,
   )
-  yield* overloadedMethod(`Deletes an existing instance of the ${app.contract.name} smart contract`, callConfig.deleteMethods, 'delete')
   yield* overloadedMethod(
+    app,
+    `Deletes an existing instance of the ${app.contract.name} smart contract`,
+    callConfig.deleteMethods,
+    'delete',
+  )
+  yield* overloadedMethod(
+    app,
     `Opts the user into an existing instance of the ${app.contract.name} smart contract`,
     callConfig.optInMethods,
     'optIn',
   )
   yield* overloadedMethod(
+    app,
     `Makes a close out call to an existing instance of the ${app.contract.name} smart contract`,
     callConfig.closeOutMethods,
     'closeOut',
@@ -110,6 +125,7 @@ function* deployMethods({ app, callConfig, name }: GeneratorContext): DocumentPa
 }
 
 function* overloadedMethod(
+  app: AlgoAppSpec,
   description: string,
   methods: MethodList,
   verb: 'create' | 'update' | 'optIn' | 'closeOut' | 'delete',
@@ -117,6 +133,7 @@ function* overloadedMethod(
 ): DocumentParts {
   if (methods.length) {
     for (const methodSig of methods) {
+      const onComplete = verb === 'create' ? getCreateOnCompleteOptions(methodSig, app) : undefined
       if (methodSig === BARE_CALL) {
         yield `/**`
         yield ` * ${description} using a bare ABI call.`
@@ -126,7 +143,7 @@ function* overloadedMethod(
         yield ` */`
         yield `public ${verb}(args: BareCallArgs, params?: AppClientCallCoreParams ${
           includeCompilation ? '& AppClientCompilationParams ' : ''
-        }& CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;`
+        }& CoreAppCallArgs${onComplete?.type ? ` & ${onComplete.type}` : ''}): Promise<AppCallTransactionResultOfType<undefined>>;`
       } else {
         yield `/**`
         yield ` * ${description} using the ${methodSig} ABI method.`
@@ -137,7 +154,7 @@ function* overloadedMethod(
         yield ` */`
         yield `public ${verb}(method: '${methodSig}', args: MethodArgs<'${methodSig}'>, params?: AppClientCallCoreParams ${
           includeCompilation ? '& AppClientCompilationParams ' : ''
-        }): Promise<AppCallTransactionResultOfType<MethodReturn<'${methodSig}'>>>;`
+        }${onComplete?.type ? ` & ${onComplete.type}` : ''}): Promise<AppCallTransactionResultOfType<MethodReturn<'${methodSig}'>>>;`
       }
     }
     yield `public ${verb}(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {`

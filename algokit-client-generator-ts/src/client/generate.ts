@@ -27,7 +27,7 @@ export function* generate(app: AlgoAppSpec): DocumentParts {
   yield* appTypes(ctx)
   //
   // yield NewLine
-  // yield* deployTypes(ctx)
+  yield* deployTypes(ctx)
 
   // Write a call factory
   yield* callFactory(ctx)

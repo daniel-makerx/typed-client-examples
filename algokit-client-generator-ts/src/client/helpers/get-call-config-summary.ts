@@ -43,7 +43,7 @@ export const getCreateOnComplete = (app: AlgoAppSpec, method: MethodIdentifier) 
     return ''
   }
   const hasNoOp = callConfig.no_op === 'ALL' || callConfig.no_op === 'CREATE'
-  return ` & { onCompleteAction${hasNoOp ? '?' : ''}: ${getCreateOnCompleteTypes(callConfig)} }`
+  return `{ onCompleteAction${hasNoOp ? '?' : ''}: ${getCreateOnCompleteTypes(callConfig)} }`
 }
 
 const getCreateOnCompleteTypes = (config: CallConfig) => {
