@@ -1,33 +1,35 @@
 import { GeneratorContext } from './generator-context'
-import { DecIndentAndCloseBlock, DocumentParts, IncIndent, inline, NewLine } from '../output/writer'
+import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, inline, NewLine } from '../output/writer'
 import * as algokit from '@algorandfoundation/algokit-utils'
 import { getEquivalentType } from './helpers/get-equivalent-type'
 import { makeSafePropertyIdentifier, makeSafeVariableIdentifier } from '../util/sanitization'
 
-export function* appTypes({ app, callConfig, name }: GeneratorContext): DocumentParts {
+export function* appTypes({ app, methodSignatureToUniqueName, name }: GeneratorContext): DocumentParts {
   yield `export type ${name} = {`
   yield IncIndent
-  yield 'methods: {'
+  yield 'methods: '
   yield IncIndent
   for (const method of app.contract.methods) {
-    yield `'${algokit.getABIMethodSignature(method)}': {`
+    const methodSig = algokit.getABIMethodSignature(method)
+    const uniqueName = methodSignatureToUniqueName[methodSig]
+    yield `& Record<'${methodSig}'${methodSig !== uniqueName ? ` | '${uniqueName}'` : ''}, {`
     yield IncIndent
     yield `argsObj: {`
     yield IncIndent
     for (const arg of method.args) {
-      yield `${makeSafePropertyIdentifier(arg.name)}: ${getEquivalentType(arg.type)}`
+      yield `${makeSafePropertyIdentifier(arg.name)}: ${getEquivalentType(arg.type, 'input')}`
     }
     yield DecIndentAndCloseBlock
     yield* inline(
       `argsTuple: [`,
-      method.args.map((t) => `${makeSafeVariableIdentifier(t.name)}: ${getEquivalentType(t.type)}`).join(', '),
+      method.args.map((t) => `${makeSafeVariableIdentifier(t.name)}: ${getEquivalentType(t.type, 'input')}`).join(', '),
       ']',
     )
-    yield `returns: ${getEquivalentType(method.returns.type ?? 'void')}`
+    yield `returns: ${getEquivalentType(method.returns.type ?? 'void', 'output')}`
 
-    yield DecIndentAndCloseBlock
+    yield DecIndent
+    yield '}>'
   }
-  yield DecIndentAndCloseBlock
   yield DecIndentAndCloseBlock
   yield `export type MethodArgs<TSignature extends keyof ${name}['methods']> = ${name}['methods'][TSignature]['argsObj' | 'argsTuple']`
   yield `export type MethodReturn<TSignature extends keyof ${name}['methods']> = ${name}['methods'][TSignature]['returns']`

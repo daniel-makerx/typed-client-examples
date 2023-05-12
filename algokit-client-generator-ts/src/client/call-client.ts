@@ -58,7 +58,8 @@ export function* callClient(ctx: GeneratorContext): DocumentParts {
   yield DecIndentAndCloseBlock
 }
 
-function* deployMethods({ app, callConfig, name }: GeneratorContext): DocumentParts {
+function* deployMethods(ctx: GeneratorContext): DocumentParts {
+  const { app, callConfig, name } = ctx
   yield `/**`
   yield ` * Idempotently deploys the ${app.contract.name} smart contract.`
   yield ` * @param params The arguments for the contract calls and any additional parameters for the call`
@@ -89,33 +90,33 @@ function* deployMethods({ app, callConfig, name }: GeneratorContext): DocumentPa
   yield DecIndentAndCloseBlock
   yield NewLine
   yield* overloadedMethod(
-    app,
+    ctx,
     `Creates a new instance of the ${app.contract.name} smart contract`,
     callConfig.createMethods,
     'create',
     true,
   )
   yield* overloadedMethod(
-    app,
+    ctx,
     `Updates an existing instance of the ${app.contract.name} smart contract`,
     callConfig.updateMethods,
     'update',
     true,
   )
   yield* overloadedMethod(
-    app,
+    ctx,
     `Deletes an existing instance of the ${app.contract.name} smart contract`,
     callConfig.deleteMethods,
     'delete',
   )
   yield* overloadedMethod(
-    app,
+    ctx,
     `Opts the user into an existing instance of the ${app.contract.name} smart contract`,
     callConfig.optInMethods,
     'optIn',
   )
   yield* overloadedMethod(
-    app,
+    ctx,
     `Makes a close out call to an existing instance of the ${app.contract.name} smart contract`,
     callConfig.closeOutMethods,
     'closeOut',
@@ -123,7 +124,7 @@ function* deployMethods({ app, callConfig, name }: GeneratorContext): DocumentPa
 }
 
 function* overloadedMethod(
-  app: AlgoAppSpec,
+  { app, methodSignatureToUniqueName }: GeneratorContext,
   description: string,
   methods: MethodList,
   verb: 'create' | 'update' | 'optIn' | 'closeOut' | 'delete',
@@ -142,6 +143,7 @@ function* overloadedMethod(
           includeCompilation ? '& AppClientCompilationParams ' : ''
         }& CoreAppCallArgs${onComplete?.type ? ` & ${onComplete.type}` : ''}): Promise<AppCallTransactionResultOfType<undefined>>;`
       } else {
+        const uniqueName = methodSignatureToUniqueName[methodSig]
         yield `/**`
         yield ` * ${description} using the ${methodSig} ABI method.`
         yield ` * @param method The ABI method to use`
@@ -149,9 +151,11 @@ function* overloadedMethod(
         yield ` * @param params Any additional parameters for the call`
         yield ` * @returns The ${verb} result`
         yield ` */`
-        yield `public ${verb}(method: '${methodSig}', args: MethodArgs<'${methodSig}'>, params?: AppClientCallCoreParams ${
-          includeCompilation ? '& AppClientCompilationParams ' : ''
-        }${onComplete?.type ? ` & ${onComplete.type}` : ''}): Promise<AppCallTransactionResultOfType<MethodReturn<'${methodSig}'>>>;`
+        yield `public ${verb}(method: '${methodSig}'${
+          methodSig === uniqueName ? '' : ` | '${uniqueName}'`
+        }, args: MethodArgs<'${methodSig}'>, params?: AppClientCallCoreParams ${includeCompilation ? '& AppClientCompilationParams ' : ''}${
+          onComplete?.type ? ` & ${onComplete.type}` : ''
+        }): Promise<AppCallTransactionResultOfType<MethodReturn<'${methodSig}'>>>;`
       }
     }
     yield `public ${verb}(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {`

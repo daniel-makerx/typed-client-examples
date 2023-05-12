@@ -21,8 +21,12 @@ export function* callFactory(ctx: GeneratorContext): DocumentParts {
   yield IncIndent
   for (const method of ctx.app.contract.methods) {
     const methodSignature = algokit.getABIMethodSignature(method)
+    const uniqueName = ctx.methodSignatureToUniqueName[methodSignature]
 
     yield `case '${methodSignature}':`
+    if (uniqueName !== methodSignature) {
+      yield `case '${uniqueName}':`
+    }
     yield* indent(
       `return ${ctx.name}CallFactory.${makeSafeMethodIdentifier(ctx.methodSignatureToUniqueName[methodSignature])}(args, params)`,
     )
@@ -31,7 +35,7 @@ export function* callFactory(ctx: GeneratorContext): DocumentParts {
   yield DecIndentAndCloseBlock
 }
 
-function* callFactoryMethod({ name, methodSignatureToUniqueName }: GeneratorContext, method: ContractMethod) {
+function* callFactoryMethod({ methodSignatureToUniqueName }: GeneratorContext, method: ContractMethod) {
   const methodSignature = algokit.getABIMethodSignature(method)
   yield `static ${makeSafeMethodIdentifier(
     methodSignatureToUniqueName[methodSignature],
