@@ -348,20 +348,20 @@ export type CallAbiTxnArgsObj = {
 export type CallAbiTxnArgsTuple = [txn: TransactionToSign | Transaction | Promise<SendTransactionResult>, value: string]
 export type CallAbiTxnArgs = CallAbiTxnArgsObj | CallAbiTxnArgsTuple
 export type SetGlobalArgsObj = {
-  int1: bigint
-  int2: bigint
+  int1: bigint | number
+  int2: bigint | number
   bytes1: string
   bytes2: Uint8Array
 }
-export type SetGlobalArgsTuple = [int1: bigint, int2: bigint, bytes1: string, bytes2: Uint8Array]
+export type SetGlobalArgsTuple = [int1: bigint | number, int2: bigint | number, bytes1: string, bytes2: Uint8Array]
 export type SetGlobalArgs = SetGlobalArgsObj | SetGlobalArgsTuple
 export type SetLocalArgsObj = {
-  int1: bigint
-  int2: bigint
+  int1: bigint | number
+  int2: bigint | number
   bytes1: string
   bytes2: Uint8Array
 }
-export type SetLocalArgsTuple = [int1: bigint, int2: bigint, bytes1: string, bytes2: Uint8Array]
+export type SetLocalArgsTuple = [int1: bigint | number, int2: bigint | number, bytes1: string, bytes2: Uint8Array]
 export type SetLocalArgs = SetLocalArgsObj | SetLocalArgsTuple
 export type SetBoxArgsObj = {
   name: Uint8Array
@@ -662,6 +662,9 @@ export class TestingAppClient {
    */
   public error(args: ErrorArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
     return this.call(TestingAppCallFactory.error(args, params))
+  }
+
+  public getGlobalState(): void {
   }
 
 }

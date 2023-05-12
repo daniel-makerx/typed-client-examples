@@ -291,13 +291,13 @@ export type CreateArgsObj = {
   vote_id: string
   snapshot_public_key: Uint8Array
   metadata_ipfs_cid: string
-  start_time: bigint
-  end_time: bigint
+  start_time: bigint | number
+  end_time: bigint | number
   option_counts: number[]
-  quorum: bigint
+  quorum: bigint | number
   nft_image_url: string
 }
-export type CreateArgsTuple = [vote_id: string, snapshot_public_key: Uint8Array, metadata_ipfs_cid: string, start_time: bigint, end_time: bigint, option_counts: number[], quorum: bigint, nft_image_url: string]
+export type CreateArgsTuple = [vote_id: string, snapshot_public_key: Uint8Array, metadata_ipfs_cid: string, start_time: bigint | number, end_time: bigint | number, option_counts: number[], quorum: bigint | number, nft_image_url: string]
 export type CreateArgs = CreateArgsObj | CreateArgsTuple
 export type BootstrapArgsObj = {
   fund_min_bal_req: TransactionToSign | Transaction | Promise<SendTransactionResult>
@@ -495,6 +495,9 @@ export class VotingRoundAppClient {
    */
   public vote(args: VoteArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
     return this.call(VotingRoundAppCallFactory.vote(args, params))
+  }
+
+  public getGlobalState(): void {
   }
 
 }

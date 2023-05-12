@@ -264,4 +264,7 @@ export class HelloWorldAppClient {
     return this.call(HelloWorldAppCallFactory.helloWorldCheck(args, params))
   }
 
+  public getGlobalState(): void {
+  }
+
 }

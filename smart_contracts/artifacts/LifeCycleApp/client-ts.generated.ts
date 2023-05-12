@@ -297,4 +297,7 @@ export class LifeCycleAppClient {
     return this.call(LifeCycleAppCallFactory.hello(args, params))
   }
 
+  public getGlobalState(): void {
+  }
+
 }
