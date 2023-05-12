@@ -25,7 +25,7 @@ describe('hello world typed client', () => {
   })
 
   test('create_bare', async () => {
-    const createResult = await client.create({}, { updatable: true })
+    const createResult = await client.create({ updatable: true })
     expectType<undefined>(createResult.return)
     expect(createResult.transaction.appOnComplete).toBe(OnApplicationComplete.NoOpOC)
 
@@ -35,7 +35,7 @@ describe('hello world typed client', () => {
   })
 
   test('create_bare_optin', async () => {
-    const createResult = await client.create({  }, { updatable: true , onCompleteAction: 'opt_in'})
+    const createResult = await client.create({ updatable: true , onCompleteAction: 'opt_in'})
     expectType<undefined>(createResult.return)
     expect(createResult.transaction.appOnComplete).toBe(OnApplicationComplete.OptInOC)
 

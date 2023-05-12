@@ -136,12 +136,11 @@ function* overloadedMethod(
       const onComplete = verb === 'create' ? getCreateOnCompleteOptions(methodSig, app) : undefined
       if (methodSig === BARE_CALL) {
         yield `/**`
-        yield ` * ${description} using a bare ABI call.`
-        yield ` * @param args The arguments for the contract call`
-        yield ` * @param params Any additional parameters for the call`
+        yield ` * ${description} using a bare call.`
+        yield ` * @param args The arguments for the bare call`
         yield ` * @returns The ${verb} result`
         yield ` */`
-        yield `public ${verb}(args: BareCallArgs, params?: AppClientCallCoreParams ${
+        yield `public ${verb}(args: BareCallArgs & AppClientCallCoreParams ${
           includeCompilation ? '& AppClientCompilationParams ' : ''
         }& CoreAppCallArgs${onComplete?.type ? ` & ${onComplete.type}` : ''}): Promise<AppCallTransactionResultOfType<undefined>>;`
       } else {
@@ -160,7 +159,7 @@ function* overloadedMethod(
     yield `public ${verb}(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {`
     yield IncIndent
     yield `if(typeof args[0] !== 'string') {`
-    yield* indent(`return this.appClient.${verb}({...args[0], ...args[1], })`)
+    yield* indent(`return this.appClient.${verb}({...args[0], })`)
     yield '} else {'
     yield* indent(`return this.appClient.${verb}({ ...mapBySignature(args[0] as any, args[1], args[2]), })`)
     yield '}'

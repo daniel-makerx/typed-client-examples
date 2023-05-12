@@ -1,18 +1,18 @@
 import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, NewLine } from '../output/writer'
 import { makeSafeTypeIdentifier } from '../util/sanitization'
-import { BARE_CALL, getCreateOnComplete, MethodIdentifier, MethodList } from './helpers/get-call-config-summary'
+import { BARE_CALL, MethodIdentifier } from './helpers/get-call-config-summary'
 import { GeneratorContext } from './generator-context'
-import { AlgoAppSpec, CallConfig, ContractMethod } from '../schema/application'
-import { pascalCase } from 'change-case'
+import { AlgoAppSpec, CallConfig } from '../schema/application'
+import { OnCompleteCodeMap } from './utility-types'
 
 export function getCreateOnCompleteOptions(method: MethodIdentifier, app: AlgoAppSpec) {
   const callConfig = method === BARE_CALL ? app.bare_call_config : app.hints?.[method]?.call_config
   const hasNoOp = callConfig?.no_op === 'ALL' || callConfig?.no_op === 'CREATE'
   const onCompleteType = callConfig
-    ? `{ onCompleteAction${hasNoOp ? '?' : ''}: ${Object.entries(callConfig)
+    ? `(${Object.entries(callConfig)
         .filter(([oc, value]) => value === 'ALL' || value === 'CREATE')
-        .map(([oc]) => `'${oc}' | OnApplicationComplete.${pascalCase(oc)}OC`)
-        .join(' | ')} }`
+        .map(([oc]) => OnCompleteCodeMap[oc as keyof CallConfig])
+        .join(' | ')})`
     : {}
   return {
     type: onCompleteType,
