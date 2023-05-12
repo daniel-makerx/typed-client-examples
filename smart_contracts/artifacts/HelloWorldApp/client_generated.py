@@ -7,67 +7,6 @@ import algokit_utils
 import algosdk
 from algosdk.atomic_transaction_composer import TransactionSigner
 
-
-TReturn = TypeVar("TReturn")
-
-
-class ArgsBase(ABC, Generic[TReturn]):
-    @staticmethod
-    @abstractmethod
-    def method() -> str:
-        ...
-
-
-@dataclasses.dataclass(kw_only=True)
-class HelloArgs(ArgsBase[str]):
-    """Returns Hello, {name}"""
-    name: str
-
-
-    @staticmethod
-    def method() -> str:
-        return "hello(string)string"
-
-
-@dataclasses.dataclass(kw_only=True)
-class HelloWorldCheckArgs(ArgsBase[None]):
-    """Asserts {name} is "World" """
-    name: str
-
-
-    @staticmethod
-    def method() -> str:
-        return "hello_world_check(string)void"
-
-
-
-T = TypeVar("T")
-
-
-def as_dict(data: T | None) -> dict[str, Any]:
-    if data is None:
-        return {}
-    if not dataclasses.is_dataclass(data):
-        raise TypeError(f"{data} must be a dataclass")
-    return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}
-
-
-def convert(
-    transaction_parameters: algokit_utils.TransactionParameters | None,
-) -> algokit_utils.CommonCallParametersDict | None:
-    if transaction_parameters is None:
-        return None
-    return cast(algokit_utils.CommonCallParametersDict, as_dict(transaction_parameters))
-
-
-def convert_create(
-    transaction_parameters: algokit_utils.CreateTransactionParameters | None,
-) -> algokit_utils.CreateCallParametersDict | None:
-    if transaction_parameters is None:
-        return None
-    return cast(algokit_utils.CreateCallParametersDict, as_dict(transaction_parameters))
-
-
 APP_SPEC = """{
     "hints": {
         "hello(string)string": {
@@ -143,6 +82,61 @@ APP_SPEC = """{
         "update_application": "CALL"
     }
 }"""
+_T = TypeVar("_T")
+_TReturn = TypeVar("_TReturn")
+
+
+class _ArgsBase(ABC, Generic[_TReturn]):
+    @staticmethod
+    @abstractmethod
+    def method() -> str:
+        ...
+
+
+def _as_dict(data: _T | None) -> dict[str, Any]:
+    if data is None:
+        return {}
+    if not dataclasses.is_dataclass(data):
+        raise TypeError(f"{data} must be a dataclass")
+    return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}
+
+
+def _convert(
+    transaction_parameters: algokit_utils.TransactionParameters | None,
+) -> algokit_utils.CommonCallParametersDict | None:
+    if transaction_parameters is None:
+        return None
+    return cast(algokit_utils.CommonCallParametersDict, _as_dict(transaction_parameters))
+
+
+def _convert_create(
+    transaction_parameters: algokit_utils.CreateTransactionParameters | None,
+) -> algokit_utils.CreateCallParametersDict | None:
+    if transaction_parameters is None:
+        return None
+    return cast(algokit_utils.CreateCallParametersDict, _as_dict(transaction_parameters))
+
+
+@dataclasses.dataclass(kw_only=True)
+class HelloArgs(_ArgsBase[str]):
+    """Returns Hello, {name}"""
+
+    name: str
+
+    @staticmethod
+    def method() -> str:
+        return "hello(string)string"
+
+
+@dataclasses.dataclass(kw_only=True)
+class HelloWorldCheckArgs(_ArgsBase[None]):
+    """Asserts {name} is "World\" """
+
+    name: str
+
+    @staticmethod
+    def method() -> str:
+        return "hello_world_check(string)void"
 
 
 class HelloWorldAppClient:
@@ -179,7 +173,7 @@ class HelloWorldAppClient:
         algod_client: algosdk.v2client.algod.AlgodClient,
         *,
         creator: str | algokit_utils.Account | None = None,
-        indexer_client: "algosdk.v2client.indexer.IndexerClient | None" = None,
+        indexer_client: algosdk.v2client.indexer.IndexerClient | None = None,
         existing_deployments: algokit_utils.AppLookup | None = None,
         app_id: int = 0,
         signer: TransactionSigner | algokit_utils.Account | None = None,
@@ -208,12 +202,14 @@ class HelloWorldAppClient:
         *,
         name: str,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
-    ) -> str:
-        args = HelloArgs(name=name,)
+    ) -> algokit_utils.ABITransactionResponse[None]:
+        args = HelloArgs(
+            name=name,
+        )
         return self.app_client.call(
             call_abi_method=args.method(),
-            transaction_parameters=convert(transaction_parameters),
-            **as_dict(args),
+            transaction_parameters=_convert(transaction_parameters),
+            **_as_dict(args),
         )
 
     def hello_world_check(
@@ -221,11 +217,12 @@ class HelloWorldAppClient:
         *,
         name: str,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
-    ) -> None:
-        args = HelloWorldCheckArgs(name=name,)
+    ) -> algokit_utils.ABITransactionResponse[None]:
+        args = HelloWorldCheckArgs(
+            name=name,
+        )
         return self.app_client.call(
             call_abi_method=args.method(),
-            transaction_parameters=convert(transaction_parameters),
-            **as_dict(args),
+            transaction_parameters=_convert(transaction_parameters),
+            **_as_dict(args),
         )
-
