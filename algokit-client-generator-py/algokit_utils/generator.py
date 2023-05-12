@@ -46,7 +46,7 @@ class ContractArg:
     name: str
     abi_type: str
     python_type: str
-    desc: str
+    desc: str | None
     has_default: bool = False
 
 
@@ -95,13 +95,13 @@ class ContractMethods:
             hints = app_spec.hints[method.get_signature()]
             args = [
                 ContractArg(
-                    name=arg.name,
-                    abi_type=arg.type,
+                    name=arg.name or f"arg{idx}",
+                    abi_type=str(arg.type),
                     python_type=map_abi_type_to_python(arg.type),
                     desc=arg.desc,
                     has_default=arg.name in hints.default_arguments,
                 )
-                for arg in method.args
+                for idx, arg in enumerate(method.args)
             ]
             abi_type = method.returns
             python_type = map_abi_type_to_python(method.returns)
@@ -119,7 +119,7 @@ class ContractMethods:
                     on_complete=on_complete,
                     args=args,
                     hints=hints,
-                    abi_type=abi_type,
+                    abi_type=str(abi_type),
                     python_type=python_type,
                 )
                 collection.append(contract_method)
@@ -130,7 +130,7 @@ class ContractMethods:
                     on_complete=on_complete,
                     args=args,
                     hints=hints,
-                    abi_type=abi_type,
+                    abi_type=str(abi_type),
                     python_type=python_type,
                 )
                 self.create.append(contract_method)
@@ -140,6 +140,7 @@ class ContractMethods:
 class GenerateContext:
     app_spec: ApplicationSpecification
     methods: ContractMethods = dataclasses.field(init=False)
+    client_name: str = dataclasses.field(init=False)
     used_module_symbols: set[str] = dataclasses.field(default_factory=set)
     used_client_symbols: set[str] = dataclasses.field(default_factory=set)
     disable_linting: bool = True
@@ -239,11 +240,12 @@ def _map_abi_type_to_python(abi_type: str) -> str:
     # TODO validate or annotate ints
     python_type = {
         "string": "str",
-        "uint8": "int",
-        "uint32": "int",
-        "uint64": "int",
+        "uint8": "int",  # < 256
+        "uint32": "int",  # < 2^32
+        "uint64": "int",  # < 2^64
         "void": "None",
         "byte[]": "bytes",
+        "byte": "bytes",  # length 1
         "pay": "TransactionWithSigner",
     }.get(abi_type)
     if python_type:
@@ -257,6 +259,7 @@ def map_abi_type_to_python(abi_type: str | ABIType | Returns) -> str:
 
 def typed_argument_class(contract_method: ContractMethod) -> DocumentParts:
     method = contract_method.abi_method
+    assert method
     args_class_name = contract_method.args_class_name
     return_type = map_abi_type_to_python(method.returns)
     yield "@dataclasses.dataclass(kw_only=True)"
@@ -333,15 +336,7 @@ def _as_dict(data: _T | None) -> dict[str, Any]:
         return {}
     if not dataclasses.is_dataclass(data):
         raise TypeError(f"{data} must be a dataclass")
-    return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}
-
-
-def _convert(
-    transaction_parameters: algokit_utils.TransactionParameters | None,
-) -> algokit_utils.CommonCallParametersDict | algokit_utils.CreateCallParametersDict | None:
-    if transaction_parameters is None:
-        return None
-    return _as_dict(transaction_parameters)"""
+    return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}"""
     )
 
 
@@ -463,7 +458,7 @@ def call_method(context: GenerateContext, contract_method: ContractMethod) -> Do
         """
 return self.app_client.call(
     call_abi_method=args.method(),
-    transaction_parameters=_convert(transaction_parameters),
+    transaction_parameters=_as_dict(transaction_parameters),
     **_as_dict(args),
 )"""
     )
@@ -478,7 +473,7 @@ def call_methods(context: GenerateContext) -> DocumentParts:
 def no_op(self) -> algokit_utils.TransactionResponse:
     return self.app_client.call(
         call_abi_method=False,
-        transaction_parameters=_convert(transaction_parameters),
+        transaction_parameters=_as_dict(transaction_parameters),
     )"""
             )
         else:
@@ -510,6 +505,7 @@ def special_method(
             if method.is_bare:
                 yield "None"
             else:
+                assert method.args_class_name
                 yield method.args_class_name
         if has_bare:
             yield " = None"
@@ -545,7 +541,7 @@ def special_method(
         yield "call_abi_method=False,"
     else:
         yield "call_abi_method=args.method() if args else False,"
-    yield "transaction_parameters=_convert(transaction_parameters),"
+    yield "transaction_parameters=_as_dict(transaction_parameters),"
     if not bare_only:
         yield "**_as_dict(args),"
     yield Part.DecIndent
@@ -562,7 +558,7 @@ def clear_state(
     transaction_parameters: algokit_utils.TransactionParameters | None = None,
     app_args: list[bytes] | None = None,
 ) -> algokit_utils.TransactionResponse:
-    return self.app_client.clear_state(_convert(transaction_parameters), app_args)"""
+    return self.app_client.clear_state(_as_dict(transaction_parameters), app_args)"""
     )
 
 
@@ -616,7 +612,11 @@ def _get_unique_symbol_by_incrementing(
 def create_generate_context(app_spec: ApplicationSpecification) -> GenerateContext:
     context = GenerateContext(app_spec=app_spec)
     context.used_module_symbols.update(
-        "APP_SPEC", "_T", "_TResult", "_ArgsBase", "_as_dict", "_convert", "_convert_create"
+        "APP_SPEC",
+        "_T",
+        "_TResult",
+        "_ArgsBase",
+        "_as_dict",
     )
     context.used_client_symbols.update(
         "__init__",
@@ -638,6 +638,7 @@ def create_generate_context(app_spec: ApplicationSpecification) -> GenerateConte
     for method in context.methods.all_methods:
         if method.is_bare:
             continue
+        assert method.abi_method
         method_name = method.abi_method.name
         method.args_class_name = _get_unique_symbol_by_incrementing(
             context.used_module_symbols, f"{method_name}_args", get_class_name
@@ -702,7 +703,7 @@ def convert_part_inner(part: DocumentPart, context: RenderContext) -> str | None
         case Part.NewLine:
             return "\n"
         case Part.Gap1 | Part.Gap2:
-            if context.last_rendered_part in [Part.Gap1, Part.Gap2]:  # collapse gaps
+            if context.last_part in [Part.Gap1, Part.Gap2]:  # collapse gaps
                 return None
             lines_needed = int(part.name[3:]) + 1  # N + 1
             trailing_lines = len(context.last_rendered_part) - len(context.last_rendered_part.rstrip("\n"))
@@ -719,6 +720,7 @@ def convert_part_inner(part: DocumentPart, context: RenderContext) -> str | None
 
 
 def convert_part(part: DocumentPart, context: RenderContext) -> list[str]:
+    parts: Sequence[AtomicDocumentPart]
     match part:
         case str() | Part():
             parts = [part]
@@ -761,7 +763,7 @@ def walk_dir(path: Path, output_name: str, settings: GenerationSettings) -> None
             generate_client(child, child.parent / output_name, settings)
 
 
-def main():
+def main() -> None:
     # TODO: proper CLI parsing
     args = dict(enumerate(sys.argv))
     input_path = Path(args.get(1, ".")).absolute()
@@ -775,10 +777,10 @@ def main():
     if input_path.is_dir():
         walk_dir(input_path, output, settings)
     else:
-        output = Path(output)
-        if not output.is_absolute():
-            output = input_path.parent / output
-        generate_client(input_path, output, settings)
+        output_path = Path(output)
+        if not output_path.is_absolute():
+            output_path = input_path.parent / output
+        generate_client(input_path, output_path, settings)
 
 
 if __name__ == "__main__":

@@ -308,14 +308,6 @@ def _as_dict(data: _T | None) -> dict[str, Any]:
     return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}
 
 
-def _convert(
-    transaction_parameters: algokit_utils.TransactionParameters | None,
-) -> algokit_utils.CommonCallParametersDict | algokit_utils.CreateCallParametersDict | None:
-    if transaction_parameters is None:
-        return None
-    return _as_dict(transaction_parameters)
-
-
 @dataclasses.dataclass(kw_only=True)
 class CallAbiArgs(_ArgsBase[str]):
     value: str
@@ -340,7 +332,7 @@ class SetGlobalArgs(_ArgsBase[None]):
     int1: int
     int2: int
     bytes1: str
-    bytes2: tuple[byte, byte, byte, byte]
+    bytes2: tuple[bytes, bytes, bytes, bytes]
 
     @staticmethod
     def method() -> str:
@@ -352,7 +344,7 @@ class SetLocalArgs(_ArgsBase[None]):
     int1: int
     int2: int
     bytes1: str
-    bytes2: tuple[byte, byte, byte, byte]
+    bytes2: tuple[bytes, bytes, bytes, bytes]
 
     @staticmethod
     def method() -> str:
@@ -361,7 +353,7 @@ class SetLocalArgs(_ArgsBase[None]):
 
 @dataclasses.dataclass(kw_only=True)
 class SetBoxArgs(_ArgsBase[None]):
-    name: tuple[byte, byte, byte, byte]
+    name: tuple[bytes, bytes, bytes, bytes]
     value: str
 
     @staticmethod
@@ -479,7 +471,7 @@ class TestingAppClient:
         )
         return self.app_client.call(
             call_abi_method=args.method(),
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -496,7 +488,7 @@ class TestingAppClient:
         )
         return self.app_client.call(
             call_abi_method=args.method(),
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -506,7 +498,7 @@ class TestingAppClient:
         int1: int,
         int2: int,
         bytes1: str,
-        bytes2: tuple[byte, byte, byte, byte],
+        bytes2: tuple[bytes, bytes, bytes, bytes],
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[None]:
         args = SetGlobalArgs(
@@ -517,7 +509,7 @@ class TestingAppClient:
         )
         return self.app_client.call(
             call_abi_method=args.method(),
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -527,7 +519,7 @@ class TestingAppClient:
         int1: int,
         int2: int,
         bytes1: str,
-        bytes2: tuple[byte, byte, byte, byte],
+        bytes2: tuple[bytes, bytes, bytes, bytes],
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[None]:
         args = SetLocalArgs(
@@ -538,14 +530,14 @@ class TestingAppClient:
         )
         return self.app_client.call(
             call_abi_method=args.method(),
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
     def set_box(
         self,
         *,
-        name: tuple[byte, byte, byte, byte],
+        name: tuple[bytes, bytes, bytes, bytes],
         value: str,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[None]:
@@ -555,7 +547,7 @@ class TestingAppClient:
         )
         return self.app_client.call(
             call_abi_method=args.method(),
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -567,7 +559,7 @@ class TestingAppClient:
         args = ErrorArgs()
         return self.app_client.call(
             call_abi_method=args.method(),
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -579,7 +571,7 @@ class TestingAppClient:
     ) -> algokit_utils.TransactionResponse | algokit_utils.ABITransactionResponse[str]:
         return self.app_client.create(
             call_abi_method=args.method() if args else False,
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -591,7 +583,7 @@ class TestingAppClient:
     ) -> algokit_utils.TransactionResponse | algokit_utils.ABITransactionResponse[str]:
         return self.app_client.update(
             call_abi_method=args.method() if args else False,
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -603,7 +595,7 @@ class TestingAppClient:
     ) -> algokit_utils.TransactionResponse | algokit_utils.ABITransactionResponse[str]:
         return self.app_client.delete(
             call_abi_method=args.method() if args else False,
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -615,7 +607,7 @@ class TestingAppClient:
     ) -> algokit_utils.ABITransactionResponse[None]:
         return self.app_client.opt_in(
             call_abi_method=args.method() if args else False,
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -624,7 +616,7 @@ class TestingAppClient:
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
         app_args: list[bytes] | None = None,
     ) -> algokit_utils.TransactionResponse:
-        return self.app_client.clear_state(_convert(transaction_parameters), app_args)
+        return self.app_client.clear_state(_as_dict(transaction_parameters), app_args)
 
     def deploy(
         self,

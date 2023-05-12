@@ -269,14 +269,6 @@ def _as_dict(data: _T | None) -> dict[str, Any]:
     return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}
 
 
-def _convert(
-    transaction_parameters: algokit_utils.TransactionParameters | None,
-) -> algokit_utils.CommonCallParametersDict | algokit_utils.CreateCallParametersDict | None:
-    if transaction_parameters is None:
-        return None
-    return _as_dict(transaction_parameters)
-
-
 @dataclasses.dataclass(kw_only=True)
 class BootstrapArgs(_ArgsBase[None]):
     fund_min_bal_req: TransactionWithSigner
@@ -398,7 +390,7 @@ class VotingRoundAppClient:
         )
         return self.app_client.call(
             call_abi_method=args.method(),
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -410,7 +402,7 @@ class VotingRoundAppClient:
         args = CloseArgs()
         return self.app_client.call(
             call_abi_method=args.method(),
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -425,7 +417,7 @@ class VotingRoundAppClient:
         )
         return self.app_client.call(
             call_abi_method=args.method(),
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -444,7 +436,7 @@ class VotingRoundAppClient:
         )
         return self.app_client.call(
             call_abi_method=args.method(),
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -456,7 +448,7 @@ class VotingRoundAppClient:
     ) -> algokit_utils.ABITransactionResponse[None]:
         return self.app_client.create(
             call_abi_method=args.method() if args else False,
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -467,7 +459,7 @@ class VotingRoundAppClient:
     ) -> algokit_utils.TransactionResponse:
         return self.app_client.delete(
             call_abi_method=False,
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
         )
 
     def clear_state(
@@ -475,7 +467,7 @@ class VotingRoundAppClient:
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
         app_args: list[bytes] | None = None,
     ) -> algokit_utils.TransactionResponse:
-        return self.app_client.clear_state(_convert(transaction_parameters), app_args)
+        return self.app_client.clear_state(_as_dict(transaction_parameters), app_args)
 
     def deploy(
         self,

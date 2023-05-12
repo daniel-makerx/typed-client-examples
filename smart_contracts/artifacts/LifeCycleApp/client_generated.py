@@ -133,14 +133,6 @@ def _as_dict(data: _T | None) -> dict[str, Any]:
     return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}
 
 
-def _convert(
-    transaction_parameters: algokit_utils.TransactionParameters | None,
-) -> algokit_utils.CommonCallParametersDict | algokit_utils.CreateCallParametersDict | None:
-    if transaction_parameters is None:
-        return None
-    return _as_dict(transaction_parameters)
-
-
 @dataclasses.dataclass(kw_only=True)
 class HelloArgs(_ArgsBase[str]):
     name: str
@@ -242,7 +234,7 @@ class LifeCycleAppClient:
         )
         return self.app_client.call(
             call_abi_method=args.method(),
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -258,7 +250,7 @@ class LifeCycleAppClient:
     ):
         return self.app_client.create(
             call_abi_method=args.method() if args else False,
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
             **_as_dict(args),
         )
 
@@ -269,7 +261,7 @@ class LifeCycleAppClient:
     ) -> algokit_utils.TransactionResponse:
         return self.app_client.update(
             call_abi_method=False,
-            transaction_parameters=_convert(transaction_parameters),
+            transaction_parameters=_as_dict(transaction_parameters),
         )
 
     def clear_state(
@@ -277,7 +269,7 @@ class LifeCycleAppClient:
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
         app_args: list[bytes] | None = None,
     ) -> algokit_utils.TransactionResponse:
-        return self.app_client.clear_state(_convert(transaction_parameters), app_args)
+        return self.app_client.clear_state(_as_dict(transaction_parameters), app_args)
 
     def deploy(
         self,
