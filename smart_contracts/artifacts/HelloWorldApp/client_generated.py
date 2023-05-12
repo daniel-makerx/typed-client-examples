@@ -1,11 +1,11 @@
 # flake8: noqa
 import dataclasses
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar, cast, overload
+from typing import Any, Generic, TypeVar, overload
 
 import algokit_utils
 import algosdk
-from algosdk.atomic_transaction_composer import TransactionSigner
+from algosdk.atomic_transaction_composer import TransactionSigner, TransactionWithSigner
 
 APP_SPEC = """{
     "hints": {
@@ -103,24 +103,15 @@ def _as_dict(data: _T | None) -> dict[str, Any]:
 
 def _convert(
     transaction_parameters: algokit_utils.TransactionParameters | None,
-) -> algokit_utils.CommonCallParametersDict | None:
+) -> algokit_utils.CommonCallParametersDict | algokit_utils.CreateCallParametersDict | None:
     if transaction_parameters is None:
         return None
-    return cast(algokit_utils.CommonCallParametersDict, _as_dict(transaction_parameters))
-
-
-def _convert_create(
-    transaction_parameters: algokit_utils.CreateTransactionParameters | None,
-) -> algokit_utils.CreateCallParametersDict | None:
-    if transaction_parameters is None:
-        return None
-    return cast(algokit_utils.CreateCallParametersDict, _as_dict(transaction_parameters))
+    return _as_dict(transaction_parameters)
 
 
 @dataclasses.dataclass(kw_only=True)
 class HelloArgs(_ArgsBase[str]):
     """Returns Hello, {name}"""
-
     name: str
 
     @staticmethod
@@ -130,8 +121,7 @@ class HelloArgs(_ArgsBase[str]):
 
 @dataclasses.dataclass(kw_only=True)
 class HelloWorldCheckArgs(_ArgsBase[None]):
-    """Asserts {name} is "World\" """
-
+    """Asserts {name} is "World\""""
     name: str
 
     @staticmethod
@@ -202,10 +192,8 @@ class HelloWorldAppClient:
         *,
         name: str,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
-    ) -> algokit_utils.ABITransactionResponse[None]:
-        args = HelloArgs(
-            name=name,
-        )
+    ) -> algokit_utils.ABITransactionResponse[str]:
+        args = HelloArgs(name=name,)
         return self.app_client.call(
             call_abi_method=args.method(),
             transaction_parameters=_convert(transaction_parameters),
@@ -218,11 +206,40 @@ class HelloWorldAppClient:
         name: str,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[None]:
-        args = HelloWorldCheckArgs(
-            name=name,
-        )
+        args = HelloWorldCheckArgs(name=name,)
         return self.app_client.call(
             call_abi_method=args.method(),
             transaction_parameters=_convert(transaction_parameters),
             **_as_dict(args),
         )
+
+    def create(
+        self,
+        *,
+        transaction_parameters: algokit_utils.CreateTransactionParameters | None = None,
+    ) -> algokit_utils.TransactionResponse:
+        return self.app_client.create(
+            call_abi_method=False,
+            transaction_parameters=_convert(transaction_parameters),
+        )
+
+    def update(
+        self,
+        *,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.TransactionResponse:
+        return self.app_client.update(
+            call_abi_method=False,
+            transaction_parameters=_convert(transaction_parameters),
+        )
+
+    def delete(
+        self,
+        *,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.TransactionResponse:
+        return self.app_client.delete(
+            call_abi_method=False,
+            transaction_parameters=_convert(transaction_parameters),
+        )
+

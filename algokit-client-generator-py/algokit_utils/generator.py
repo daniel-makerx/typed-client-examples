@@ -1,7 +1,7 @@
 import dataclasses
 import re
 import sys
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from enum import Enum
 from pathlib import Path
 from typing import Literal
@@ -23,11 +23,13 @@ class Part(Enum):
     Gap2 = "Gap2"
 
 
-DocumentPart = str | Part
+AtomicDocumentPart = str | Part
+DocumentPart = AtomicDocumentPart | Sequence[AtomicDocumentPart]
 DocumentParts = Iterable[DocumentPart]
 ESCAPED_QUOTE = r"\""
 SINGLE_QUOTE = '"'
 TRIPLE_QUOTE = '"""'
+MAX_LINE_LENGTH = 80
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -80,7 +82,7 @@ class ContractMethods:
     def add_method(
         self, app_spec: ApplicationSpecification, method: Method | None, method_config: MethodConfigDict
     ) -> None:
-        if method and method.args:
+        if method:
             hints = app_spec.hints[method.get_signature()]
             args = [
                 ContractArg(
@@ -92,19 +94,35 @@ class ContractMethods:
                 )
                 for arg in method.args
             ]
+            abi_type = method.returns
+            python_type = map_abi_type_to_python(method.returns)
         else:
+            abi_type = None
+            python_type = None
             hints = None
             args = []
         for on_complete, call_config in method_config.items():
             if call_config & CallConfig.CALL != CallConfig.NEVER:
                 collection = getattr(self, on_complete)
                 contract_method = ContractMethod(
-                    abi_method=method, call_config="call", on_complete=on_complete, args=args, hints=hints
+                    abi_method=method,
+                    call_config="call",
+                    on_complete=on_complete,
+                    args=args,
+                    hints=hints,
+                    abi_type=abi_type,
+                    python_type=python_type,
                 )
                 collection.append(contract_method)
             if call_config & CallConfig.CREATE != CallConfig.NEVER:
                 contract_method = ContractMethod(
-                    abi_method=method, call_config="create", on_complete=on_complete, args=args, hints=hints
+                    abi_method=method,
+                    call_config="create",
+                    on_complete=on_complete,
+                    args=args,
+                    hints=hints,
+                    abi_type=abi_type,
+                    python_type=python_type,
                 )
                 self.create.append(contract_method)
 
@@ -161,11 +179,11 @@ def imports(context: GenerateContext) -> DocumentParts:
     yield from lines(
         """import dataclasses
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar, cast, overload
+from typing import Any, Generic, TypeVar, overload
 
 import algokit_utils
 import algosdk
-from algosdk.atomic_transaction_composer import TransactionSigner"""
+from algosdk.atomic_transaction_composer import TransactionSigner, TransactionWithSigner"""
     )
 
 
@@ -194,15 +212,41 @@ def docstring(value: str) -> DocumentParts:
     yield Part.RestoreLineMode
 
 
-def map_abi_type_to_python(abi_type: str | ABIType | Returns) -> str:
-    # TODO: better type mapping
-    abi_type_str = abi_type if isinstance(abi_type, str) else str(abi_type)
-    return {
+def _map_abi_type_to_python(abi_type: str) -> str:
+    match = re.match(r".*\[([0-9]*)]$", abi_type)
+    if match:
+        array_size = match.group(1)
+        if array_size:
+            abi_type = abi_type[: -2 - len(array_size)]
+            array_size = int(array_size)
+            inner_type = ", ".join([_map_abi_type_to_python(abi_type)] * array_size)
+            return f"tuple[{inner_type}]"
+        else:
+            abi_type = abi_type[:-2]
+            if abi_type == "byte":
+                return "bytes"
+            return f"list[{_map_abi_type_to_python(abi_type)}]"
+    if abi_type.startswith("(") and abi_type.endswith(")"):
+        abi_type = abi_type[1:-1]
+        inner_types = [_map_abi_type_to_python(t) for t in abi_type.split(",")]
+        return f"tuple[{', '.join(inner_types)}]"
+    # TODO validate or annotate ints
+    python_type = {
         "string": "str",
+        "uint8": "int",
         "uint32": "int",
         "uint64": "int",
         "void": "None",
-    }.get(abi_type_str, abi_type_str)
+        "byte[]": "bytes",
+        "pay": "TransactionWithSigner",
+    }.get(abi_type)
+    if python_type:
+        return python_type
+    return abi_type
+
+
+def map_abi_type_to_python(abi_type: str | ABIType | Returns) -> str:
+    return _map_abi_type_to_python(str(abi_type))
 
 
 def typed_argument_class(contract_method: ContractMethod) -> DocumentParts:
@@ -254,12 +298,11 @@ def indented(code_block: str) -> DocumentParts:
 
 
 def typed_arguments(context: GenerateContext) -> DocumentParts:
-    for method in context.methods.no_op:
-        if method is None:
+    for method in context.methods.all_methods:
+        if method.is_bare:
             continue
         yield from typed_argument_class(method)
         yield Part.Gap2
-    # TODO: additional ABI types
 
 
 def helpers(context: GenerateContext) -> DocumentParts:
@@ -288,18 +331,10 @@ def _as_dict(data: _T | None) -> dict[str, Any]:
 
 def _convert(
     transaction_parameters: algokit_utils.TransactionParameters | None,
-) -> algokit_utils.CommonCallParametersDict | None:
+) -> algokit_utils.CommonCallParametersDict | algokit_utils.CreateCallParametersDict | None:
     if transaction_parameters is None:
         return None
-    return cast(algokit_utils.CommonCallParametersDict, _as_dict(transaction_parameters))
-
-
-def _convert_create(
-    transaction_parameters: algokit_utils.CreateTransactionParameters | None,
-) -> algokit_utils.CreateCallParametersDict | None:
-    if transaction_parameters is None:
-        return None
-    return cast(algokit_utils.CreateCallParametersDict, _as_dict(transaction_parameters))"""
+    return _as_dict(transaction_parameters)"""
     )
 
 
@@ -368,6 +403,16 @@ class {app_client_name}:
     yield Part.Gap1
     yield Part.IncIndent
     yield from call_methods(context)
+    yield from special_method(
+        context,
+        "create",
+        context.methods.create,
+        transaction_parameters_type="algokit_utils.CreateTransactionParameters",
+    )
+    yield from special_method(context, "update", context.methods.update_application)
+    yield from special_method(context, "delete", context.methods.delete_application)
+    yield from special_method(context, "opt_in", context.methods.opt_in)
+    yield from special_method(context, "close_out", context.methods.close_out)
     yield Part.DecIndent
 
 
@@ -400,21 +445,15 @@ def call_method(context: GenerateContext, contract_method: ContractMethod) -> Do
     # TODO: better control over when to inline
     args = contract_method.args
     declaration = f"args = {contract_method.args_class_name}("
-    arg_length = sum(len(a.name) * 2 + 2 for a in args) + len(declaration) + 1
-    if arg_length < 76:
-        yield Part.InlineMode
-        yield declaration
-        for arg in args:
-            yield f"{arg.name}={arg.name},"
-        yield ")"
-        yield Part.RestoreLineMode
-    else:
-        yield declaration
-        yield Part.IncIndent
-        for arg in contract_method.args:
-            yield f"{arg.name}={arg.name},"
-        yield Part.DecIndent
-        yield ")"
+    #  line = indent + declaration + f"{name}={name}," + ")"
+    do_inline = 4 + len(declaration) + sum(len(a.name) * 2 + 2 for a in args) + 1 < MAX_LINE_LENGTH
+
+    yield (Part.InlineMode, declaration) if do_inline else (declaration, Part.IncIndent)
+
+    for arg in args:
+        yield f"{arg.name}={arg.name},"
+
+    yield (")", Part.RestoreLineMode) if do_inline else (Part.DecIndent, ")")
 
     yield from indented(
         """
@@ -441,6 +480,67 @@ def no_op(self) -> algokit_utils.TransactionResponse:
         else:
             yield from call_method(context, method)
         yield Part.Gap1
+
+
+def special_method(
+    context: GenerateContext,
+    method_name: Literal["create", "update", "delete", "opt_in", "close_out"],
+    methods: list[ContractMethod],
+    transaction_parameters_type: str = "algokit_utils.TransactionParameters",
+) -> DocumentParts:
+    if not methods:
+        return
+    bare_only = all(m.is_bare for m in methods)
+    # TODO: overloads
+    yield f"def {method_name}("
+    yield Part.IncIndent
+    yield "self,"
+    yield "*,"
+    if not bare_only:
+        yield Part.InlineMode
+        yield "args: "
+        for idx, method in enumerate(methods):
+            if idx:
+                yield " | "
+            if method.is_bare:
+                yield "None"
+            else:
+                yield method.args_class_name
+        if any(m.is_bare for m in context.methods.create):
+            yield " = None"
+        yield ","
+        yield Part.RestoreLineMode
+    yield f"transaction_parameters: {transaction_parameters_type} | None = None,"
+
+    return_types = {
+        "algokit_utils.TransactionResponse" if m.is_bare else f"algokit_utils.ABITransactionResponse[{m.python_type}]"
+        for m in methods
+    }
+    if len(return_types) == 1:
+        yield Part.DecIndent, f") -> {return_types.pop()}:"
+    else:
+        yield Part.DecIndent, ") -> ("
+        yield Part.IncIndent
+        for idx, return_type in enumerate(return_types):
+            yield Part.InlineMode
+            if idx:
+                yield "| "
+            yield return_type
+            yield Part.RestoreLineMode
+        yield Part.DecIndent, "):"
+    yield Part.IncIndent, f"return self.app_client.{method_name}("
+    yield Part.IncIndent
+    if bare_only:
+        yield "call_abi_method=False,"
+    else:
+        yield "call_abi_method=args.method() if args else False,"
+    yield "transaction_parameters=_convert(transaction_parameters),"
+    if not bare_only:
+        yield "**_as_dict(args)"
+    yield Part.DecIndent
+    yield ")"
+    yield Part.DecIndent
+    yield Part.Gap1
 
 
 def _get_unique_symbol_by_incrementing(
@@ -559,34 +659,59 @@ def convert_part_inner(part: DocumentPart, context: RenderContext) -> str | None
             raise Exception(f"Unexpected part: {unknown}")
 
 
-def convert_part(part: DocumentPart, context: RenderContext) -> str | None:
-    result = convert_part_inner(part, context)
-    context.last_part = part
-    if result is not None:
-        if len(result) > 5:
-            context.last_rendered_part = result
-        else:  # if last render was small then combine
-            context.last_rendered_part += result
-    return result
+def convert_part(part: DocumentPart, context: RenderContext) -> list[str]:
+    match part:
+        case str() | Part():
+            parts = [part]
+        case _:
+            parts = part
+    results = []
+    for part in parts:
+        result = convert_part_inner(part, context)
+        context.last_part = part
+        if result is not None:
+            if len(result) > 5:
+                context.last_rendered_part = result
+            else:  # if last render was small then combine
+                context.last_rendered_part += result
+            results.append(result)
+    return results
 
 
 def render(parts: DocumentParts, indent_size: int = 4) -> str:
     context = RenderContext(line_mode_stack=["\n"], indent="", indent_inc=" " * indent_size, last_part=None)
 
-    rendered_parts = [convert_part(p, context) for p in parts]
-    return "".join(p for p in rendered_parts if p is not None)
+    return "".join(pp for p in parts for pp in convert_part(p, context))
 
 
-def main():
-    # TODO: proper CLI parsing
-    input_path = Path(sys.argv[1])
-    output_path = Path(sys.argv[2])
-
+def generate_client(input_path: Path, output_path: Path) -> None:
     app_spec = ApplicationSpecification.from_json(input_path.read_text())
 
     context = create_generate_context(app_spec)
     output = render(generate(context))
     output_path.write_text(output)
+
+
+def walk_dir(path: Path, output_name: str = "client_generated.py") -> None:
+    for child in path.iterdir():
+        if child.is_dir():
+            walk_dir(child)
+        elif child.name.lower() == "application.json":
+            generate_client(child, child.parent / output_name)
+
+
+def main():
+    # TODO: proper CLI parsing
+    input_path = Path(".").absolute() if len(sys.argv) < 2 else Path(sys.argv[1])
+    if not input_path.exists():
+        raise Exception(f"{input_path} not found")
+
+    if input_path.is_dir():
+        output = "client_generated.py" if len(sys.argv) < 3 else sys.argv[2]
+        walk_dir(input_path, output)
+    else:
+        output = input_path.parent / "client_generated.py" if len(sys.argv) < 3 else Path(sys.argv[2])
+        generate_client(input_path, output)
 
 
 if __name__ == "__main__":
