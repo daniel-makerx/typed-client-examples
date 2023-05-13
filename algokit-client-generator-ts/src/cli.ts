@@ -11,7 +11,7 @@ export function cli(workingDirectory: string, args: string[]) {
   program
     .command('generate')
     .description('Generates a TypeScript client for the given application.schema.json file')
-    .option('-a --application <path>', 'Specifies the application.schema.json file')
+    .option('-a --application <path>', 'Specifies the application.json file')
     .option('-o --output <path>', 'Specifies the output file path')
     .action(({ application, output }: { application?: string; output?: string }): void => {
       if (!application) return boom('Please specify a path to the application spec')
