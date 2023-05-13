@@ -34,6 +34,19 @@ def hello(name: pt.abi.String, *, output: pt.abi.String) -> pt.Expr:
         output.set(buff.load()),
     )
 
+@app.external(name='hello')
+def hello_no_arg(*, output: pt.abi.String) -> pt.Expr:
+    return pt.Seq(
+        (buff := pt.ScratchVar()).store(pt.Bytes("")),
+        Iterate(
+            buff.store(
+                pt.Concat(buff.load(), app.state.greeting.get(), pt.Bytes(", mystery person\n"))
+            ),  # result += greeting, mystery person\n
+            cast(pt.Int, app.state.times.get()),
+        ),
+        output.set(buff.load()),
+    )
+
 
 @app.external(bare=True, method_config=MethodConfig(no_op=CallConfig.CREATE, opt_in=CallConfig.CREATE))
 def bare_create() -> pt.Expr:
@@ -41,7 +54,7 @@ def bare_create() -> pt.Expr:
     return pt.Seq(app.state.greeting.set(pt.Bytes("Hello")), app.state.times.set(pt.Int(1)), pt.Approve())
 
 
-@app.create
+@app.create(name='create')
 def create_1arg(greeting: pt.abi.String, *, output: pt.abi.String) -> pt.Expr:
     """ABI create method with 1 argument"""
     return pt.Seq(
@@ -51,7 +64,7 @@ def create_1arg(greeting: pt.abi.String, *, output: pt.abi.String) -> pt.Expr:
     )
 
 
-@app.create
+@app.create(name='create')
 def create_2arg(greeting: pt.abi.String, times: pt.abi.Uint32) -> pt.Expr:
     """ABI create method with 2 arguments"""
     return pt.Seq(app.state.greeting.set(greeting.get()), app.state.times.set(times.get()), pt.Approve())

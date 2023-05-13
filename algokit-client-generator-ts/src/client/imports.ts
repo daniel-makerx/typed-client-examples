@@ -7,6 +7,7 @@ import {
   AppCallTransactionResultOfType,
   CoreAppCallArgs,
   RawAppCallArgs,
+  AppState,
   TealTemplateParams,
 } from '@algorandfoundation/algokit-utils/types/app'
 import {
@@ -18,6 +19,6 @@ import {
   ApplicationClient,
 } from '@algorandfoundation/algokit-utils/types/app-client'
 import { AppSpec } from '@algorandfoundation/algokit-utils/types/app-spec'
-import { SendTransactionResult, TransactionToSign } from '@algorandfoundation/algokit-utils/types/transaction'
+import { SendTransactionResult, TransactionToSign, SendTransactionFrom } from '@algorandfoundation/algokit-utils/types/transaction'
 import { Algodv2, OnApplicationComplete, Transaction } from 'algosdk'`
 }

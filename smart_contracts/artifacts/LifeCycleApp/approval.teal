@@ -1,43 +1,27 @@
 #pragma version 8
 intcblock 0 1 10
-bytecblock 0x74696d6573 0x 0x6772656574696e67 0x151f7c75
+bytecblock 0x 0x74696d6573 0x6772656574696e67 0x151f7c75
 txn NumAppArgs
 intc_0 // 0
 ==
-bnz main_l8
+bnz main_l10
 txna ApplicationArgs 0
 pushbytes 0x02bece11 // "hello(string)string"
 ==
+bnz main_l9
+txna ApplicationArgs 0
+pushbytes 0xab06c1a8 // "hello()string"
+==
+bnz main_l8
+txna ApplicationArgs 0
+pushbytes 0x97f1fc11 // "create(string)string"
+==
 bnz main_l7
 txna ApplicationArgs 0
-pushbytes 0xbc7b6df9 // "create_1arg(string)string"
+pushbytes 0x60193264 // "create(string,uint32)void"
 ==
 bnz main_l6
-txna ApplicationArgs 0
-pushbytes 0xd869f636 // "create_2arg(string,uint32)void"
-==
-bnz main_l5
 err
-main_l5:
-txn OnCompletion
-intc_0 // NoOp
-==
-txn ApplicationID
-intc_0 // 0
-==
-&&
-assert
-txna ApplicationArgs 1
-store 2
-txna ApplicationArgs 2
-intc_0 // 0
-extract_uint32
-store 3
-load 2
-load 3
-callsub create2arg_6
-intc_1 // 1
-return
 main_l6:
 txn OnCompletion
 intc_0 // NoOp
@@ -48,7 +32,44 @@ intc_0 // 0
 &&
 assert
 txna ApplicationArgs 1
-callsub create1arg_5
+store 3
+txna ApplicationArgs 2
+intc_0 // 0
+extract_uint32
+store 4
+load 3
+load 4
+callsub create_7
+intc_1 // 1
+return
+main_l7:
+txn OnCompletion
+intc_0 // NoOp
+==
+txn ApplicationID
+intc_0 // 0
+==
+&&
+assert
+txna ApplicationArgs 1
+callsub create_6
+store 2
+bytec_3 // 0x151f7c75
+load 2
+concat
+log
+intc_1 // 1
+return
+main_l8:
+txn OnCompletion
+intc_0 // NoOp
+==
+txn ApplicationID
+intc_0 // 0
+!=
+&&
+assert
+callsub hello_4
 store 1
 bytec_3 // 0x151f7c75
 load 1
@@ -56,7 +77,7 @@ concat
 log
 intc_1 // 1
 return
-main_l7:
+main_l9:
 txn OnCompletion
 intc_0 // NoOp
 ==
@@ -74,21 +95,21 @@ concat
 log
 intc_1 // 1
 return
-main_l8:
+main_l10:
 txn OnCompletion
 intc_0 // NoOp
 ==
-bnz main_l14
+bnz main_l16
 txn OnCompletion
 intc_1 // OptIn
 ==
-bnz main_l13
+bnz main_l15
 txn OnCompletion
 pushint 4 // UpdateApplication
 ==
-bnz main_l12
+bnz main_l14
 err
-main_l12:
+main_l14:
 txn ApplicationID
 intc_0 // 0
 !=
@@ -96,20 +117,20 @@ assert
 callsub update_2
 intc_1 // 1
 return
-main_l13:
+main_l15:
 txn ApplicationID
 intc_0 // 0
 ==
 assert
-callsub barecreate_4
+callsub barecreate_5
 intc_1 // 1
 return
-main_l14:
+main_l16:
 txn ApplicationID
 intc_0 // 0
 ==
 assert
-callsub barecreate_4
+callsub barecreate_5
 intc_1 // 1
 return
 
@@ -135,7 +156,7 @@ intc_2 // 10
 intc_0 // 0
 >
 bnz itoa_1_l4
-bytec_1 // ""
+bytec_0 // ""
 itoa_1_l3:
 frame_dig -1
 intc_2 // 10
@@ -170,18 +191,18 @@ retsub
 // hello
 hello_3:
 proto 1 1
-bytec_1 // ""
-bytec_1 // ""
-store 4
-intc_0 // 0
+bytec_0 // ""
+bytec_0 // ""
 store 5
+intc_0 // 0
+store 6
 hello_3_l1:
-load 5
-bytec_0 // "times"
+load 6
+bytec_1 // "times"
 app_global_get
 <
 bz hello_3_l3
-load 4
+load 5
 bytec_2 // "greeting"
 app_global_get
 concat
@@ -192,14 +213,52 @@ extract 2 0
 concat
 pushbytes 0x0a // "\n"
 concat
-store 4
-load 5
+store 5
+load 6
 intc_1 // 1
 +
-store 5
+store 6
 b hello_3_l1
 hello_3_l3:
-load 4
+load 5
+frame_bury 0
+frame_dig 0
+len
+itob
+extract 6 0
+frame_dig 0
+concat
+frame_bury 0
+retsub
+
+// hello
+hello_4:
+proto 0 1
+bytec_0 // ""
+bytec_0 // ""
+store 7
+intc_0 // 0
+store 8
+hello_4_l1:
+load 8
+bytec_1 // "times"
+app_global_get
+<
+bz hello_4_l3
+load 7
+bytec_2 // "greeting"
+app_global_get
+concat
+pushbytes 0x2c206d79737465727920706572736f6e0a // ", mystery person\n"
+concat
+store 7
+load 8
+intc_1 // 1
++
+store 8
+b hello_4_l1
+hello_4_l3:
+load 7
 frame_bury 0
 frame_dig 0
 len
@@ -211,33 +270,33 @@ frame_bury 0
 retsub
 
 // bare_create
-barecreate_4:
+barecreate_5:
 proto 0 0
 bytec_2 // "greeting"
 pushbytes 0x48656c6c6f // "Hello"
 app_global_put
-bytec_0 // "times"
+bytec_1 // "times"
 intc_1 // 1
 app_global_put
 intc_1 // 1
 return
 
-// create_1arg
-create1arg_5:
+// create
+create_6:
 proto 1 1
-bytec_1 // ""
+bytec_0 // ""
 bytec_2 // "greeting"
 frame_dig -1
 extract 2 0
 app_global_put
-bytec_0 // "times"
+bytec_1 // "times"
 intc_1 // 1
 app_global_put
 frame_dig -1
 extract 2 0
 pushbytes 0x5f // "_"
 concat
-bytec_0 // "times"
+bytec_1 // "times"
 app_global_get
 callsub itoa_1
 concat
@@ -251,14 +310,14 @@ concat
 frame_bury 0
 retsub
 
-// create_2arg
-create2arg_6:
+// create
+create_7:
 proto 2 0
 bytec_2 // "greeting"
 frame_dig -2
 extract 2 0
 app_global_put
-bytec_0 // "times"
+bytec_1 // "times"
 frame_dig -1
 app_global_put
 intc_1 // 1

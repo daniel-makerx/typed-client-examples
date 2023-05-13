@@ -15,7 +15,7 @@
       "$ref": "#/definitions/AppSources"
     },
     "contract": {
-      "$ref": "contract.json"
+      "$ref": "contract.schema.json"
     },
     "schema": {
       "$ref": "#/definitions/SchemaSpec"
@@ -34,6 +34,7 @@
     "DeclaredSchemaValueSpec": {
       "type": "object",
       "required": ["type", "key"],
+      "additionalProperties": false,
       "properties": {
         "type": {
           "description": "The type of the value",
@@ -43,7 +44,7 @@
           "description": "The name of the key",
           "type": "string"
         },
-        "desc": {
+        "descr": {
           "description": "A description of the variable",
           "type": "string"
         },
@@ -61,7 +62,7 @@
           "description": "The type of the value",
           "$ref": "#/definitions/AVMType"
         },
-        "desc": {
+        "descr": {
           "description": "A description of the variable",
           "type": "string"
         },

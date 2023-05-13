@@ -107,7 +107,7 @@ export interface DeclaredSchemaValueSpec {
   /**
    * A description of the variable
    */
-  desc?: string;
+  descr?: string;
   /**
    * Whether the value is set statically (at create time only) or dynamically
    */

@@ -310,358 +310,421 @@ export type CallRequest<TSignature extends string, TArgs = undefined> = {
   methodArgs: TArgs
 } & AppClientCallCoreParams & CoreAppCallArgs
 export type BareCallArgs = Omit<RawAppCallArgs, keyof CoreAppCallArgs>
+export type OnCompleteNoOp =  { onCompleteAction?: 'no_op' | OnApplicationComplete.NoOpOC }
+export type OnCompleteOptIn =  { onCompleteAction: 'opt_in' | OnApplicationComplete.OptInOC }
+export type OnCompleteCloseOut =  { onCompleteAction: 'close_out' | OnApplicationComplete.CloseOutOC }
+export type OnCompleteDelApp =  { onCompleteAction: 'delete_application' | OnApplicationComplete.DeleteApplicationOC }
+export type OnCompleteUpdApp =  { onCompleteAction: 'update_application' | OnApplicationComplete.UpdateApplicationOC }
 
-export type TestingAppReturnTypes = {
-  'call_abi(string)string': string
-  'call_abi': string
-  'call_abi_txn(pay,string)string': string
-  'call_abi_txn': string
-  'set_global(uint64,uint64,string,byte[4])void': void
-  'set_global': void
-  'set_local(uint64,uint64,string,byte[4])void': void
-  'set_local': void
-  'set_box(byte[4],string)void': void
-  'set_box': void
-  'error()void': void
-  'error': void
-  'create_abi(string)string': string
-  'create_abi': string
-  'update_abi(string)string': string
-  'update_abi': string
-  'delete_abi(string)string': string
-  'delete_abi': string
-  'opt_in()void': void
-  'opt_in': void
-}
-export type TestingAppReturnTypeFor<TSignatureOrMethod> = TSignatureOrMethod extends keyof TestingAppReturnTypes
-  ? TestingAppReturnTypes[TSignatureOrMethod]
-  : undefined
-export type CallAbiArgsObj = {
-  value: string
-}
-export type CallAbiArgsTuple = [value: string]
-export type CallAbiArgs = CallAbiArgsObj | CallAbiArgsTuple
-export type CallAbiTxnArgsObj = {
-  txn: TransactionToSign | Transaction | Promise<SendTransactionResult>
-  value: string
-}
-export type CallAbiTxnArgsTuple = [txn: TransactionToSign | Transaction | Promise<SendTransactionResult>, value: string]
-export type CallAbiTxnArgs = CallAbiTxnArgsObj | CallAbiTxnArgsTuple
-export type SetGlobalArgsObj = {
-  int1: bigint
-  int2: bigint
-  bytes1: string
-  bytes2: Uint8Array
-}
-export type SetGlobalArgsTuple = [int1: bigint, int2: bigint, bytes1: string, bytes2: Uint8Array]
-export type SetGlobalArgs = SetGlobalArgsObj | SetGlobalArgsTuple
-export type SetLocalArgsObj = {
-  int1: bigint
-  int2: bigint
-  bytes1: string
-  bytes2: Uint8Array
-}
-export type SetLocalArgsTuple = [int1: bigint, int2: bigint, bytes1: string, bytes2: Uint8Array]
-export type SetLocalArgs = SetLocalArgsObj | SetLocalArgsTuple
-export type SetBoxArgsObj = {
-  name: Uint8Array
-  value: string
-}
-export type SetBoxArgsTuple = [name: Uint8Array, value: string]
-export type SetBoxArgs = SetBoxArgsObj | SetBoxArgsTuple
-export type ErrorArgsObj = {
-}
-export type ErrorArgsTuple = []
-export type ErrorArgs = ErrorArgsObj | ErrorArgsTuple
-export type CreateAbiArgsObj = {
-  input: string
-}
-export type CreateAbiArgsTuple = [input: string]
-export type CreateAbiArgs = CreateAbiArgsObj | CreateAbiArgsTuple
-export type UpdateAbiArgsObj = {
-  input: string
-}
-export type UpdateAbiArgsTuple = [input: string]
-export type UpdateAbiArgs = UpdateAbiArgsObj | UpdateAbiArgsTuple
-export type DeleteAbiArgsObj = {
-  input: string
-}
-export type DeleteAbiArgsTuple = [input: string]
-export type DeleteAbiArgs = DeleteAbiArgsObj | DeleteAbiArgsTuple
-export type OptInArgsObj = {
-}
-export type OptInArgsTuple = []
-export type OptInArgs = OptInArgsObj | OptInArgsTuple
+export type TestingApp = {
+  methods: 
+    & Record<'call_abi(string)string' | 'call_abi', {
+      argsObj: {
+        value: string
+      }
+      argsTuple: [value: string]
+      returns: string
+    }>
+    & Record<'call_abi_txn(pay,string)string' | 'call_abi_txn', {
+      argsObj: {
+        txn: TransactionToSign | Transaction | Promise<SendTransactionResult>
+        value: string
+      }
+      argsTuple: [txn: TransactionToSign | Transaction | Promise<SendTransactionResult>, value: string]
+      returns: string
+    }>
+    & Record<'set_global(uint64,uint64,string,byte[4])void' | 'set_global', {
+      argsObj: {
+        int1: bigint | number
+        int2: bigint | number
+        bytes1: string
+        bytes2: Uint8Array
+      }
+      argsTuple: [int1: bigint | number, int2: bigint | number, bytes1: string, bytes2: Uint8Array]
+      returns: void
+    }>
+    & Record<'set_local(uint64,uint64,string,byte[4])void' | 'set_local', {
+      argsObj: {
+        int1: bigint | number
+        int2: bigint | number
+        bytes1: string
+        bytes2: Uint8Array
+      }
+      argsTuple: [int1: bigint | number, int2: bigint | number, bytes1: string, bytes2: Uint8Array]
+      returns: void
+    }>
+    & Record<'set_box(byte[4],string)void' | 'set_box', {
+      argsObj: {
+        name: Uint8Array
+        value: string
+      }
+      argsTuple: [name: Uint8Array, value: string]
+      returns: void
+    }>
+    & Record<'error()void' | 'error', {
+      argsObj: {
+      }
+      argsTuple: []
+      returns: void
+    }>
+    & Record<'create_abi(string)string' | 'create_abi', {
+      argsObj: {
+        input: string
+      }
+      argsTuple: [input: string]
+      returns: string
+    }>
+    & Record<'update_abi(string)string' | 'update_abi', {
+      argsObj: {
+        input: string
+      }
+      argsTuple: [input: string]
+      returns: string
+    }>
+    & Record<'delete_abi(string)string' | 'delete_abi', {
+      argsObj: {
+        input: string
+      }
+      argsTuple: [input: string]
+      returns: string
+    }>
+    & Record<'opt_in()void' | 'opt_in', {
+      argsObj: {
+      }
+      argsTuple: []
+      returns: void
+    }>
+  }
+  export type MethodArgs<TSignature extends keyof TestingApp['methods']> = TestingApp['methods'][TSignature]['argsObj' | 'argsTuple']
+  export type MethodReturn<TSignature extends keyof TestingApp['methods']> = TestingApp['methods'][TSignature]['returns']
+  type MapperArgs<TSignature extends keyof TestingApp['methods']> = TSignature extends any ? [signature: TSignature, args: MethodArgs<TSignature>, params: AppClientCallCoreParams & CoreAppCallArgs ] : never
 
-export type TestingAppCreateArgs =
-  | BareCallArgs  & { onCompleteAction?: 'no_op' | OnApplicationComplete.NoOpOC | 'opt_in' | OnApplicationComplete.OptInOC }
-  | ({ method: 'create_abi' } & CreateAbiArgsObj)  & { onCompleteAction?: 'no_op' | OnApplicationComplete.NoOpOC }
-export type TestingAppUpdateArgs =
-  | BareCallArgs
-  | ({ method: 'update_abi' } & UpdateAbiArgsObj)
-export type TestingAppDeleteArgs =
-  | BareCallArgs
-  | ({ method: 'delete_abi' } & DeleteAbiArgsObj)
-export type TestingAppOptInArgs =
-  | ({ method: 'opt_in' } & OptInArgsObj)
-export type TestingAppDeployArgs = {
-  deployTimeParams?: TealTemplateParams
-  createArgs?: TestingAppCreateArgs & CoreAppCallArgs
-  updateArgs?: TestingAppUpdateArgs & CoreAppCallArgs
-  deleteArgs?: TestingAppDeleteArgs & CoreAppCallArgs
-}
-
-export abstract class TestingAppCallFactory {
-  static callAbi(args: CallAbiArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-    return {
-      method: 'call_abi(string)string' as const,
-      methodArgs: Array.isArray(args) ? args : [args.value],
-      ...params,
-    }
-  }
-  static callAbiTxn(args: CallAbiTxnArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-    return {
-      method: 'call_abi_txn(pay,string)string' as const,
-      methodArgs: Array.isArray(args) ? args : [args.txn, args.value],
-      ...params,
-    }
-  }
-  static setGlobal(args: SetGlobalArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-    return {
-      method: 'set_global(uint64,uint64,string,byte[4])void' as const,
-      methodArgs: Array.isArray(args) ? args : [args.int1, args.int2, args.bytes1, args.bytes2],
-      ...params,
-    }
-  }
-  static setLocal(args: SetLocalArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-    return {
-      method: 'set_local(uint64,uint64,string,byte[4])void' as const,
-      methodArgs: Array.isArray(args) ? args : [args.int1, args.int2, args.bytes1, args.bytes2],
-      ...params,
-    }
-  }
-  static setBox(args: SetBoxArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-    return {
-      method: 'set_box(byte[4],string)void' as const,
-      methodArgs: Array.isArray(args) ? args : [args.name, args.value],
-      ...params,
-    }
-  }
-  static error(args: ErrorArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-    return {
-      method: 'error()void' as const,
-      methodArgs: Array.isArray(args) ? args : [],
-      ...params,
-    }
-  }
-  static createAbi(args: CreateAbiArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-    return {
-      method: 'create_abi(string)string' as const,
-      methodArgs: Array.isArray(args) ? args : [args.input],
-      ...params,
-    }
-  }
-  static updateAbi(args: UpdateAbiArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-    return {
-      method: 'update_abi(string)string' as const,
-      methodArgs: Array.isArray(args) ? args : [args.input],
-      ...params,
-    }
-  }
-  static deleteAbi(args: DeleteAbiArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-    return {
-      method: 'delete_abi(string)string' as const,
-      methodArgs: Array.isArray(args) ? args : [args.input],
-      ...params,
-    }
-  }
-  static optIn(args: OptInArgs, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-    return {
-      method: 'opt_in()void' as const,
-      methodArgs: Array.isArray(args) ? args : [],
-      ...params,
-    }
-  }
-}
-
-/** A client to make calls to the TestingApp smart contract */
-export class TestingAppClient {
-  /** The underlying `ApplicationClient` for when you want to have more flexibility */
-  public readonly appClient: ApplicationClient
-
-  /**
-   * Creates a new instance of `TestingAppClient`
-   * @param appDetails The details to identify the app to deploy
-   * @param algod An algod client instance
-   */
-  constructor(appDetails: AppDetails, algod: Algodv2) {
-    this.appClient = algokit.getAppClient({
-      ...appDetails,
-      app: APP_SPEC
-    }, algod)
+  export type TestingAppCreateArgs =
+    | (BareCallArgs & CoreAppCallArgs & (OnCompleteNoOp | OnCompleteOptIn))
+    | ['create_abi(string)string', MethodArgs<'create_abi(string)string'>, (CoreAppCallArgs & (OnCompleteNoOp))?]
+  export type TestingAppUpdateArgs =
+    | BareCallArgs & CoreAppCallArgs
+    | ['update_abi(string)string', MethodArgs<'update_abi(string)string'>, CoreAppCallArgs]
+  export type TestingAppDeleteArgs =
+    | BareCallArgs & CoreAppCallArgs
+    | ['delete_abi(string)string', MethodArgs<'delete_abi(string)string'>, CoreAppCallArgs]
+  export type TestingAppDeployArgs = {
+    deployTimeParams?: TealTemplateParams
+    createArgs?: TestingAppCreateArgs
+    updateArgs?: TestingAppUpdateArgs
+    deleteArgs?: TestingAppDeleteArgs
   }
 
-  public async mapReturnValue<TSignatureOrMethod extends string>(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult): Promise<AppCallTransactionResultOfType<TestingAppReturnTypeFor<TSignatureOrMethod>>> {
-    const result = await resultPromise
-    if(result.return?.decodeError) {
-      throw result.return.decodeError
+  export abstract class TestingAppCallFactory {
+    static callAbi(args: MethodArgs<'call_abi(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+      return {
+        method: 'call_abi(string)string' as const,
+        methodArgs: Array.isArray(args) ? args : [args.value],
+        ...params,
+      }
     }
-    const returnValue = result.return?.returnValue as TestingAppReturnTypeFor<TSignatureOrMethod>
-    return { ...result, return: returnValue }
+    static callAbiTxn(args: MethodArgs<'call_abi_txn(pay,string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+      return {
+        method: 'call_abi_txn(pay,string)string' as const,
+        methodArgs: Array.isArray(args) ? args : [args.txn, args.value],
+        ...params,
+      }
+    }
+    static setGlobal(args: MethodArgs<'set_global(uint64,uint64,string,byte[4])void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+      return {
+        method: 'set_global(uint64,uint64,string,byte[4])void' as const,
+        methodArgs: Array.isArray(args) ? args : [args.int1, args.int2, args.bytes1, args.bytes2],
+        ...params,
+      }
+    }
+    static setLocal(args: MethodArgs<'set_local(uint64,uint64,string,byte[4])void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+      return {
+        method: 'set_local(uint64,uint64,string,byte[4])void' as const,
+        methodArgs: Array.isArray(args) ? args : [args.int1, args.int2, args.bytes1, args.bytes2],
+        ...params,
+      }
+    }
+    static setBox(args: MethodArgs<'set_box(byte[4],string)void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+      return {
+        method: 'set_box(byte[4],string)void' as const,
+        methodArgs: Array.isArray(args) ? args : [args.name, args.value],
+        ...params,
+      }
+    }
+    static error(args: MethodArgs<'error()void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+      return {
+        method: 'error()void' as const,
+        methodArgs: Array.isArray(args) ? args : [],
+        ...params,
+      }
+    }
+    static createAbi(args: MethodArgs<'create_abi(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+      return {
+        method: 'create_abi(string)string' as const,
+        methodArgs: Array.isArray(args) ? args : [args.input],
+        ...params,
+      }
+    }
+    static updateAbi(args: MethodArgs<'update_abi(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+      return {
+        method: 'update_abi(string)string' as const,
+        methodArgs: Array.isArray(args) ? args : [args.input],
+        ...params,
+      }
+    }
+    static deleteAbi(args: MethodArgs<'delete_abi(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+      return {
+        method: 'delete_abi(string)string' as const,
+        methodArgs: Array.isArray(args) ? args : [args.input],
+        ...params,
+      }
+    }
+    static optIn(args: MethodArgs<'opt_in()void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+      return {
+        method: 'opt_in()void' as const,
+        methodArgs: Array.isArray(args) ? args : [],
+        ...params,
+      }
+    }
   }
-
-  public call<TSignature extends string>(params: CallRequest<TSignature, any>) {
-    return this.mapReturnValue<TSignature>(this.appClient.call(params))
-  }
-
-  private mapMethodArgs(args: TestingAppCreateArgs | TestingAppUpdateArgs | TestingAppDeleteArgs | TestingAppOptInArgs, params?: CoreAppCallArgs): AppClientCallArgs {
-    switch (args.method) {
+  function mapBySignature(...[signature, args, params]: MapperArgs<keyof TestingApp['methods']>) {
+    switch(signature) {
+      case 'call_abi(string)string':
+      case 'call_abi':
+        return TestingAppCallFactory.callAbi(args, params)
+      case 'call_abi_txn(pay,string)string':
+      case 'call_abi_txn':
+        return TestingAppCallFactory.callAbiTxn(args, params)
+      case 'set_global(uint64,uint64,string,byte[4])void':
+      case 'set_global':
+        return TestingAppCallFactory.setGlobal(args, params)
+      case 'set_local(uint64,uint64,string,byte[4])void':
+      case 'set_local':
+        return TestingAppCallFactory.setLocal(args, params)
+      case 'set_box(byte[4],string)void':
+      case 'set_box':
+        return TestingAppCallFactory.setBox(args, params)
+      case 'error()void':
+      case 'error':
+        return TestingAppCallFactory.error(args, params)
+      case 'create_abi(string)string':
       case 'create_abi':
         return TestingAppCallFactory.createAbi(args, params)
+      case 'update_abi(string)string':
       case 'update_abi':
         return TestingAppCallFactory.updateAbi(args, params)
+      case 'delete_abi(string)string':
       case 'delete_abi':
         return TestingAppCallFactory.deleteAbi(args, params)
+      case 'opt_in()void':
       case 'opt_in':
         return TestingAppCallFactory.optIn(args, params)
-      default:
-        return args
     }
   }
 
-  /**
-   * Idempotently deploys the TestingApp smart contract.
-   * @param params The arguments for the contract calls and any additional parameters for the call
-   * @returns The deployment result
-   */
-  public deploy(params: TestingAppDeployArgs & AppClientDeployCoreParams = {}) {
-    const { boxes: create_boxes, lease: create_lease, onCompleteAction: createOnCompleteAction, ...createArgs } = params.createArgs ?? {}
-    const { boxes: update_boxes, lease: update_lease, ...updateArgs } = params.updateArgs ?? {}
-    const { boxes: delete_boxes, lease: delete_lease, ...deleteArgs } = params.deleteArgs ?? {}
-    return this.appClient.deploy({ 
-      ...params,
-      createArgs: params.createArgs ? this.mapMethodArgs(createArgs, { boxes: create_boxes, lease: create_lease }) : undefined,
-      createOnCompleteAction,
-      updateArgs: params.updateArgs ? this.mapMethodArgs(updateArgs, { boxes: update_boxes, lease: update_lease }) : undefined,
-      deleteArgs: params.deleteArgs ? this.mapMethodArgs(deleteArgs, { boxes: delete_boxes, lease: delete_lease }) : undefined,
-    })
-  }
+  /** A client to make calls to the TestingApp smart contract */
+  export class TestingAppClient {
+    /** The underlying `ApplicationClient` for when you want to have more flexibility */
+    public readonly appClient: ApplicationClient
 
-  /**
-   * Creates a new instance of the TestingApp smart contract.
-   * @param args The arguments for the contract call
-   * @param params Any additional parameters for the call
-   * @returns The creation result
-   */
-  public create<TMethod extends string>(args: { method?: TMethod } & TestingAppCreateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    const onCompleteAction = args.onCompleteAction
-    return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, ...{ onCompleteAction } }))
-  }
+    /**
+     * Creates a new instance of `TestingAppClient`
+     * @param appDetails The details to identify the app to deploy
+     * @param algod An algod client instance
+     */
+    constructor(appDetails: AppDetails, algod: Algodv2) {
+      this.appClient = algokit.getAppClient({
+        ...appDetails,
+        app: APP_SPEC
+      }, algod)
+    }
 
-  /**
-   * Updates an existing instance of the TestingApp smart contract.
-   * @param args The arguments for the contract call
-   * @param params Any additional parameters for the call
-   * @returns The update result
-   */
-  public update<TMethod extends string>(args: { method?: TMethod } & TestingAppUpdateArgs = {}, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.mapReturnValue<TMethod>(this.appClient.update({ ...this.mapMethodArgs(args), ...params, }))
-  }
+    public async mapReturnValue<TReturn>(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult): Promise<AppCallTransactionResultOfType<TReturn>> {
+      const result = await resultPromise
+      if(result.return?.decodeError) {
+        throw result.return.decodeError
+      }
+      const returnValue = result.return?.returnValue as TReturn
+      return { ...result, return: returnValue }
+    }
 
-  /**
-   * Deletes an existing instance of the TestingApp smart contract.
-   * @param args The arguments for the contract call
-   * @param params Any additional parameters for the call
-   * @returns The deletion result
-   */
-  public delete<TMethod extends string>(args: { method?: TMethod } & TestingAppDeleteArgs = {}, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-    return this.mapReturnValue<TMethod>(this.appClient.delete({ ...this.mapMethodArgs(args), ...params, }))
-  }
+    public call<TSignature extends keyof TestingApp['methods']>(params: CallRequest<TSignature, any>) {
+      return this.mapReturnValue<MethodReturn<TSignature>>(this.appClient.call(params))
+    }
 
-  /**
-   * Opts the user into an existing instance of the TestingApp smart contract.
-   * @param args The arguments for the contract call
-   * @param params Any additional parameters for the call
-   * @returns The opt in result
-   */
-  public optIn<TMethod extends string>(args: { method?: TMethod } & TestingAppOptInArgs, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {
-    return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))
-  }
+    /**
+     * Idempotently deploys the TestingApp smart contract.
+     * @param params The arguments for the contract calls and any additional parameters for the call
+     * @returns The deployment result
+     */
+    public deploy(params: TestingAppDeployArgs & AppClientDeployCoreParams = {}) {
+      return this.appClient.deploy({ 
+        ...params,
+        createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
+        deleteArgs: Array.isArray(params.deleteArgs) ? mapBySignature(...params.deleteArgs as [any, any, any]): params.deleteArgs,
+        updateArgs: Array.isArray(params.updateArgs) ? mapBySignature(...params.updateArgs as [any, any, any]): params.updateArgs,
+      })
+    }
 
-  /**
-   * Makes a clear_state call to an existing instance of the TestingApp smart contract.
-   * @param args The arguments for the contract call
-   * @param params Any additional parameters for the call
-   * @returns The clear_state result
-   */
-  public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-    return this.appClient.clearState({ ...args, ...params, })
-  }
+    /**
+     * Creates a new instance of the TestingApp smart contract using a bare call.
+     * @param args The arguments for the bare call
+     * @returns The create result
+     */
+    public create(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs & (OnCompleteNoOp | OnCompleteOptIn)): Promise<AppCallTransactionResultOfType<undefined>>;
+    /**
+     * Creates a new instance of the TestingApp smart contract using the create_abi(string)string ABI method.
+     * @param method The ABI method to use
+     * @param args The arguments for the contract call
+     * @param params Any additional parameters for the call
+     * @returns The create result
+     */
+    public create(method: 'create_abi(string)string' | 'create_abi', args: MethodArgs<'create_abi(string)string'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create_abi(string)string'>>>;
+    public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+      if(typeof args[0] !== 'string') {
+        return this.appClient.create({...args[0], })
+      } else {
+        return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+      }
+    }
 
-  /**
-   * Calls the call_abi(string)string ABI method.
-   *
-   * @param args The arguments for the ABI method
-   * @param params Any additional parameters for the call
-   * @returns The result of the call
-   */
-  public callAbi(args: CallAbiArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-    return this.call(TestingAppCallFactory.callAbi(args, params))
-  }
+    /**
+     * Updates an existing instance of the TestingApp smart contract using a bare call.
+     * @param args The arguments for the bare call
+     * @returns The update result
+     */
+    public update(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
+    /**
+     * Updates an existing instance of the TestingApp smart contract using the update_abi(string)string ABI method.
+     * @param method The ABI method to use
+     * @param args The arguments for the contract call
+     * @param params Any additional parameters for the call
+     * @returns The update result
+     */
+    public update(method: 'update_abi(string)string' | 'update_abi', args: MethodArgs<'update_abi(string)string'>, params?: AppClientCallCoreParams & AppClientCompilationParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'update_abi(string)string'>>>;
+    public update(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+      if(typeof args[0] !== 'string') {
+        return this.appClient.update({...args[0], })
+      } else {
+        return this.appClient.update({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+      }
+    }
 
-  /**
-   * Calls the call_abi_txn(pay,string)string ABI method.
-   *
-   * @param args The arguments for the ABI method
-   * @param params Any additional parameters for the call
-   * @returns The result of the call
-   */
-  public callAbiTxn(args: CallAbiTxnArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-    return this.call(TestingAppCallFactory.callAbiTxn(args, params))
-  }
+    /**
+     * Deletes an existing instance of the TestingApp smart contract using a bare call.
+     * @param args The arguments for the bare call
+     * @returns The delete result
+     */
+    public delete(args: BareCallArgs & AppClientCallCoreParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
+    /**
+     * Deletes an existing instance of the TestingApp smart contract using the delete_abi(string)string ABI method.
+     * @param method The ABI method to use
+     * @param args The arguments for the contract call
+     * @param params Any additional parameters for the call
+     * @returns The delete result
+     */
+    public delete(method: 'delete_abi(string)string' | 'delete_abi', args: MethodArgs<'delete_abi(string)string'>, params?: AppClientCallCoreParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'delete_abi(string)string'>>>;
+    public delete(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+      if(typeof args[0] !== 'string') {
+        return this.appClient.delete({...args[0], })
+      } else {
+        return this.appClient.delete({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+      }
+    }
 
-  /**
-   * Calls the set_global(uint64,uint64,string,byte[4])void ABI method.
-   *
-   * @param args The arguments for the ABI method
-   * @param params Any additional parameters for the call
-   * @returns The result of the call
-   */
-  public setGlobal(args: SetGlobalArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-    return this.call(TestingAppCallFactory.setGlobal(args, params))
-  }
+    /**
+     * Opts the user into an existing instance of the TestingApp smart contract using the opt_in()void ABI method.
+     * @param method The ABI method to use
+     * @param args The arguments for the contract call
+     * @param params Any additional parameters for the call
+     * @returns The optIn result
+     */
+    public optIn(method: 'opt_in()void' | 'opt_in', args: MethodArgs<'opt_in()void'>, params?: AppClientCallCoreParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'opt_in()void'>>>;
+    public optIn(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+      if(typeof args[0] !== 'string') {
+        return this.appClient.optIn({...args[0], })
+      } else {
+        return this.appClient.optIn({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+      }
+    }
 
-  /**
-   * Calls the set_local(uint64,uint64,string,byte[4])void ABI method.
-   *
-   * @param args The arguments for the ABI method
-   * @param params Any additional parameters for the call
-   * @returns The result of the call
-   */
-  public setLocal(args: SetLocalArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-    return this.call(TestingAppCallFactory.setLocal(args, params))
-  }
+    /**
+     * Makes a clear_state call to an existing instance of the TestingApp smart contract.
+     * @param args The arguments for the contract call
+     * @param params Any additional parameters for the call
+     * @returns The clear_state result
+     */
+    public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+      return this.appClient.clearState({ ...args, ...params, })
+    }
 
-  /**
-   * Calls the set_box(byte[4],string)void ABI method.
-   *
-   * @param args The arguments for the ABI method
-   * @param params Any additional parameters for the call
-   * @returns The result of the call
-   */
-  public setBox(args: SetBoxArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-    return this.call(TestingAppCallFactory.setBox(args, params))
-  }
+    /**
+     * Calls the call_abi(string)string ABI method.
+     *
+     * @param args The arguments for the ABI method
+     * @param params Any additional parameters for the call
+     * @returns The result of the call
+     */
+    public callAbi(args: MethodArgs<'call_abi(string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+      return this.call(TestingAppCallFactory.callAbi(args, params))
+    }
 
-  /**
-   * Calls the error()void ABI method.
-   *
-   * @param args The arguments for the ABI method
-   * @param params Any additional parameters for the call
-   * @returns The result of the call
-   */
-  public error(args: ErrorArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-    return this.call(TestingAppCallFactory.error(args, params))
-  }
+    /**
+     * Calls the call_abi_txn(pay,string)string ABI method.
+     *
+     * @param args The arguments for the ABI method
+     * @param params Any additional parameters for the call
+     * @returns The result of the call
+     */
+    public callAbiTxn(args: MethodArgs<'call_abi_txn(pay,string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+      return this.call(TestingAppCallFactory.callAbiTxn(args, params))
+    }
 
-}
+    /**
+     * Calls the set_global(uint64,uint64,string,byte[4])void ABI method.
+     *
+     * @param args The arguments for the ABI method
+     * @param params Any additional parameters for the call
+     * @returns The result of the call
+     */
+    public setGlobal(args: MethodArgs<'set_global(uint64,uint64,string,byte[4])void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+      return this.call(TestingAppCallFactory.setGlobal(args, params))
+    }
+
+    /**
+     * Calls the set_local(uint64,uint64,string,byte[4])void ABI method.
+     *
+     * @param args The arguments for the ABI method
+     * @param params Any additional parameters for the call
+     * @returns The result of the call
+     */
+    public setLocal(args: MethodArgs<'set_local(uint64,uint64,string,byte[4])void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+      return this.call(TestingAppCallFactory.setLocal(args, params))
+    }
+
+    /**
+     * Calls the set_box(byte[4],string)void ABI method.
+     *
+     * @param args The arguments for the ABI method
+     * @param params Any additional parameters for the call
+     * @returns The result of the call
+     */
+    public setBox(args: MethodArgs<'set_box(byte[4],string)void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+      return this.call(TestingAppCallFactory.setBox(args, params))
+    }
+
+    /**
+     * Calls the error()void ABI method.
+     *
+     * @param args The arguments for the ABI method
+     * @param params Any additional parameters for the call
+     * @returns The result of the call
+     */
+    public error(args: MethodArgs<'error()void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+      return this.call(TestingAppCallFactory.error(args, params))
+    }
+
+    public getGlobalState(): void {
+    }
+
+  }

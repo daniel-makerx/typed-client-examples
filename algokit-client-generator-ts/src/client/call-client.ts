@@ -1,10 +1,9 @@
-import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, indent, inline, NewLine } from '../output/writer'
 import * as algokit from '@algorandfoundation/algokit-utils'
-import { notFalsy } from '../util/not-falsy'
+import { DecIndent, DecIndentAndCloseBlock, DocumentParts, IncIndent, indent, inline, NewLine } from '../output/writer'
 import { makeSafeMethodIdentifier, makeSafeTypeIdentifier } from '../util/sanitization'
-import { extractMethodNameFromSignature } from './helpers/extract-method-name-from-signature'
-import { BARE_CALL } from './helpers/get-call-config-summary'
+import { BARE_CALL, MethodList } from './helpers/get-call-config-summary'
 import { GeneratorContext } from './generator-context'
+import { getCreateOnCompleteOptions } from './deploy-types'
 
 export function* callClient(ctx: GeneratorContext): DocumentParts {
   const { app, name } = ctx
@@ -30,72 +29,36 @@ export function* callClient(ctx: GeneratorContext): DocumentParts {
   yield NewLine
 
   yield* inline(
-    `public async mapReturnValue<TSignatureOrMethod extends string>`,
+    `public async mapReturnValue<TReturn>`,
     `(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult): `,
-    `Promise<AppCallTransactionResultOfType<${name}ReturnTypeFor<TSignatureOrMethod>>> {`,
+    `Promise<AppCallTransactionResultOfType<TReturn>> {`,
   )
   yield IncIndent
   yield `const result = await resultPromise`
   yield `if(result.return?.decodeError) {`
   yield* indent(`throw result.return.decodeError`)
   yield `}`
-  yield `const returnValue = result.return?.returnValue as ${name}ReturnTypeFor<TSignatureOrMethod>`
+  yield `const returnValue = result.return?.returnValue as TReturn`
   yield `return { ...result, return: returnValue }`
   yield DecIndentAndCloseBlock
   yield NewLine
 
-  yield `public call<TSignature extends string>(params: CallRequest<TSignature, any>) {`
+  yield `public call<TSignature extends keyof ${name}['methods']>(params: CallRequest<TSignature, any>) {`
   yield IncIndent
-  yield `return this.mapReturnValue<TSignature>(this.appClient.call(params))`
+  yield `return this.mapReturnValue<MethodReturn<TSignature>>(this.appClient.call(params))`
   yield DecIndentAndCloseBlock
   yield NewLine
 
-  yield* methodArgMapper(ctx)
   yield* deployMethods(ctx)
-  yield* optInMethod(ctx)
-  yield* closeOutMethod(ctx)
   yield* clearState(ctx)
   yield* clientCallMethods(ctx)
+  yield* getStateMethods(ctx)
 
   yield DecIndentAndCloseBlock
 }
 
-function* methodArgMapper({ app, callConfig, name }: GeneratorContext): DocumentParts {
-  const mappableMethods = [
-    ...callConfig.createMethods,
-    ...callConfig.updateMethods,
-    ...callConfig.deleteMethods,
-    ...callConfig.optInMethods,
-    ...callConfig.closeOutMethods,
-  ].filter((m): m is string => m !== BARE_CALL)
-
-  if (mappableMethods.length) {
-    const args = [
-      callConfig.createMethods.length && `${name}CreateArgs`,
-      callConfig.updateMethods.length && `${name}UpdateArgs`,
-      callConfig.deleteMethods.length && `${name}DeleteArgs`,
-      callConfig.closeOutMethods.length && `${name}CloseOutArgs`,
-      callConfig.optInMethods.length && `${name}OptInArgs`,
-    ].filter(notFalsy)
-
-    yield `private mapMethodArgs(args: ${args.join(' | ')}, params?: CoreAppCallArgs): AppClientCallArgs {`
-    yield IncIndent
-    yield `switch (args.method) {`
-    yield IncIndent
-    for (const methodSignature of mappableMethods) {
-      const methodName = extractMethodNameFromSignature(methodSignature)
-      yield `case '${methodName}':`
-      yield* indent(`return ${makeSafeTypeIdentifier(app.contract.name)}CallFactory.${makeSafeMethodIdentifier(methodName)}(args, params)`)
-    }
-    yield `default:`
-    yield* indent(`return args`)
-    yield DecIndentAndCloseBlock
-    yield DecIndentAndCloseBlock
-    yield NewLine
-  }
-}
-
-function* deployMethods({ app, callConfig, name }: GeneratorContext): DocumentParts {
+function* deployMethods(ctx: GeneratorContext): DocumentParts {
+  const { app, callConfig, name } = ctx
   yield `/**`
   yield ` * Idempotently deploys the ${app.contract.name} smart contract.`
   yield ` * @param params The arguments for the contract calls and any additional parameters for the call`
@@ -103,134 +66,101 @@ function* deployMethods({ app, callConfig, name }: GeneratorContext): DocumentPa
   yield ` */`
   yield `public deploy(params: ${name}DeployArgs & AppClientDeployCoreParams = {}) {`
   yield IncIndent
-  if (callConfig.createMethods.some((m) => m !== BARE_CALL)) {
-    yield `const { boxes: create_boxes, lease: create_lease, onCompleteAction: createOnCompleteAction, ...createArgs } = params.createArgs ?? {}`
-  } else {
-    yield `const { onCompleteAction: createOnCompleteAction } = params.createArgs ?? {}`
-  }
-  if (callConfig.updateMethods.some((m) => m !== BARE_CALL))
-    yield `const { boxes: update_boxes, lease: update_lease, ...updateArgs } = params.updateArgs ?? {}`
-  if (callConfig.deleteMethods.some((m) => m !== BARE_CALL))
-    yield `const { boxes: delete_boxes, lease: delete_lease, ...deleteArgs } = params.deleteArgs ?? {}`
   yield `return this.appClient.deploy({ `
   yield IncIndent
   yield `...params,`
-  if (callConfig.createMethods.some((m) => m !== BARE_CALL))
-    yield `createArgs: params.createArgs ? this.mapMethodArgs(createArgs, { boxes: create_boxes, lease: create_lease }) : undefined,`
-  yield `createOnCompleteAction,`
-  if (callConfig.updateMethods.some((m) => m !== BARE_CALL))
-    yield `updateArgs: params.updateArgs ? this.mapMethodArgs(updateArgs, { boxes: update_boxes, lease: update_lease }) : undefined,`
-  if (callConfig.deleteMethods.some((m) => m !== BARE_CALL))
-    yield `deleteArgs: params.deleteArgs ? this.mapMethodArgs(deleteArgs, { boxes: delete_boxes, lease: delete_lease }) : undefined,`
+  if (callConfig.createMethods.length)
+    yield `createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,`
+  if (callConfig.deleteMethods.length)
+    yield `deleteArgs: Array.isArray(params.deleteArgs) ? mapBySignature(...params.deleteArgs as [any, any, any]): params.deleteArgs,`
+  if (callConfig.updateMethods.length)
+    yield `updateArgs: Array.isArray(params.updateArgs) ? mapBySignature(...params.updateArgs as [any, any, any]): params.updateArgs,`
   yield DecIndent
   yield `})`
   yield DecIndentAndCloseBlock
   yield NewLine
-  if (callConfig.createMethods.length) {
-    yield `/**`
-    yield ` * Creates a new instance of the ${app.contract.name} smart contract.`
-    yield ` * @param args The arguments for the contract call`
-    yield ` * @param params Any additional parameters for the call`
-    yield ` * @returns The creation result`
-    yield ` */`
-    yield `public create<TMethod extends string>(args: { method?: TMethod } & ${name}CreateArgs${
-      callConfig.createMethods.some((m) => m === BARE_CALL) ? ' = {}' : ''
-    }, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
-    yield IncIndent
-    yield `const onCompleteAction = args.onCompleteAction`
-    if (callConfig.createMethods.some((m) => m !== BARE_CALL)) {
-      yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, ...{ onCompleteAction } }))`
-    } else {
-      yield `return this.appClient.create({ ...args, ...params, ...{ onCompleteAction } })`
-    }
-    yield DecIndentAndCloseBlock
-    yield NewLine
-  }
-  if (callConfig.updateMethods.length) {
-    yield `/**`
-    yield ` * Updates an existing instance of the ${app.contract.name} smart contract.`
-    yield ` * @param args The arguments for the contract call`
-    yield ` * @param params Any additional parameters for the call`
-    yield ` * @returns The update result`
-    yield ` */`
-    yield `public update<TMethod extends string>(args: { method?: TMethod } & ${name}UpdateArgs${
-      callConfig.updateMethods.some((m) => m === BARE_CALL) ? ' = {}' : ''
-    }, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
-    yield IncIndent
-    if (callConfig.updateMethods.some((m) => m !== BARE_CALL)) {
-      yield `return this.mapReturnValue<TMethod>(this.appClient.update({ ...this.mapMethodArgs(args), ...params, }))`
-    } else {
-      yield `return this.appClient.update({ ...args, ...params, })`
-    }
-    yield DecIndentAndCloseBlock
-    yield NewLine
-  }
+  yield* overloadedMethod(
+    ctx,
+    `Creates a new instance of the ${app.contract.name} smart contract`,
+    callConfig.createMethods,
+    'create',
+    true,
+  )
+  yield* overloadedMethod(
+    ctx,
+    `Updates an existing instance of the ${app.contract.name} smart contract`,
+    callConfig.updateMethods,
+    'update',
+    true,
+  )
+  yield* overloadedMethod(
+    ctx,
+    `Deletes an existing instance of the ${app.contract.name} smart contract`,
+    callConfig.deleteMethods,
+    'delete',
+  )
+  yield* overloadedMethod(
+    ctx,
+    `Opts the user into an existing instance of the ${app.contract.name} smart contract`,
+    callConfig.optInMethods,
+    'optIn',
+  )
+  yield* overloadedMethod(
+    ctx,
+    `Makes a close out call to an existing instance of the ${app.contract.name} smart contract`,
+    callConfig.closeOutMethods,
+    'closeOut',
+  )
+}
 
-  if (callConfig.deleteMethods.length) {
-    yield `/**`
-    yield ` * Deletes an existing instance of the ${app.contract.name} smart contract.`
-    yield ` * @param args The arguments for the contract call`
-    yield ` * @param params Any additional parameters for the call`
-    yield ` * @returns The deletion result`
-    yield ` */`
-    yield `public delete<TMethod extends string>(args: { method?: TMethod } & ${name}DeleteArgs${
-      callConfig.deleteMethods.some((m) => m === BARE_CALL) ? ' = {}' : ''
-    }, params?: AppClientCallCoreParams & CoreAppCallArgs) {`
-    yield IncIndent
-    if (callConfig.deleteMethods.some((m) => m !== BARE_CALL)) {
-      yield `return this.mapReturnValue<TMethod>(this.appClient.delete({ ...this.mapMethodArgs(args), ...params, }))`
-    } else {
-      yield `return this.appClient.delete({ ...args, ...params, })`
+function* overloadedMethod(
+  { app, methodSignatureToUniqueName }: GeneratorContext,
+  description: string,
+  methods: MethodList,
+  verb: 'create' | 'update' | 'optIn' | 'closeOut' | 'delete',
+  includeCompilation?: boolean,
+): DocumentParts {
+  if (methods.length) {
+    for (const methodSig of methods) {
+      const onComplete = verb === 'create' ? getCreateOnCompleteOptions(methodSig, app) : undefined
+      if (methodSig === BARE_CALL) {
+        yield `/**`
+        yield ` * ${description} using a bare call.`
+        yield ` * @param args The arguments for the bare call`
+        yield ` * @returns The ${verb} result`
+        yield ` */`
+        yield `public ${verb}(args: BareCallArgs & AppClientCallCoreParams ${
+          includeCompilation ? '& AppClientCompilationParams ' : ''
+        }& CoreAppCallArgs${onComplete?.type ? ` & ${onComplete.type}` : ''}): Promise<AppCallTransactionResultOfType<undefined>>;`
+      } else {
+        const uniqueName = methodSignatureToUniqueName[methodSig]
+        yield `/**`
+        yield ` * ${description} using the ${methodSig} ABI method.`
+        yield ` * @param method The ABI method to use`
+        yield ` * @param args The arguments for the contract call`
+        yield ` * @param params Any additional parameters for the call`
+        yield ` * @returns The ${verb} result`
+        yield ` */`
+        yield `public ${verb}(method: '${methodSig}'${
+          methodSig === uniqueName ? '' : ` | '${uniqueName}'`
+        }, args: MethodArgs<'${methodSig}'>, params?: AppClientCallCoreParams ${includeCompilation ? '& AppClientCompilationParams ' : ''}${
+          onComplete?.type ? ` & ${onComplete.type}` : ''
+        }): Promise<AppCallTransactionResultOfType<MethodReturn<'${methodSig}'>>>;`
+      }
     }
+    yield `public ${verb}(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {`
+    yield IncIndent
+    yield `if(typeof args[0] !== 'string') {`
+    yield* indent(`return this.appClient.${verb}({...args[0], })`)
+    yield '} else {'
+    yield* indent(`return this.appClient.${verb}({ ...mapBySignature(args[0] as any, args[1], args[2]), })`)
+    yield '}'
     yield DecIndentAndCloseBlock
     yield NewLine
   }
 }
 
-function* optInMethod({ app, name, callConfig }: GeneratorContext): DocumentParts {
-  if (callConfig.optInMethods.length) {
-    yield `/**`
-    yield ` * Opts the user into an existing instance of the ${app.contract.name} smart contract.`
-    yield ` * @param args The arguments for the contract call`
-    yield ` * @param params Any additional parameters for the call`
-    yield ` * @returns The opt in result`
-    yield ` */`
-    yield `public optIn<TMethod extends string>(args: { method?: TMethod } & ${name}OptInArgs${
-      callConfig.optInMethods.some((m) => m === BARE_CALL) ? ' = {}' : ''
-    }, params?: AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs) {`
-    yield IncIndent
-    if (callConfig.optInMethods.some((m) => m !== BARE_CALL)) {
-      yield `return this.mapReturnValue<TMethod>(this.appClient.create({ ...this.mapMethodArgs(args), ...params, }))`
-    } else {
-      yield `return this.appClient.create({ ...args, ...params, })`
-    }
-    yield DecIndentAndCloseBlock
-    yield NewLine
-  }
-}
-
-function* closeOutMethod({ app, name, callConfig }: GeneratorContext): DocumentParts {
-  if (callConfig.closeOutMethods.length) {
-    yield `/**`
-    yield ` * Makes a close_out call to an existing instance of the ${app.contract.name} smart contract.`
-    yield ` * @param args The arguments for the contract call`
-    yield ` * @param params Any additional parameters for the call`
-    yield ` * @returns The close_out result`
-    yield ` */`
-    yield `public closeOut<TMethod extends string>(args: { method?: TMethod } & ${name}CloseOutArgs${
-      callConfig.closeOutMethods.some((m) => m === BARE_CALL) ? ' = {}' : ''
-    }, params?: AppClientCallCoreParams & CoreAppCallArgs) {`
-    yield IncIndent
-    if (callConfig.closeOutMethods.some((m) => m !== BARE_CALL)) {
-      yield `return this.mapReturnValue<TMethod>(this.appClient.closeOut({ ...this.mapMethodArgs(args), ...params, }))`
-    } else {
-      yield `return this.appClient.closeOut({ ...args, ...params, })`
-    }
-    yield DecIndentAndCloseBlock
-    yield NewLine
-  }
-}
-function* clearState({ app, name, callConfig }: GeneratorContext): DocumentParts {
+function* clearState({ app }: GeneratorContext): DocumentParts {
   yield `/**`
   yield ` * Makes a clear_state call to an existing instance of the ${app.contract.name} smart contract.`
   yield ` * @param args The arguments for the contract call`
@@ -244,9 +174,10 @@ function* clearState({ app, name, callConfig }: GeneratorContext): DocumentParts
   yield NewLine
 }
 
-function* clientCallMethods({ app, name, callConfig }: GeneratorContext): DocumentParts {
+function* clientCallMethods({ app, name, callConfig, methodSignatureToUniqueName }: GeneratorContext): DocumentParts {
   for (const method of app.contract.methods) {
     const methodSignature = algokit.getABIMethodSignature(method)
+    const methodName = makeSafeMethodIdentifier(methodSignatureToUniqueName[methodSignature])
     // Skip methods which don't support a no_op call config
     if (!callConfig.callMethods.includes(methodSignature)) continue
     yield `/**`
@@ -260,13 +191,93 @@ function* clientCallMethods({ app, name, callConfig }: GeneratorContext): Docume
     yield ` * @param params Any additional parameters for the call`
     yield ` * @returns The result of the call`
     yield ` */`
-    yield `public ${makeSafeMethodIdentifier(method.name)}(args: ${makeSafeTypeIdentifier(
-      method.name,
-    )}Args, params?: AppClientCallCoreParams & CoreAppCallArgs) {`
+    yield `public ${methodName}(args: MethodArgs<'${methodSignature}'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {`
     yield IncIndent
-    yield `return this.call(${name}CallFactory.${makeSafeMethodIdentifier(method.name)}(args, params))`
+    yield `return this.call(${name}CallFactory.${methodName}(args, params))`
     yield DecIndent
     yield '}'
+    yield NewLine
+  }
+}
+
+function* getStateMethods({ app, name }: GeneratorContext): DocumentParts {
+  const globalStateValues = app.schema.global?.declared && Object.values(app.schema.global?.declared)
+  const localStateValues = app.schema.local?.declared && Object.values(app.schema.local?.declared)
+  if (globalStateValues?.length || localStateValues?.length) {
+    yield `private static getBinaryState(state: AppState, key: string): BinaryState | undefined {`
+    yield IncIndent
+    yield `const value = state[key]`
+    yield `if (!value) return undefined`
+    yield `if (!('valueRaw' in value))`
+    yield* indent(`throw new Error(\`Failed to parse state value for \${key}; received an int when expected a byte array\`)`)
+    yield `return {`
+    yield IncIndent
+    yield `asString(): string {`
+    yield* indent(`return value.value`)
+    yield `},`
+    yield `asByteArray(): Uint8Array {`
+    yield* indent(`return value.valueRaw`)
+    yield `}`
+    yield DecIndentAndCloseBlock
+    yield DecIndentAndCloseBlock
+    yield NewLine
+
+    yield `private static getIntegerState(state: AppState, key: string): IntegerState | undefined {`
+    yield IncIndent
+    yield `const value = state[key]`
+    yield `if (!value) return undefined`
+    yield `if ('valueRaw' in value)`
+    yield* indent(`throw new Error(\`Failed to parse state value for \${key}; received a byte array when expected a number\`)`)
+    yield `return {`
+    yield IncIndent
+    yield `asBigInt() {`
+    yield* indent(`return typeof value.value === 'bigint' ? value.value : BigInt(value.value)`)
+    yield `},`
+    yield `asNumber(): number {`
+    yield* indent(`return typeof value.value === 'bigint' ? Number(value.value) : value.value`)
+    yield `},`
+    yield DecIndentAndCloseBlock
+    yield DecIndentAndCloseBlock
+    yield NewLine
+  }
+
+  if (globalStateValues?.length) {
+    yield `public async getGlobalState(): Promise<${name}['state']['global']> {`
+    yield IncIndent
+    yield `const state = await this.appClient.getGlobalState()`
+    yield `return {`
+    yield IncIndent
+    for (const stateValue of globalStateValues) {
+      yield `get ${stateValue.key}() {`
+      if (stateValue.type === 'uint64') {
+        yield* indent(`return ${name}Client.getIntegerState(state, '${stateValue.key}')`)
+      } else {
+        yield* indent(`return ${name}Client.getBinaryState(state, '${stateValue.key}')`)
+      }
+      yield '},'
+    }
+    yield DecIndentAndCloseBlock
+    yield DecIndentAndCloseBlock
+    yield NewLine
+  }
+
+  if (localStateValues?.length) {
+    yield `public async getLocalState(account: string | SendTransactionFrom): Promise<${name}['state']['local']> {`
+    yield IncIndent
+    yield `const state = await this.appClient.getLocalState(account)`
+    yield `return {`
+    yield IncIndent
+    for (const stateValue of localStateValues) {
+      yield `get ${stateValue.key}() {`
+      if (stateValue.type === 'uint64') {
+        yield* indent(`return ${name}Client.getIntegerState(state, '${stateValue.key}')`)
+      } else {
+        yield* indent(`return ${name}Client.getBinaryState(state, '${stateValue.key}')`)
+      }
+      yield '},'
+    }
+    yield DecIndentAndCloseBlock
+    yield DecIndentAndCloseBlock
     yield NewLine
   }
 }
