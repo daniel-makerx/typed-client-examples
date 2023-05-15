@@ -1,7 +1,7 @@
 # flake8: noqa
 import dataclasses
+import typing
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Literal, TypeVar, overload
 
 import algokit_utils
 import algosdk
@@ -289,18 +289,18 @@ APP_SPEC = """{
         "update_application": "CALL"
     }
 }"""
-_T = TypeVar("_T")
-_TReturn = TypeVar("_TReturn")
+_T = typing.TypeVar("_T")
+_TReturn = typing.TypeVar("_TReturn")
 
 
-class _ArgsBase(ABC, Generic[_TReturn]):
+class _ArgsBase(ABC, typing.Generic[_TReturn]):
     @staticmethod
     @abstractmethod
     def method() -> str:
         ...
 
 
-def _as_dict(data: _T | None) -> dict[str, Any]:
+def _as_dict(data: _T | None) -> dict[str, typing.Any]:
     if data is None:
         return {}
     if not dataclasses.is_dataclass(data):
@@ -408,7 +408,7 @@ class OptInArgs(_ArgsBase[None]):
 
 
 class TestingAppClient:
-    @overload
+    @typing.overload
     def __init__(
         self,
         algod_client: algosdk.v2client.algod.AlgodClient,
@@ -421,7 +421,7 @@ class TestingAppClient:
     ):
         ...
 
-    @overload
+    @typing.overload
     def __init__(
         self,
         algod_client: algosdk.v2client.algod.AlgodClient,
@@ -568,22 +568,22 @@ class TestingAppClient:
             **_as_dict(args),
         )
 
-    @overload
+    @typing.overload
     def create(
         self,
         *,
-        args: Literal[None] = None,
-        on_complete: Literal["no_op", "opt_in"] = "no_op",
+        args: typing.Literal[None] = None,
+        on_complete: typing.Literal["no_op", "opt_in"] = "no_op",
         transaction_parameters: algokit_utils.CreateTransactionParameters | None = None,
     ) -> algokit_utils.TransactionResponse:
         ...
 
-    @overload
+    @typing.overload
     def create(
         self,
         *,
         args: CreateAbiArgs,
-        on_complete: Literal["no_op"] = "no_op",
+        on_complete: typing.Literal["no_op"] = "no_op",
         transaction_parameters: algokit_utils.CreateTransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[str]:
         ...
@@ -592,7 +592,7 @@ class TestingAppClient:
         self,
         *,
         args: CreateAbiArgs | None = None,
-        on_complete: Literal["no_op", "opt_in"] = "no_op",
+        on_complete: typing.Literal["no_op", "opt_in"] = "no_op",
         transaction_parameters: algokit_utils.CreateTransactionParameters | None = None,
     ) -> algokit_utils.TransactionResponse | algokit_utils.ABITransactionResponse[str]:
         transaction_parameters_dict = _as_dict(transaction_parameters)
@@ -603,16 +603,16 @@ class TestingAppClient:
             **_as_dict(args),
         )
 
-    @overload
+    @typing.overload
     def update(
         self,
         *,
-        args: Literal[None] = None,
+        args: typing.Literal[None] = None,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.TransactionResponse:
         ...
 
-    @overload
+    @typing.overload
     def update(
         self,
         *,
@@ -633,16 +633,16 @@ class TestingAppClient:
             **_as_dict(args),
         )
 
-    @overload
+    @typing.overload
     def delete(
         self,
         *,
-        args: Literal[None] = None,
+        args: typing.Literal[None] = None,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.TransactionResponse:
         ...
 
-    @overload
+    @typing.overload
     def delete(
         self,
         *,
