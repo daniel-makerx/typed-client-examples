@@ -29,7 +29,7 @@ export function* callClient(ctx: GeneratorContext): DocumentParts {
   yield NewLine
 
   yield* inline(
-    `public async mapReturnValue<TReturn>`,
+    `protected async mapReturnValue<TReturn>`,
     `(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult, returnValueFormatter?: (value: any) => TReturn): `,
     `Promise<AppCallTransactionResultOfType<TReturn>> {`,
   )
@@ -43,12 +43,18 @@ export function* callClient(ctx: GeneratorContext): DocumentParts {
   yield `? returnValueFormatter(result.return.returnValue)`
   yield `: result.return?.returnValue as TReturn | undefined`
   yield `return { ...result, return: returnValue }`
+  yield DecIndent
   yield DecIndentAndCloseBlock
   yield NewLine
 
-  yield `public call<TSignature extends keyof ${name}['methods']>(params: CallRequest<TSignature, any>, returnValueFormatter?: (value: any) => MethodReturn<TSignature>) {`
+  yield `/**`
+  yield ` * Calls the ABI method with the matching signature using an onCompletion code of NO_OP`
+  yield ` * @param request A request object containing the method signature, args, and any other relevant properties`
+  yield ` * @param returnValueFormatter An optional delegate which when provided will be used to map non-undefined return values to the target type`
+  yield ` */`
+  yield `public call<TSignature extends keyof ${name}['methods']>(request: CallRequest<TSignature, any>, returnValueFormatter?: (value: any) => MethodReturn<TSignature>) {`
   yield IncIndent
-  yield `return this.mapReturnValue<MethodReturn<TSignature>>(this.appClient.call(params), returnValueFormatter)`
+  yield `return this.mapReturnValue<MethodReturn<TSignature>>(this.appClient.call(request), returnValueFormatter)`
   yield DecIndentAndCloseBlock
   yield NewLine
 
@@ -248,6 +254,9 @@ function* getStateMethods({ app, name }: GeneratorContext): DocumentParts {
   }
 
   if (globalStateValues?.length) {
+    yield `/**`
+    yield ` * Returns the application's global state wrapped in a strongly typed accessor with options to format the stored value`
+    yield ` */`
     yield `public async getGlobalState(): Promise<${name}['state']['global']> {`
     yield IncIndent
     yield `const state = await this.appClient.getGlobalState()`
@@ -268,6 +277,10 @@ function* getStateMethods({ app, name }: GeneratorContext): DocumentParts {
   }
 
   if (localStateValues?.length) {
+    yield `/**`
+    yield ` * Returns the application's local state for a given account wrapped in a strongly typed accessor with options to format the stored value`
+    yield ` * @param account The address of the account for which to read local state from.`
+    yield ` */`
     yield `public async getLocalState(account: string | SendTransactionFrom): Promise<${name}['state']['local']> {`
     yield IncIndent
     yield `const state = await this.appClient.getLocalState(account)`

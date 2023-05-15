@@ -557,7 +557,7 @@ export class TestingAppClient {
     }, algod)
   }
 
-  public async mapReturnValue<TReturn>(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult, returnValueFormatter?: (value: any) => TReturn): Promise<AppCallTransactionResultOfType<TReturn>> {
+  protected async mapReturnValue<TReturn>(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult, returnValueFormatter?: (value: any) => TReturn): Promise<AppCallTransactionResultOfType<TReturn>> {
     const result = await resultPromise
     if(result.return?.decodeError) {
       throw result.return.decodeError
@@ -566,251 +566,263 @@ export class TestingAppClient {
       ? returnValueFormatter(result.return.returnValue)
       : result.return?.returnValue as TReturn | undefined
       return { ...result, return: returnValue }
-    }
-
-    public call<TSignature extends keyof TestingApp['methods']>(params: CallRequest<TSignature, any>, returnValueFormatter?: (value: any) => MethodReturn<TSignature>) {
-      return this.mapReturnValue<MethodReturn<TSignature>>(this.appClient.call(params), returnValueFormatter)
-    }
-
-    /**
-     * Idempotently deploys the TestingApp smart contract.
-     * @param params The arguments for the contract calls and any additional parameters for the call
-     * @returns The deployment result
-     */
-    public deploy(params: TestingAppDeployArgs & AppClientDeployCoreParams = {}) {
-      return this.appClient.deploy({ 
-        ...params,
-        createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
-        deleteArgs: Array.isArray(params.deleteArgs) ? mapBySignature(...params.deleteArgs as [any, any, any]): params.deleteArgs,
-        updateArgs: Array.isArray(params.updateArgs) ? mapBySignature(...params.updateArgs as [any, any, any]): params.updateArgs,
-      })
-    }
-
-    /**
-     * Creates a new instance of the TestingApp smart contract using a bare call.
-     * @param args The arguments for the bare call
-     * @returns The create result
-     */
-    public create(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs & (OnCompleteNoOp | OnCompleteOptIn)): Promise<AppCallTransactionResultOfType<undefined>>;
-    /**
-     * Creates a new instance of the TestingApp smart contract using the create_abi(string)string ABI method.
-     * @param method The ABI method to use
-     * @param args The arguments for the contract call
-     * @param params Any additional parameters for the call
-     * @returns The create result
-     */
-    public create(method: 'create_abi(string)string' | 'create_abi', args: MethodArgs<'create_abi(string)string'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create_abi(string)string'>>>;
-    public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-      if(typeof args[0] !== 'string') {
-        return this.appClient.create({...args[0], })
-      } else {
-        return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
-      }
-    }
-
-    /**
-     * Updates an existing instance of the TestingApp smart contract using a bare call.
-     * @param args The arguments for the bare call
-     * @returns The update result
-     */
-    public update(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
-    /**
-     * Updates an existing instance of the TestingApp smart contract using the update_abi(string)string ABI method.
-     * @param method The ABI method to use
-     * @param args The arguments for the contract call
-     * @param params Any additional parameters for the call
-     * @returns The update result
-     */
-    public update(method: 'update_abi(string)string' | 'update_abi', args: MethodArgs<'update_abi(string)string'>, params?: AppClientCallCoreParams & AppClientCompilationParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'update_abi(string)string'>>>;
-    public update(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-      if(typeof args[0] !== 'string') {
-        return this.appClient.update({...args[0], })
-      } else {
-        return this.appClient.update({ ...mapBySignature(args[0] as any, args[1], args[2]), })
-      }
-    }
-
-    /**
-     * Deletes an existing instance of the TestingApp smart contract using a bare call.
-     * @param args The arguments for the bare call
-     * @returns The delete result
-     */
-    public delete(args: BareCallArgs & AppClientCallCoreParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
-    /**
-     * Deletes an existing instance of the TestingApp smart contract using the delete_abi(string)string ABI method.
-     * @param method The ABI method to use
-     * @param args The arguments for the contract call
-     * @param params Any additional parameters for the call
-     * @returns The delete result
-     */
-    public delete(method: 'delete_abi(string)string' | 'delete_abi', args: MethodArgs<'delete_abi(string)string'>, params?: AppClientCallCoreParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'delete_abi(string)string'>>>;
-    public delete(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-      if(typeof args[0] !== 'string') {
-        return this.appClient.delete({...args[0], })
-      } else {
-        return this.appClient.delete({ ...mapBySignature(args[0] as any, args[1], args[2]), })
-      }
-    }
-
-    /**
-     * Opts the user into an existing instance of the TestingApp smart contract using the opt_in()void ABI method.
-     * @param method The ABI method to use
-     * @param args The arguments for the contract call
-     * @param params Any additional parameters for the call
-     * @returns The optIn result
-     */
-    public optIn(method: 'opt_in()void' | 'opt_in', args: MethodArgs<'opt_in()void'>, params?: AppClientCallCoreParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'opt_in()void'>>>;
-    public optIn(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-      if(typeof args[0] !== 'string') {
-        return this.appClient.optIn({...args[0], })
-      } else {
-        return this.appClient.optIn({ ...mapBySignature(args[0] as any, args[1], args[2]), })
-      }
-    }
-
-    /**
-     * Makes a clear_state call to an existing instance of the TestingApp smart contract.
-     * @param args The arguments for the contract call
-     * @param params Any additional parameters for the call
-     * @returns The clear_state result
-     */
-    public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.appClient.clearState({ ...args, ...params, })
-    }
-
-    /**
-     * Calls the call_abi(string)string ABI method.
-     *
-     * @param args The arguments for the ABI method
-     * @param params Any additional parameters for the call
-     * @returns The result of the call
-     */
-    public callAbi(args: MethodArgs<'call_abi(string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.call(TestingAppCallFactory.callAbi(args, params))
-    }
-
-    /**
-     * Calls the call_abi_txn(pay,string)string ABI method.
-     *
-     * @param args The arguments for the ABI method
-     * @param params Any additional parameters for the call
-     * @returns The result of the call
-     */
-    public callAbiTxn(args: MethodArgs<'call_abi_txn(pay,string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.call(TestingAppCallFactory.callAbiTxn(args, params))
-    }
-
-    /**
-     * Calls the set_global(uint64,uint64,string,byte[4])void ABI method.
-     *
-     * @param args The arguments for the ABI method
-     * @param params Any additional parameters for the call
-     * @returns The result of the call
-     */
-    public setGlobal(args: MethodArgs<'set_global(uint64,uint64,string,byte[4])void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.call(TestingAppCallFactory.setGlobal(args, params))
-    }
-
-    /**
-     * Calls the set_local(uint64,uint64,string,byte[4])void ABI method.
-     *
-     * @param args The arguments for the ABI method
-     * @param params Any additional parameters for the call
-     * @returns The result of the call
-     */
-    public setLocal(args: MethodArgs<'set_local(uint64,uint64,string,byte[4])void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.call(TestingAppCallFactory.setLocal(args, params))
-    }
-
-    /**
-     * Calls the set_box(byte[4],string)void ABI method.
-     *
-     * @param args The arguments for the ABI method
-     * @param params Any additional parameters for the call
-     * @returns The result of the call
-     */
-    public setBox(args: MethodArgs<'set_box(byte[4],string)void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.call(TestingAppCallFactory.setBox(args, params))
-    }
-
-    /**
-     * Calls the error()void ABI method.
-     *
-     * @param args The arguments for the ABI method
-     * @param params Any additional parameters for the call
-     * @returns The result of the call
-     */
-    public error(args: MethodArgs<'error()void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.call(TestingAppCallFactory.error(args, params))
-    }
-
-    private static getBinaryState(state: AppState, key: string): BinaryState | undefined {
-      const value = state[key]
-      if (!value) return undefined
-      if (!('valueRaw' in value))
-        throw new Error(`Failed to parse state value for ${key}; received an int when expected a byte array`)
-      return {
-        asString(): string {
-          return value.value
-        },
-        asByteArray(): Uint8Array {
-          return value.valueRaw
-        }
-      }
-    }
-
-    private static getIntegerState(state: AppState, key: string): IntegerState | undefined {
-      const value = state[key]
-      if (!value) return undefined
-      if ('valueRaw' in value)
-        throw new Error(`Failed to parse state value for ${key}; received a byte array when expected a number`)
-      return {
-        asBigInt() {
-          return typeof value.value === 'bigint' ? value.value : BigInt(value.value)
-        },
-        asNumber(): number {
-          return typeof value.value === 'bigint' ? Number(value.value) : value.value
-        },
-      }
-    }
-
-    public async getGlobalState(): Promise<TestingApp['state']['global']> {
-      const state = await this.appClient.getGlobalState()
-      return {
-        get bytes1() {
-          return TestingAppClient.getBinaryState(state, 'bytes1')
-        },
-        get bytes2() {
-          return TestingAppClient.getBinaryState(state, 'bytes2')
-        },
-        get int1() {
-          return TestingAppClient.getIntegerState(state, 'int1')
-        },
-        get int2() {
-          return TestingAppClient.getIntegerState(state, 'int2')
-        },
-        get value() {
-          return TestingAppClient.getIntegerState(state, 'value')
-        },
-      }
-    }
-
-    public async getLocalState(account: string | SendTransactionFrom): Promise<TestingApp['state']['local']> {
-      const state = await this.appClient.getLocalState(account)
-      return {
-        get local_bytes1() {
-          return TestingAppClient.getBinaryState(state, 'local_bytes1')
-        },
-        get local_bytes2() {
-          return TestingAppClient.getBinaryState(state, 'local_bytes2')
-        },
-        get local_int1() {
-          return TestingAppClient.getIntegerState(state, 'local_int1')
-        },
-        get local_int2() {
-          return TestingAppClient.getIntegerState(state, 'local_int2')
-        },
-      }
-    }
-
   }
+
+  /**
+   * Calls the ABI method with the matching signature using an onCompletion code of NO_OP
+   * @param request A request object containing the method signature, args, and any other relevant properties
+   * @param returnValueFormatter An optional delegate which when provided will be used to map non-undefined return values to the target type
+   */
+  public call<TSignature extends keyof TestingApp['methods']>(request: CallRequest<TSignature, any>, returnValueFormatter?: (value: any) => MethodReturn<TSignature>) {
+    return this.mapReturnValue<MethodReturn<TSignature>>(this.appClient.call(request), returnValueFormatter)
+  }
+
+  /**
+   * Idempotently deploys the TestingApp smart contract.
+   * @param params The arguments for the contract calls and any additional parameters for the call
+   * @returns The deployment result
+   */
+  public deploy(params: TestingAppDeployArgs & AppClientDeployCoreParams = {}) {
+    return this.appClient.deploy({ 
+      ...params,
+      createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
+      deleteArgs: Array.isArray(params.deleteArgs) ? mapBySignature(...params.deleteArgs as [any, any, any]): params.deleteArgs,
+      updateArgs: Array.isArray(params.updateArgs) ? mapBySignature(...params.updateArgs as [any, any, any]): params.updateArgs,
+    })
+  }
+
+  /**
+   * Creates a new instance of the TestingApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The create result
+   */
+  public create(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs & (OnCompleteNoOp | OnCompleteOptIn)): Promise<AppCallTransactionResultOfType<undefined>>;
+  /**
+   * Creates a new instance of the TestingApp smart contract using the create_abi(string)string ABI method.
+   * @param method The ABI method to use
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The create result
+   */
+  public create(method: 'create_abi(string)string' | 'create_abi', args: MethodArgs<'create_abi(string)string'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create_abi(string)string'>>>;
+  public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.create({...args[0], })
+    } else {
+      return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
+  }
+
+  /**
+   * Updates an existing instance of the TestingApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The update result
+   */
+  public update(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
+  /**
+   * Updates an existing instance of the TestingApp smart contract using the update_abi(string)string ABI method.
+   * @param method The ABI method to use
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The update result
+   */
+  public update(method: 'update_abi(string)string' | 'update_abi', args: MethodArgs<'update_abi(string)string'>, params?: AppClientCallCoreParams & AppClientCompilationParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'update_abi(string)string'>>>;
+  public update(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.update({...args[0], })
+    } else {
+      return this.appClient.update({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
+  }
+
+  /**
+   * Deletes an existing instance of the TestingApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The delete result
+   */
+  public delete(args: BareCallArgs & AppClientCallCoreParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
+  /**
+   * Deletes an existing instance of the TestingApp smart contract using the delete_abi(string)string ABI method.
+   * @param method The ABI method to use
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The delete result
+   */
+  public delete(method: 'delete_abi(string)string' | 'delete_abi', args: MethodArgs<'delete_abi(string)string'>, params?: AppClientCallCoreParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'delete_abi(string)string'>>>;
+  public delete(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.delete({...args[0], })
+    } else {
+      return this.appClient.delete({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
+  }
+
+  /**
+   * Opts the user into an existing instance of the TestingApp smart contract using the opt_in()void ABI method.
+   * @param method The ABI method to use
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The optIn result
+   */
+  public optIn(method: 'opt_in()void' | 'opt_in', args: MethodArgs<'opt_in()void'>, params?: AppClientCallCoreParams ): Promise<AppCallTransactionResultOfType<MethodReturn<'opt_in()void'>>>;
+  public optIn(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.optIn({...args[0], })
+    } else {
+      return this.appClient.optIn({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
+  }
+
+  /**
+   * Makes a clear_state call to an existing instance of the TestingApp smart contract.
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The clear_state result
+   */
+  public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.appClient.clearState({ ...args, ...params, })
+  }
+
+  /**
+   * Calls the call_abi(string)string ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public callAbi(args: MethodArgs<'call_abi(string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(TestingAppCallFactory.callAbi(args, params))
+  }
+
+  /**
+   * Calls the call_abi_txn(pay,string)string ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public callAbiTxn(args: MethodArgs<'call_abi_txn(pay,string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(TestingAppCallFactory.callAbiTxn(args, params))
+  }
+
+  /**
+   * Calls the set_global(uint64,uint64,string,byte[4])void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public setGlobal(args: MethodArgs<'set_global(uint64,uint64,string,byte[4])void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(TestingAppCallFactory.setGlobal(args, params))
+  }
+
+  /**
+   * Calls the set_local(uint64,uint64,string,byte[4])void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public setLocal(args: MethodArgs<'set_local(uint64,uint64,string,byte[4])void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(TestingAppCallFactory.setLocal(args, params))
+  }
+
+  /**
+   * Calls the set_box(byte[4],string)void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public setBox(args: MethodArgs<'set_box(byte[4],string)void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(TestingAppCallFactory.setBox(args, params))
+  }
+
+  /**
+   * Calls the error()void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public error(args: MethodArgs<'error()void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(TestingAppCallFactory.error(args, params))
+  }
+
+  private static getBinaryState(state: AppState, key: string): BinaryState | undefined {
+    const value = state[key]
+    if (!value) return undefined
+    if (!('valueRaw' in value))
+      throw new Error(`Failed to parse state value for ${key}; received an int when expected a byte array`)
+    return {
+      asString(): string {
+        return value.value
+      },
+      asByteArray(): Uint8Array {
+        return value.valueRaw
+      }
+    }
+  }
+
+  private static getIntegerState(state: AppState, key: string): IntegerState | undefined {
+    const value = state[key]
+    if (!value) return undefined
+    if ('valueRaw' in value)
+      throw new Error(`Failed to parse state value for ${key}; received a byte array when expected a number`)
+    return {
+      asBigInt() {
+        return typeof value.value === 'bigint' ? value.value : BigInt(value.value)
+      },
+      asNumber(): number {
+        return typeof value.value === 'bigint' ? Number(value.value) : value.value
+      },
+    }
+  }
+
+  /**
+   * Returns the application's global state wrapped in a strongly typed accessor with options to format the stored value
+   */
+  public async getGlobalState(): Promise<TestingApp['state']['global']> {
+    const state = await this.appClient.getGlobalState()
+    return {
+      get bytes1() {
+        return TestingAppClient.getBinaryState(state, 'bytes1')
+      },
+      get bytes2() {
+        return TestingAppClient.getBinaryState(state, 'bytes2')
+      },
+      get int1() {
+        return TestingAppClient.getIntegerState(state, 'int1')
+      },
+      get int2() {
+        return TestingAppClient.getIntegerState(state, 'int2')
+      },
+      get value() {
+        return TestingAppClient.getIntegerState(state, 'value')
+      },
+    }
+  }
+
+  /**
+   * Returns the application's local state for a given account wrapped in a strongly typed accessor with options to format the stored value
+   * @param account The address of the account for which to read local state from.
+   */
+  public async getLocalState(account: string | SendTransactionFrom): Promise<TestingApp['state']['local']> {
+    const state = await this.appClient.getLocalState(account)
+    return {
+      get local_bytes1() {
+        return TestingAppClient.getBinaryState(state, 'local_bytes1')
+      },
+      get local_bytes2() {
+        return TestingAppClient.getBinaryState(state, 'local_bytes2')
+      },
+      get local_int1() {
+        return TestingAppClient.getIntegerState(state, 'local_int1')
+      },
+      get local_int2() {
+        return TestingAppClient.getIntegerState(state, 'local_int2')
+      },
+    }
+  }
+
+}

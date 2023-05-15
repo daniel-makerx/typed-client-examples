@@ -484,7 +484,7 @@ export class VotingRoundAppClient {
     }, algod)
   }
 
-  public async mapReturnValue<TReturn>(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult, returnValueFormatter?: (value: any) => TReturn): Promise<AppCallTransactionResultOfType<TReturn>> {
+  protected async mapReturnValue<TReturn>(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult, returnValueFormatter?: (value: any) => TReturn): Promise<AppCallTransactionResultOfType<TReturn>> {
     const result = await resultPromise
     if(result.return?.decodeError) {
       throw result.return.decodeError
@@ -493,182 +493,190 @@ export class VotingRoundAppClient {
       ? returnValueFormatter(result.return.returnValue)
       : result.return?.returnValue as TReturn | undefined
       return { ...result, return: returnValue }
-    }
-
-    public call<TSignature extends keyof VotingRoundApp['methods']>(params: CallRequest<TSignature, any>, returnValueFormatter?: (value: any) => MethodReturn<TSignature>) {
-      return this.mapReturnValue<MethodReturn<TSignature>>(this.appClient.call(params), returnValueFormatter)
-    }
-
-    /**
-     * Idempotently deploys the VotingRoundApp smart contract.
-     * @param params The arguments for the contract calls and any additional parameters for the call
-     * @returns The deployment result
-     */
-    public deploy(params: VotingRoundAppDeployArgs & AppClientDeployCoreParams = {}) {
-      return this.appClient.deploy({ 
-        ...params,
-        createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
-        deleteArgs: Array.isArray(params.deleteArgs) ? mapBySignature(...params.deleteArgs as [any, any, any]): params.deleteArgs,
-      })
-    }
-
-    /**
-     * Creates a new instance of the VotingRoundApp smart contract using the create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void ABI method.
-     * @param method The ABI method to use
-     * @param args The arguments for the contract call
-     * @param params Any additional parameters for the call
-     * @returns The create result
-     */
-    public create(method: 'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void' | 'create', args: MethodArgs<'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void'>>>;
-    public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-      if(typeof args[0] !== 'string') {
-        return this.appClient.create({...args[0], })
-      } else {
-        return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
-      }
-    }
-
-    /**
-     * Deletes an existing instance of the VotingRoundApp smart contract using a bare call.
-     * @param args The arguments for the bare call
-     * @returns The delete result
-     */
-    public delete(args: BareCallArgs & AppClientCallCoreParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
-    public delete(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-      if(typeof args[0] !== 'string') {
-        return this.appClient.delete({...args[0], })
-      } else {
-        return this.appClient.delete({ ...mapBySignature(args[0] as any, args[1], args[2]), })
-      }
-    }
-
-    /**
-     * Makes a clear_state call to an existing instance of the VotingRoundApp smart contract.
-     * @param args The arguments for the contract call
-     * @param params Any additional parameters for the call
-     * @returns The clear_state result
-     */
-    public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.appClient.clearState({ ...args, ...params, })
-    }
-
-    /**
-     * Calls the bootstrap(pay)void ABI method.
-     *
-     * @param args The arguments for the ABI method
-     * @param params Any additional parameters for the call
-     * @returns The result of the call
-     */
-    public bootstrap(args: MethodArgs<'bootstrap(pay)void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.call(VotingRoundAppCallFactory.bootstrap(args, params))
-    }
-
-    /**
-     * Calls the close()void ABI method.
-     *
-     * @param args The arguments for the ABI method
-     * @param params Any additional parameters for the call
-     * @returns The result of the call
-     */
-    public close(args: MethodArgs<'close()void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.call(VotingRoundAppCallFactory.close(args, params))
-    }
-
-    /**
-     * Calls the get_preconditions(byte[])(uint64,uint64,uint64,uint64) ABI method.
-     *
-     * @param args The arguments for the ABI method
-     * @param params Any additional parameters for the call
-     * @returns The result of the call
-     */
-    public getPreconditions(args: MethodArgs<'get_preconditions(byte[])(uint64,uint64,uint64,uint64)'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.call(VotingRoundAppCallFactory.getPreconditions(args, params), VotingPreconditions)
-    }
-
-    /**
-     * Calls the vote(pay,byte[],uint8[])void ABI method.
-     *
-     * @param args The arguments for the ABI method
-     * @param params Any additional parameters for the call
-     * @returns The result of the call
-     */
-    public vote(args: MethodArgs<'vote(pay,byte[],uint8[])void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.call(VotingRoundAppCallFactory.vote(args, params))
-    }
-
-    private static getBinaryState(state: AppState, key: string): BinaryState | undefined {
-      const value = state[key]
-      if (!value) return undefined
-      if (!('valueRaw' in value))
-        throw new Error(`Failed to parse state value for ${key}; received an int when expected a byte array`)
-      return {
-        asString(): string {
-          return value.value
-        },
-        asByteArray(): Uint8Array {
-          return value.valueRaw
-        }
-      }
-    }
-
-    private static getIntegerState(state: AppState, key: string): IntegerState | undefined {
-      const value = state[key]
-      if (!value) return undefined
-      if ('valueRaw' in value)
-        throw new Error(`Failed to parse state value for ${key}; received a byte array when expected a number`)
-      return {
-        asBigInt() {
-          return typeof value.value === 'bigint' ? value.value : BigInt(value.value)
-        },
-        asNumber(): number {
-          return typeof value.value === 'bigint' ? Number(value.value) : value.value
-        },
-      }
-    }
-
-    public async getGlobalState(): Promise<VotingRoundApp['state']['global']> {
-      const state = await this.appClient.getGlobalState()
-      return {
-        get close_time() {
-          return VotingRoundAppClient.getIntegerState(state, 'close_time')
-        },
-        get end_time() {
-          return VotingRoundAppClient.getIntegerState(state, 'end_time')
-        },
-        get is_bootstrapped() {
-          return VotingRoundAppClient.getIntegerState(state, 'is_bootstrapped')
-        },
-        get metadata_ipfs_cid() {
-          return VotingRoundAppClient.getBinaryState(state, 'metadata_ipfs_cid')
-        },
-        get nft_asset_id() {
-          return VotingRoundAppClient.getIntegerState(state, 'nft_asset_id')
-        },
-        get nft_image_url() {
-          return VotingRoundAppClient.getBinaryState(state, 'nft_image_url')
-        },
-        get option_counts() {
-          return VotingRoundAppClient.getBinaryState(state, 'option_counts')
-        },
-        get quorum() {
-          return VotingRoundAppClient.getIntegerState(state, 'quorum')
-        },
-        get snapshot_public_key() {
-          return VotingRoundAppClient.getBinaryState(state, 'snapshot_public_key')
-        },
-        get start_time() {
-          return VotingRoundAppClient.getIntegerState(state, 'start_time')
-        },
-        get total_options() {
-          return VotingRoundAppClient.getIntegerState(state, 'total_options')
-        },
-        get vote_id() {
-          return VotingRoundAppClient.getBinaryState(state, 'vote_id')
-        },
-        get voter_count() {
-          return VotingRoundAppClient.getIntegerState(state, 'voter_count')
-        },
-      }
-    }
-
   }
+
+  /**
+   * Calls the ABI method with the matching signature using an onCompletion code of NO_OP
+   * @param request A request object containing the method signature, args, and any other relevant properties
+   * @param returnValueFormatter An optional delegate which when provided will be used to map non-undefined return values to the target type
+   */
+  public call<TSignature extends keyof VotingRoundApp['methods']>(request: CallRequest<TSignature, any>, returnValueFormatter?: (value: any) => MethodReturn<TSignature>) {
+    return this.mapReturnValue<MethodReturn<TSignature>>(this.appClient.call(request), returnValueFormatter)
+  }
+
+  /**
+   * Idempotently deploys the VotingRoundApp smart contract.
+   * @param params The arguments for the contract calls and any additional parameters for the call
+   * @returns The deployment result
+   */
+  public deploy(params: VotingRoundAppDeployArgs & AppClientDeployCoreParams = {}) {
+    return this.appClient.deploy({ 
+      ...params,
+      createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
+      deleteArgs: Array.isArray(params.deleteArgs) ? mapBySignature(...params.deleteArgs as [any, any, any]): params.deleteArgs,
+    })
+  }
+
+  /**
+   * Creates a new instance of the VotingRoundApp smart contract using the create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void ABI method.
+   * @param method The ABI method to use
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The create result
+   */
+  public create(method: 'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void' | 'create', args: MethodArgs<'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void'>>>;
+  public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.create({...args[0], })
+    } else {
+      return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
+  }
+
+  /**
+   * Deletes an existing instance of the VotingRoundApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The delete result
+   */
+  public delete(args: BareCallArgs & AppClientCallCoreParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
+  public delete(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.delete({...args[0], })
+    } else {
+      return this.appClient.delete({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
+  }
+
+  /**
+   * Makes a clear_state call to an existing instance of the VotingRoundApp smart contract.
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The clear_state result
+   */
+  public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.appClient.clearState({ ...args, ...params, })
+  }
+
+  /**
+   * Calls the bootstrap(pay)void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public bootstrap(args: MethodArgs<'bootstrap(pay)void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(VotingRoundAppCallFactory.bootstrap(args, params))
+  }
+
+  /**
+   * Calls the close()void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public close(args: MethodArgs<'close()void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(VotingRoundAppCallFactory.close(args, params))
+  }
+
+  /**
+   * Calls the get_preconditions(byte[])(uint64,uint64,uint64,uint64) ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public getPreconditions(args: MethodArgs<'get_preconditions(byte[])(uint64,uint64,uint64,uint64)'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(VotingRoundAppCallFactory.getPreconditions(args, params), VotingPreconditions)
+  }
+
+  /**
+   * Calls the vote(pay,byte[],uint8[])void ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public vote(args: MethodArgs<'vote(pay,byte[],uint8[])void'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(VotingRoundAppCallFactory.vote(args, params))
+  }
+
+  private static getBinaryState(state: AppState, key: string): BinaryState | undefined {
+    const value = state[key]
+    if (!value) return undefined
+    if (!('valueRaw' in value))
+      throw new Error(`Failed to parse state value for ${key}; received an int when expected a byte array`)
+    return {
+      asString(): string {
+        return value.value
+      },
+      asByteArray(): Uint8Array {
+        return value.valueRaw
+      }
+    }
+  }
+
+  private static getIntegerState(state: AppState, key: string): IntegerState | undefined {
+    const value = state[key]
+    if (!value) return undefined
+    if ('valueRaw' in value)
+      throw new Error(`Failed to parse state value for ${key}; received a byte array when expected a number`)
+    return {
+      asBigInt() {
+        return typeof value.value === 'bigint' ? value.value : BigInt(value.value)
+      },
+      asNumber(): number {
+        return typeof value.value === 'bigint' ? Number(value.value) : value.value
+      },
+    }
+  }
+
+  /**
+   * Returns the application's global state wrapped in a strongly typed accessor with options to format the stored value
+   */
+  public async getGlobalState(): Promise<VotingRoundApp['state']['global']> {
+    const state = await this.appClient.getGlobalState()
+    return {
+      get close_time() {
+        return VotingRoundAppClient.getIntegerState(state, 'close_time')
+      },
+      get end_time() {
+        return VotingRoundAppClient.getIntegerState(state, 'end_time')
+      },
+      get is_bootstrapped() {
+        return VotingRoundAppClient.getIntegerState(state, 'is_bootstrapped')
+      },
+      get metadata_ipfs_cid() {
+        return VotingRoundAppClient.getBinaryState(state, 'metadata_ipfs_cid')
+      },
+      get nft_asset_id() {
+        return VotingRoundAppClient.getIntegerState(state, 'nft_asset_id')
+      },
+      get nft_image_url() {
+        return VotingRoundAppClient.getBinaryState(state, 'nft_image_url')
+      },
+      get option_counts() {
+        return VotingRoundAppClient.getBinaryState(state, 'option_counts')
+      },
+      get quorum() {
+        return VotingRoundAppClient.getIntegerState(state, 'quorum')
+      },
+      get snapshot_public_key() {
+        return VotingRoundAppClient.getBinaryState(state, 'snapshot_public_key')
+      },
+      get start_time() {
+        return VotingRoundAppClient.getIntegerState(state, 'start_time')
+      },
+      get total_options() {
+        return VotingRoundAppClient.getIntegerState(state, 'total_options')
+      },
+      get vote_id() {
+        return VotingRoundAppClient.getBinaryState(state, 'vote_id')
+      },
+      get voter_count() {
+        return VotingRoundAppClient.getIntegerState(state, 'voter_count')
+      },
+    }
+  }
+
+}
