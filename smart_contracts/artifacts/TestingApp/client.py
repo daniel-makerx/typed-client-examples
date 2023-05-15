@@ -33,79 +33,118 @@ class CallAbiTxnArgs(ArgsBase[None]):
 
     @staticmethod
     def method() -> str:
-        return "call_abi_txn(pay, string)string"
+        return "call_abi_txn(pay,string)string"
 
 
 @dataclasses.dataclass(kw_only=True)
-class SetGlobalArgs(ArgsBase[None]):
+class CallSetGlobalArgs(ArgsBase[None]):
     int1: int
     int2: int
     bytes1: str
     bytes2: bytes
-    # bytes2: bytes[4] -- we need to check the length
 
     @staticmethod
     def method() -> str:
-        return "set_global(uint64, uint64, string, byte[4])void"
+        return "set_global(uint64,uint64,string,byte[4])void"
 
 
-# @dataclasses.dataclass(kw_only=True)
-# class SetLocalArgs(ArgsBase[None]):
-#     int1: int
-#     int2: int
-#     bytes1: str
-#     bytes2: bytes[4]
+@dataclasses.dataclass(kw_only=True)
+class CallSetLocalArgs(ArgsBase[None]):
+    int1: int
+    int2: int
+    bytes1: str
+    bytes2: bytes
 
-#     @staticmethod
-#     def method() -> str:
-#         return "set_local(uint64, uint64, string, byte[4])void"
-
-
-# @dataclasses.dataclass(kw_only=True)
-# class SetBoxArgs(ArgsBase[None]):
-#     name: bytes[4]
-#     value: str
-
-#     @staticmethod
-#     def method() -> str:
-#         return "set_box(byte[4], string)void"
+    @staticmethod
+    def method() -> str:
+        return "set_local(uint64,uint64,string,byte[4])void"
 
 
-# @dataclasses.dataclass(kw_only=True)
-# class ErrorArgs(ArgsBase[None]):
-#     @staticmethod
-#     def method() -> str:
-#         return "error()void"
+@dataclasses.dataclass(kw_only=True)
+class CallSetBoxArgs(ArgsBase[None]):
+    name: bytes
+    value: str
+
+    @staticmethod
+    def method() -> str:
+        return "set_box(byte[4],string)void"
 
 
-# @dataclasses.dataclass(kw_only=True)
-# class CreateAbiArgs(ArgsBase[str]):
-#     input: str
-
-#     @staticmethod
-#     def method() -> str:
-#         return "create_abi(string)string"
+@dataclasses.dataclass(kw_only=True)
+class CallErrorArgs(ArgsBase[None]):
+    @staticmethod
+    def method() -> str:
+        return "error()void"
 
 
-# @dataclasses.dataclass(kw_only=True)
-# class UpdateAbiArgs(ArgsBase[str]):
-#     input: str
+@dataclasses.dataclass(kw_only=True)
+class CallCreateAbiArgs(ArgsBase[str]):
+    input: str
 
-#     @staticmethod
-#     def method() -> str:
-#         return "update_abi(string)string"
+    @staticmethod
+    def method() -> str:
+        return "create_abi(string)string"
 
 
-# @dataclasses.dataclass(kw_only=True)
-# class DeleteAbiArgs(ArgsBase[str]):
-#     input: str
+@dataclasses.dataclass(kw_only=True)
+class CallUpdateAbiArgs(ArgsBase[str]):
+    input: str
 
-#     @staticmethod
-#     def method() -> str:
-#         return "delete_abi(string)string"
+    @staticmethod
+    def method() -> str:
+        return "update_abi(string)string"
+
+
+@dataclasses.dataclass(kw_only=True)
+class CallDeleteAbiArgs(ArgsBase[str]):
+    input: str
+
+    @staticmethod
+    def method() -> str:
+        return "delete_abi(string)string"
+
+
+@dataclasses.dataclass(kw_only=True)
+class CallOptInArgs(ArgsBase[str]):
+    @staticmethod
+    def method() -> str:
+        return "opt_in()void"
+
+
+@dataclasses.dataclass(kw_only=True)
+class GlobalState:
+    bytes1: str
+    bytes2: str
+    int1: int
+    int2: int
+    value: int
+
+
+@dataclasses.dataclass(kw_only=True)
+class LocalState:
+    local_bytes1: str
+    local_bytes2: str
+    local_int1: int
+    local_int2: int
 
 
 T = TypeVar("T")
+TArgs = TypeVar("TArgs", bound=ArgsBase)
+
+
+@dataclasses.dataclass(kw_only=True)
+class TypedDeployCreateArgs(algokit_utils.DeployCreateCallArgs, Generic[TArgs]):
+    args: TArgs
+
+
+@dataclasses.dataclass(kw_only=True)
+class TypedDeployArgs(algokit_utils.DeployCallArgs, Generic[TArgs]):
+    args: TArgs
+
+
+DeployCallCreateAbiArgs = TypedDeployCreateArgs[CallCreateAbiArgs]
+DeployCallUpdateAbiArgs = TypedDeployArgs[CallUpdateAbiArgs]
+DeployCallDeleteAbiArgs = TypedDeployArgs[CallDeleteAbiArgs]
 
 
 def as_dict(data: T | None) -> dict[str, Any]:
@@ -114,6 +153,36 @@ def as_dict(data: T | None) -> dict[str, Any]:
     if not dataclasses.is_dataclass(data):
         raise TypeError(f"{data} must be a dataclass")
     return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}
+
+
+def convert_deploy_create(
+    deploy_args: algokit_utils.DeployCreateCallArgs | TypedDeployCreateArgs[TArgs] | None,
+) -> algokit_utils.DeployCreateCallArgs | None:
+    if deploy_args is None:
+        return None
+
+    if isinstance(deploy_args, TypedDeployCreateArgs):
+        abi_args = deploy_args.args
+        return algokit_utils.TypedCreateABICallArgs[TArgs](
+            **as_dict(deploy_args),
+            method=abi_args.method(),
+        )
+    return deploy_args
+
+
+def convert_deploy(
+    deploy_args: algokit_utils.DeployCallArgs | TypedDeployArgs[TArgs] | None,
+) -> algokit_utils.DeployCallArgs | None:
+    if deploy_args is None:
+        return None
+
+    if isinstance(deploy_args, TypedDeployArgs):
+        abi_args = deploy_args.args
+        return algokit_utils.TypedABICallArgs[TArgs](
+            **as_dict(deploy_args),
+            method=abi_args.method(),
+        )
+    return deploy_args
 
 
 def convert(
@@ -210,7 +279,6 @@ class TestingAppClient:
         :return type: The result of the call
         """
         args = CallAbiArgs(value=value)
-
         # call is used because the ABI method call config for call_abi is no_op
         # from $.hints["call_abi(string)string""].call_config
         return self.app_client.call(
@@ -219,59 +287,253 @@ class TestingAppClient:
             **as_dict(args),
         )
 
-    # def hello_check_args(  # from $.contract.methods[name="hello_check_args"]
-    #     self,
-    #     *,
-    #     name: str,
-    #     transaction_parameters: algokit_utils.TransactionParameters | None = None,
-    # ) -> algokit_utils.ABITransactionResponse[None]:
-    #     """Asserts {name} is "World"
+    def call_abi_txn(  # from $.contract.methods[name="call_abi_txn"]
+        self,
+        *,
+        txn: TransactionWithSigner,
+        value: str,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[str]:
+        """Returns {type}
 
-    #     Calls the hello_check_args(name) ABI method, using OnComplete = NoOp.
+        Calls the call_abi_txn(txn, value) ABI method, using OnComplete = NoOp.
 
-    #     :params str name:
-    #     :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
-    #     :return str: The result of the call
-    #     """
-    #     args = HelloCheckArgs(name=name)
+        :params pay txn:
+        :params str value:
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return type: The result of the call
+        """
+        args = CallAbiTxnArgs(txn=txn, value=value)
+        # call is used because the ABI method call config for call_abi_txn is no_op
+        # from $.hints["call_abi_txn(txn,string)string""].call_config
+        return self.app_client.call(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
+        )
 
-    #     # call is used because the ABI method call config for hello is no_op
-    #     # from $.hints["hello(string)string""].call_config
-    #     return self.app_client.call(
-    #         call_abi_method=args.method(),
-    #         transaction_parameters=convert(transaction_parameters),
-    #         **as_dict(args),
-    #     )
+    # TODO add validation to the bytes2 to check size is 4
+    def set_global(  # from $.contract.methods[name="set_global"]
+        self,
+        *,
+        int1: int,
+        int2: int,
+        bytes1: str,
+        bytes2: bytes,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[str]:
+        """Returns {type}
 
-    # def create(  # from $.bare_call_config.no_op == 'CREATE'
-    #     self,
-    #     *,
-    #     transaction_parameters: algokit_utils.CreateTransactionParameters | None = None,
-    # ) -> algokit_utils.TransactionResponse:
-    #     return self.app_client.create(
-    #         call_abi_method=False,  # False is used to indicate we want to call the bare_method, not an ABI method
-    #         transaction_parameters=convert_create(transaction_parameters),
-    #     )
+        Calls the set_global(uint64,uint64,string,byte[4]) ABI method, using OnComplete = NoOp.
 
-    # def delete(  # from $.bare_call_config.delete_application == 'CALL'
-    #     self,
-    #     *,
-    #     transaction_parameters: algokit_utils.TransactionParameters | None = None,
-    # ) -> algokit_utils.TransactionResponse:
-    #     return self.app_client.delete(
-    #         call_abi_method=False,  # False is used to indicate we want to call the bare_method, not an ABI method
-    #         transaction_parameters=convert(transaction_parameters),
-    #     )
+        :params uint64 int1:
+        :params uint64 int2:
+        :params str bytes1:
+        :params byte[4] bytes2:
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return type: The result of the call
+        """
+        args = CallSetGlobalArgs(int1=int1, int2=int2, bytes1=bytes1, bytes2=bytes2)
+        # call is used because the ABI method call config for set_global is no_op
+        # from $.hints["set_global(uint64,uint64,string,byte[4])void""].call_config
+        return self.app_client.call(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
+        )
 
-    # def update(  # from $.bare_call_config.update_application == 'CALL'
-    #     self,
-    #     *,
-    #     transaction_parameters: algokit_utils.TransactionParameters | None = None,
-    # ) -> algokit_utils.TransactionResponse:
-    #     return self.app_client.update(
-    #         call_abi_method=False,  # False is used to indicate we want to call the bare_method, not an ABI method
-    #         transaction_parameters=convert(transaction_parameters),
-    #     )
+    # TODO add validation to the bytes2 to check size is 4
+    def set_local(  # from $.contract.methods[name="set_local"]
+        self,
+        *,
+        int1: int,
+        int2: int,
+        bytes1: str,
+        bytes2: bytes,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[str]:
+        """Returns {type}
+
+        Calls the set_local(uint64,uint64,string,byte[4]) ABI method, using OnComplete = NoOp.
+
+        :params uint64 int1:
+        :params uint64 int2:
+        :params str bytes1:
+        :params byte[4] bytes2:
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return type: The result of the call
+        """
+        args = CallSetLocalArgs(int1=int1, int2=int2, bytes1=bytes1, bytes2=bytes2)
+        # call is used because the ABI method call config for set_local is no_op
+        # from $.hints["set_local(uint64,uint64,string,byte[4])void""].call_config
+        return self.app_client.call(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
+        )
+
+    def set_box(  # from $.contract.methods[name="set_box"]
+        self,
+        *,
+        name: bytes,
+        value: str,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[str]:
+        """Returns {type}
+
+        Calls the set_box(byte[4],string) ABI method, using OnComplete = NoOp.
+
+        :params byte[4] name:
+        :params str value:
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return type: The result of the call
+        """
+        args = CallSetBoxArgs(name=name, value=value)
+        # call is used because the ABI method call config for set_box is no_op
+        # from $.hints["set_box(byte[4],string)void""].call_config
+        return self.app_client.call(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
+        )
+
+    def error(  # from $.contract.methods[name="error"]
+        self,
+        *,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[str]:
+        """Returns {type}
+
+        Calls the set_box(byte[4],string) ABI method, using OnComplete = NoOp.
+
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return type: The result of the call
+        """
+        args = CallErrorArgs()
+        # call is used because the ABI method call config for error is no_op
+        # from $.hints["error()void""].call_config
+        return self.app_client.call(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
+        )
+
+    def create_abi(  # from $.contract.methods[name="create_abi"]
+        self,
+        *,
+        input: str,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[str]:
+        """Returns {type}
+
+        Calls the create_abi(string) ABI method, using OnComplete = NoOp.
+
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return type: The result of the call
+        """
+        args = CallCreateAbiArgs(input=input)
+        # call is used because the ABI method call config for create_abi is no_op
+        # from $.hints["create_abi(string)string""].call_config
+        return self.app_client.create(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
+        )
+
+    def update_abi(  # from $.contract.methods[name="update_abi"]
+        self,
+        *,
+        input: str,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[str]:
+        """Returns {type}
+
+        Calls the update_abi(string) ABI method, using OnComplete = NoOp.
+
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return type: The result of the call
+        """
+        args = CallUpdateAbiArgs(input=input)
+        # call is used because the ABI method call config for update_abi is no_op
+        # from $.hints["update_abi(string)string""].call_config
+        return self.app_client.update(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
+        )
+
+    def delete_abi(  # from $.contract.methods[name="delete_abi"]
+        self,
+        *,
+        input: str,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[str]:
+        """Returns {type}
+
+        Calls the delete_abi(string) ABI method, using OnComplete = NoOp.
+
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return type: The result of the call
+        """
+        args = CallDeleteAbiArgs(input=input)
+        # call is used because the ABI method call config for delete_abi is no_op
+        # from $.hints["delete_abi(string)string""].call_config
+        return self.app_client.delete(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
+        )
+
+    def opt_in(  # from $.contract.methods[name="opt_in"]
+        self,
+        *,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[str]:
+        """Returns {type}
+
+        Calls the opt_in() ABI method, using OnComplete = NoOp.
+
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return type: The result of the call
+        """
+        args = CallOptInArgs()
+        # call is used because the ABI method call config for opt_in is no_op
+        # from $.hints["opt_in()void""].call_config
+        return self.app_client.opt_in(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
+        )
+
+    def get_global_state(
+        self,
+        *,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> GlobalState:
+        global_state = self.app_client.get_global_state()
+        args = GlobalState(
+            bytes1=global_state["bytes1"],
+            bytes2=global_state["bytes2"],
+            int1=global_state["int1"],
+            int2=global_state["int2"],
+            value=global_state["value"],
+        )
+        return args
+
+    def get_local_state(
+        self,
+        *,
+        account: str | None,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> LocalState:
+        local_state = self.app_client.get_local_state(account=account)
+        args = LocalState(
+            local_bytes1=local_state["local_bytes1"],
+            local_bytes2=local_state["local_bytes2"],
+            local_int1=local_state["local_int1"],
+            local_int2=local_state["local_int2"],
+        )
+        return args
 
     def deploy(
         self,
@@ -284,9 +546,9 @@ class TestingAppClient:
         on_update: algokit_utils.OnUpdate = algokit_utils.OnUpdate.Fail,
         on_schema_break: algokit_utils.OnSchemaBreak = algokit_utils.OnSchemaBreak.Fail,
         template_values: algokit_utils.TemplateValueMapping | None = None,
-        create_args: algokit_utils.DeployCallArgs | None = None,
-        update_args: algokit_utils.DeployCallArgs | None = None,
-        delete_args: algokit_utils.DeployCallArgs | None = None,
+        create_args: DeployCallCreateAbiArgs | algokit_utils.DeployCreateCallArgs | None = None,
+        update_args: DeployCallUpdateAbiArgs | algokit_utils.DeployCallArgs | None = None,
+        delete_args: DeployCallDeleteAbiArgs | algokit_utils.DeployCallArgs | None = None,
     ) -> algokit_utils.DeployResponse:
         return self.app_client.deploy(
             version,
@@ -297,7 +559,7 @@ class TestingAppClient:
             on_update=on_update,
             on_schema_break=on_schema_break,
             template_values=template_values,
-            create_args=create_args,
-            update_args=update_args,
-            delete_args=delete_args,
+            create_args=convert_deploy_create(create_args),
+            update_args=convert_deploy(update_args),
+            delete_args=convert_deploy(delete_args),
         )
