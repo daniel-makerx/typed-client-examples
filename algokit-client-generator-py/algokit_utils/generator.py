@@ -53,7 +53,7 @@ class ContractArg:
 @dataclasses.dataclass(kw_only=True)
 class ContractMethod:
     abi_method: Method | None
-    on_complete: OnCompleteActionName
+    on_complete: list[OnCompleteActionName]
     call_config: Literal["call", "create"]
     abi_type: str | None = None
     python_type: str | None = None
@@ -110,13 +110,14 @@ class ContractMethods:
             python_type = None
             hints = None
             args = []
+        create_on_completes = []
         for on_complete, call_config in method_config.items():
             if call_config & CallConfig.CALL != CallConfig.NEVER:
                 collection = getattr(self, on_complete)
                 contract_method = ContractMethod(
                     abi_method=method,
                     call_config="call",
-                    on_complete=on_complete,
+                    on_complete=[on_complete],
                     args=args,
                     hints=hints,
                     abi_type=str(abi_type),
@@ -124,16 +125,19 @@ class ContractMethods:
                 )
                 collection.append(contract_method)
             if call_config & CallConfig.CREATE != CallConfig.NEVER:
-                contract_method = ContractMethod(
-                    abi_method=method,
-                    call_config="create",
-                    on_complete=on_complete,
-                    args=args,
-                    hints=hints,
-                    abi_type=str(abi_type),
-                    python_type=python_type,
-                )
-                self.create.append(contract_method)
+                create_on_completes.append(on_complete)
+
+        if create_on_completes:
+            contract_method = ContractMethod(
+                abi_method=method,
+                call_config="create",
+                on_complete=create_on_completes,
+                args=args,
+                hints=hints,
+                abi_type=str(abi_type),
+                python_type=python_type,
+            )
+            self.create.append(contract_method)
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -190,7 +194,7 @@ def imports(context: GenerateContext) -> DocumentParts:
     yield from lines(
         """import dataclasses
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar, overload
+from typing import Any, Generic, Literal, TypeVar, overload
 
 import algokit_utils
 import algosdk
@@ -336,7 +340,12 @@ def _as_dict(data: _T | None) -> dict[str, Any]:
         return {}
     if not dataclasses.is_dataclass(data):
         raise TypeError(f"{data} must be a dataclass")
-    return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}"""
+    return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}
+
+
+def _convert_on_complete(on_complete: algokit_utils.OnCompleteActionName) -> algosdk.transaction.OnComplete:
+    on_complete_enum = on_complete.replace("_", " ").title().replace(" ", "") + "OC"
+    return getattr(algosdk.transaction.OnComplete, on_complete_enum)"""
     )
 
 
@@ -405,12 +414,7 @@ class {app_client_name}:
     yield Part.Gap1
     yield Part.IncIndent
     yield from call_methods(context)
-    yield from special_method(
-        context,
-        "create",
-        context.methods.create,
-        transaction_parameters_type="algokit_utils.CreateTransactionParameters",
-    )
+    yield from special_method(context, "create", context.methods.create)
     yield from special_method(context, "update", context.methods.update_application)
     yield from special_method(context, "delete", context.methods.delete_application)
     yield from special_method(context, "opt_in", context.methods.opt_in)
@@ -481,45 +485,19 @@ def no_op(self) -> algokit_utils.TransactionResponse:
         yield Part.Gap1
 
 
-def special_method(
-    context: GenerateContext,
-    method_name: Literal["create", "update", "delete", "opt_in", "close_out"],
-    methods: list[ContractMethod],
-    transaction_parameters_type: str = "algokit_utils.TransactionParameters",
+def signature(
+    context: GenerateContext, name: str, args: Sequence[str | DocumentParts], return_types: list[str]
 ) -> DocumentParts:
-    if not methods:
-        return
-    bare_only = all(m.is_bare for m in methods)
-    has_bare = any(m.is_bare for m in methods)
-    # TODO: overloads
-    yield f"def {method_name}("
+    yield f"def {name}("
     yield Part.IncIndent
-    yield "self,"
-    yield "*,"
-    if not bare_only:
+    for arg in args:
         yield Part.InlineMode
-        yield "args: "
-        for idx, method in enumerate(methods):
-            if idx:
-                yield " | "
-            if method.is_bare:
-                yield "None"
-            else:
-                assert method.args_class_name
-                yield method.args_class_name
-        if has_bare:
-            yield " = None"
+        if isinstance(arg, str):
+            yield f"{arg}"
+        else:
+            yield from arg
         yield ","
         yield Part.RestoreLineMode
-    yield f"transaction_parameters: {transaction_parameters_type} | None = None,"
-
-    return_types = []
-    if has_bare:
-        return_types.append("algokit_utils.TransactionResponse")
-
-    return_types.extend(
-        sorted(f"algokit_utils.ABITransactionResponse[{m.python_type}]" for m in methods if not m.is_bare)
-    )
 
     return_signature = f") -> {' | '.join(return_types)}:"
 
@@ -535,13 +513,95 @@ def special_method(
             yield return_type
             yield Part.RestoreLineMode
         yield Part.DecIndent, "):"
-    yield Part.IncIndent, f"return self.app_client.{method_name}("
+
+
+def on_complete(on_completes: Iterable[OnCompleteActionName]) -> DocumentParts:
+    yield 'on_complete: Literal["'
+    yield '", "'.join(on_completes)
+    yield '"]'
+    if "no_op" in on_completes:
+        yield ' = "no_op"'
+
+
+def special_overload(
+    context: GenerateContext,
+    method_name: Literal["create", "update", "delete", "opt_in", "close_out"],
+    method: ContractMethod,
+) -> DocumentParts:
+    yield "@overload"
+    args: list[str | DocumentParts] = ["self", "*"]
+
+    if method.is_bare:
+        args.append("args: Literal[None] = None")
+        return_type = "algokit_utils.TransactionResponse"
+    else:
+        args.append(f"args: {method.args_class_name}")
+        return_type = f"algokit_utils.ABITransactionResponse[{method.python_type}]"
+    if method_name == "create":
+        args.append(on_complete(method.on_complete))
+        args.append("transaction_parameters: algokit_utils.CreateTransactionParameters | None = None")
+    else:
+        args.append("transaction_parameters: algokit_utils.TransactionParameters | None = None")
+    yield from signature(context, method_name, args, [return_type])
+    yield Part.IncIndent
+    yield "..."
+    yield Part.DecIndent
+
+
+def special_method(
+    context: GenerateContext,
+    method_name: Literal["create", "update", "delete", "opt_in", "close_out"],
+    methods: list[ContractMethod],
+) -> DocumentParts:
+    if not methods:
+        return
+    is_create = method_name == "create"
+    bare_only = all(m.is_bare for m in methods)
+    has_bare = any(m.is_bare for m in methods)
+    if len(methods) > 1:
+        for method in methods:
+            yield from special_overload(context, method_name, method)
+            yield Part.Gap1
+    args: list[str | DocumentParts] = ["self", "*"]
+    if not bare_only:
+        typed_args = "args: "
+        for idx, method in enumerate(m for m in methods if not m.is_bare):
+            if idx:
+                typed_args += " | "
+            assert method.args_class_name
+            typed_args += method.args_class_name
+        if has_bare:
+            typed_args += " | None = None"
+        args.append(typed_args)
+    if is_create:
+        args.append(on_complete({c for m in methods for c in m.on_complete}))
+        args.append("transaction_parameters: algokit_utils.CreateTransactionParameters | None = None")
+    else:
+        args.append("transaction_parameters: algokit_utils.TransactionParameters | None = None")
+
+    return_types = []
+    if has_bare:
+        return_types.append("algokit_utils.TransactionResponse")
+
+    return_types.extend(
+        sorted(f"algokit_utils.ABITransactionResponse[{m.python_type}]" for m in methods if not m.is_bare)
+    )
+    yield from signature(context, method_name, args, return_types)
+    yield Part.IncIndent
+
+    if is_create:
+        yield "transaction_parameters_dict = _as_dict(transaction_parameters)"
+        yield 'transaction_parameters_dict["on_complete"] = _convert_on_complete(on_complete)'
+    yield f"return self.app_client.{method_name}("
     yield Part.IncIndent
     if bare_only:
         yield "call_abi_method=False,"
     else:
         yield "call_abi_method=args.method() if args else False,"
-    yield "transaction_parameters=_as_dict(transaction_parameters),"
+    if is_create:
+        yield "transaction_parameters=transaction_parameters_dict,"
+    else:
+        yield "transaction_parameters=_as_dict(transaction_parameters),"
     if not bare_only:
         yield "**_as_dict(args),"
     yield Part.DecIndent
@@ -607,29 +667,34 @@ def _get_unique_symbol_by_incrementing(
         if symbol not in existing_symbols:
             existing_symbols.add(symbol)
             return symbol
+        suffix += 1
 
 
 def create_generate_context(app_spec: ApplicationSpecification) -> GenerateContext:
     context = GenerateContext(app_spec=app_spec)
     context.used_module_symbols.update(
-        "APP_SPEC",
-        "_T",
-        "_TResult",
-        "_ArgsBase",
-        "_as_dict",
+        {
+            "APP_SPEC",
+            "_T",
+            "_TResult",
+            "_ArgsBase",
+            "_as_dict",
+        }
     )
     context.used_client_symbols.update(
-        "__init__",
-        "app_spec",
-        "app_client",
-        "no_op",
-        "create",
-        "update",
-        "delete",
-        "opt_in",
-        "close_out",
-        "clear_state",
-        "deploy",
+        {
+            "__init__",
+            "app_spec",
+            "app_client",
+            "no_op",
+            "create",
+            "update",
+            "delete",
+            "opt_in",
+            "close_out",
+            "clear_state",
+            "deploy",
+        }
     )
     context.client_name = _get_unique_symbol_by_incrementing(
         context.used_module_symbols, f"{app_spec.contract.name}_client", get_class_name
@@ -643,9 +708,10 @@ def create_generate_context(app_spec: ApplicationSpecification) -> GenerateConte
         method.args_class_name = _get_unique_symbol_by_incrementing(
             context.used_module_symbols, f"{method_name}_args", get_class_name
         )
-        method.client_method_name = _get_unique_symbol_by_incrementing(
-            context.used_client_symbols, method_name, get_method_name
-        )
+        if method.call_config == "call" and "no_op" in method.on_complete:
+            method.client_method_name = _get_unique_symbol_by_incrementing(
+                context.used_client_symbols, method_name, get_method_name
+            )
 
     return context
 

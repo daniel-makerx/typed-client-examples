@@ -1,7 +1,7 @@
 # flake8: noqa
 import dataclasses
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar, overload
+from typing import Any, Generic, Literal, TypeVar, overload
 
 import algokit_utils
 import algosdk
@@ -99,6 +99,11 @@ def _as_dict(data: _T | None) -> dict[str, Any]:
     if not dataclasses.is_dataclass(data):
         raise TypeError(f"{data} must be a dataclass")
     return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}
+
+
+def _convert_on_complete(on_complete: algokit_utils.OnCompleteActionName) -> algosdk.transaction.OnComplete:
+    on_complete_enum = on_complete.replace("_", " ").title().replace(" ", "") + "OC"
+    return getattr(algosdk.transaction.OnComplete, on_complete_enum)
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -214,11 +219,14 @@ class HelloWorldAppClient:
     def create(
         self,
         *,
+        on_complete: Literal["no_op"] = "no_op",
         transaction_parameters: algokit_utils.CreateTransactionParameters | None = None,
     ) -> algokit_utils.TransactionResponse:
+        transaction_parameters_dict = _as_dict(transaction_parameters)
+        transaction_parameters_dict["on_complete"] = _convert_on_complete(on_complete)
         return self.app_client.create(
             call_abi_method=False,
-            transaction_parameters=_as_dict(transaction_parameters),
+            transaction_parameters=transaction_parameters_dict,
         )
 
     def update(
