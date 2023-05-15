@@ -1,9 +1,56 @@
+import dataclasses
 import pathlib
-from typing import overload
+from abc import ABC, abstractmethod
+from typing import Any, Generic, TypeVar, cast, overload
 
 import algokit_utils
 import algosdk
-from algosdk.atomic_transaction_composer import TransactionSigner, TransactionWithSigner
+from algosdk.atomic_transaction_composer import TransactionSigner
+
+TReturn = TypeVar("TReturn")
+
+
+class ArgsBase(ABC, Generic[TReturn]):
+    @staticmethod
+    @abstractmethod
+    def method() -> str:
+        ...
+
+@dataclasses.dataclass(kw_only=True)
+class CloseArgs(ArgsBase[None]):
+    @staticmethod
+    def method() -> str:
+        return "close()void"
+
+T = TypeVar("T")
+
+
+def as_dict(data: T | None) -> dict[str, Any]:
+    if data is None:
+        return {}
+    if not dataclasses.is_dataclass(data):
+        raise TypeError(f"{data} must be a dataclass")
+    return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}
+
+
+def convert(
+    transaction_parameters: algokit_utils.TransactionParameters | None,
+) -> algokit_utils.CommonCallParametersDict | None:
+    if transaction_parameters is None:
+        return None
+    # safe to cast this as the fields in TransactionParameters
+    # are a subset of allowed keys in CommonCallParametersDict
+    return cast(algokit_utils.CommonCallParametersDict, as_dict(transaction_parameters))
+
+
+def convert_create(
+    transaction_parameters: algokit_utils.CreateTransactionParameters | None,
+) -> algokit_utils.CreateCallParametersDict | None:
+    if transaction_parameters is None:
+        return None
+    # safe to cast this as the fields in CreateTransactionParameters
+    # are a subset of allowed keys in CreateCallParametersDict
+    return cast(algokit_utils.CreateCallParametersDict, as_dict(transaction_parameters))
 
 
 class VotingRoundAppClient:
@@ -48,7 +95,7 @@ class VotingRoundAppClient:
         suggested_params: algosdk.transaction.SuggestedParams | None = None,
         template_values: algokit_utils.TemplateValueMapping | None = None,
     ):
-        app_spec_path = pathlib.Path(__file__).parent / "application.json"
+        app_spec_path = pathlib.Path(__file__).parent / "application.json"  # TODO: embed
         self.app_spec = algokit_utils.ApplicationSpecification.from_json(app_spec_path.read_text())
 
         # calling full __init__ signature, so ignoring mypy warning about overloads
@@ -65,74 +112,83 @@ class VotingRoundAppClient:
             template_values=template_values,
         )
 
-    def deploy(self) -> None:
-        raise NotImplementedError
-
-    def create(
+    def close(  # from $.contract.methods[name="hello"]
         self,
         *,
-        vote_id: str,
-        snapshot_public_key: bytes,
-        metadata_ipfs_cid: str,
-        start_time: int,
-        end_time: int,
-        option_counts: list[int],
-        quorum: int,
-        nft_image_url: str,
-        transaction_parameters: algokit_utils.CreateCallParameters | None = None,
-    ) -> None:
-        result = self.app_client.create(
-            "create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void",
-            transaction_parameters=transaction_parameters,
-            vote_id=vote_id,
-            snapshot_public_key=snapshot_public_key,
-            metadata_ipfs_cid=metadata_ipfs_cid,
-            start_time=start_time,
-            end_time=end_time,
-            option_counts=option_counts,
-            quorum=quorum,
-            nft_image_url=nft_image_url,
-        )
-        return result.return_value
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[str]:
+        """Returns void
 
-    def bootstrap(
+        Calls the close() ABI method, using OnComplete = NoOp.
+
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return void
+        """
+        args = CloseArgs()
+
+        # call is used because the ABI method call config for close is no_op
+        # from $.hints["close()void""].call_config
+        return self.app_client.call(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
+        )
+
+    def create(  # from $.bare_call_config.no_op == 'CREATE'
         self,
         *,
-        fund_min_bal_req: TransactionWithSigner,
-        transaction_parameters: algokit_utils.CommonCallParameters | None = None,
-    ) -> None:
-        result = self.app_client.call(
-            "bootstrap(pay)void", transaction_parameters=transaction_parameters, fund_min_bal_req=fund_min_bal_req
+        transaction_parameters: algokit_utils.CreateTransactionParameters | None = None,
+    ) -> algokit_utils.TransactionResponse:
+        return self.app_client.create(
+            call_abi_method=False,  # False is used to indicate we want to call the bare_method, not an ABI method
+            transaction_parameters=convert_create(transaction_parameters),
         )
-        assert result
 
-    def close(self, transaction_parameters: algokit_utils.CreateCallParameters | None = None) -> None:
-        result = self.app_client.call("close()void", transaction_parameters=transaction_parameters)
-        return result.return_value
-
-    def get_preconditions(
-        self, *, signature: bytes, transaction_parameters: algokit_utils.CreateCallParameters | None = None
-    ) -> tuple[int, int, int, int]:
-        result = self.app_client.call(
-            "get_preconditions(byte[])(uint64,uint64,uint64,uint64)",
-            signature=signature,
-            transaction_parameters=transaction_parameters,
-        )
-        return result.return_value
-
-    def vote(
+    def delete(  # from $.bare_call_config.delete_application == 'CALL'
         self,
         *,
-        fund_min_bal_req: algosdk.transaction.PaymentTxn,
-        signature: bytes,
-        answer_ids: list[int],
-        transaction_parameters: algokit_utils.CreateCallParameters | None = None,
-    ) -> None:
-        result = self.app_client.call(
-            "vote(pay,byte[],uint8[])void",
-            fund_min_bal_req=fund_min_bal_req,
-            signature=signature,
-            answer_ids=answer_ids,
-            transaction_parameters=transaction_parameters,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.TransactionResponse:
+        return self.app_client.delete(
+            call_abi_method=False,  # False is used to indicate we want to call the bare_method, not an ABI method
+            transaction_parameters=convert(transaction_parameters),
         )
-        return result.return_value
+
+    def update(  # from $.bare_call_config.update_application == 'CALL'
+        self,
+        *,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.TransactionResponse:
+        return self.app_client.update(
+            call_abi_method=False,  # False is used to indicate we want to call the bare_method, not an ABI method
+            transaction_parameters=convert(transaction_parameters),
+        )
+
+    def deploy(
+        self,
+        version: str | None = None,
+        *,
+        signer: TransactionSigner | None = None,
+        sender: str | None = None,
+        allow_update: bool | None = None,
+        allow_delete: bool | None = None,
+        on_update: algokit_utils.OnUpdate = algokit_utils.OnUpdate.Fail,
+        on_schema_break: algokit_utils.OnSchemaBreak = algokit_utils.OnSchemaBreak.Fail,
+        template_values: algokit_utils.TemplateValueMapping | None = None,
+        create_args: algokit_utils.DeployCallArgs | None = None,
+        update_args: algokit_utils.DeployCallArgs | None = None,
+        delete_args: algokit_utils.DeployCallArgs | None = None,
+    ) -> algokit_utils.DeployResponse:
+        return self.app_client.deploy(
+            version,
+            signer=signer,
+            sender=sender,
+            allow_update=allow_update,
+            allow_delete=allow_delete,
+            on_update=on_update,
+            on_schema_break=on_schema_break,
+            template_values=template_values,
+            create_args=create_args,
+            update_args=update_args,
+            delete_args=delete_args,
+        )
