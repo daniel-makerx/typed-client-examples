@@ -9,6 +9,7 @@ import {
   AppCallTransactionResultOfType,
   CoreAppCallArgs,
   RawAppCallArgs,
+  AppState,
   TealTemplateParams,
 } from '@algorandfoundation/algokit-utils/types/app'
 import {
@@ -20,7 +21,7 @@ import {
   ApplicationClient,
 } from '@algorandfoundation/algokit-utils/types/app-client'
 import { AppSpec } from '@algorandfoundation/algokit-utils/types/app-spec'
-import { SendTransactionResult, TransactionToSign } from '@algorandfoundation/algokit-utils/types/transaction'
+import { SendTransactionResult, TransactionToSign, SendTransactionFrom } from '@algorandfoundation/algokit-utils/types/transaction'
 import { Algodv2, OnApplicationComplete, Transaction } from 'algosdk'
 export const APP_SPEC: AppSpec = {
   "hints": {
@@ -394,162 +395,181 @@ export type TestingApp = {
       argsTuple: []
       returns: void
     }>
-  }
-  export type MethodArgs<TSignature extends keyof TestingApp['methods']> = TestingApp['methods'][TSignature]['argsObj' | 'argsTuple']
-  export type MethodReturn<TSignature extends keyof TestingApp['methods']> = TestingApp['methods'][TSignature]['returns']
-  type MapperArgs<TSignature extends keyof TestingApp['methods']> = TSignature extends any ? [signature: TSignature, args: MethodArgs<TSignature>, params: AppClientCallCoreParams & CoreAppCallArgs ] : never
-
-  export type TestingAppCreateArgs =
-    | (BareCallArgs & CoreAppCallArgs & (OnCompleteNoOp | OnCompleteOptIn))
-    | ['create_abi(string)string', MethodArgs<'create_abi(string)string'>, (CoreAppCallArgs & (OnCompleteNoOp))?]
-  export type TestingAppUpdateArgs =
-    | BareCallArgs & CoreAppCallArgs
-    | ['update_abi(string)string', MethodArgs<'update_abi(string)string'>, CoreAppCallArgs]
-  export type TestingAppDeleteArgs =
-    | BareCallArgs & CoreAppCallArgs
-    | ['delete_abi(string)string', MethodArgs<'delete_abi(string)string'>, CoreAppCallArgs]
-  export type TestingAppDeployArgs = {
-    deployTimeParams?: TealTemplateParams
-    createArgs?: TestingAppCreateArgs
-    updateArgs?: TestingAppUpdateArgs
-    deleteArgs?: TestingAppDeleteArgs
-  }
-
-  export abstract class TestingAppCallFactory {
-    static callAbi(args: MethodArgs<'call_abi(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-      return {
-        method: 'call_abi(string)string' as const,
-        methodArgs: Array.isArray(args) ? args : [args.value],
-        ...params,
-      }
+  state: {
+    global: {
+      'bytes1'?: BinaryState
+      'bytes2'?: BinaryState
+      'int1'?: IntegerState
+      'int2'?: IntegerState
+      'value'?: IntegerState
     }
-    static callAbiTxn(args: MethodArgs<'call_abi_txn(pay,string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-      return {
-        method: 'call_abi_txn(pay,string)string' as const,
-        methodArgs: Array.isArray(args) ? args : [args.txn, args.value],
-        ...params,
-      }
-    }
-    static setGlobal(args: MethodArgs<'set_global(uint64,uint64,string,byte[4])void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-      return {
-        method: 'set_global(uint64,uint64,string,byte[4])void' as const,
-        methodArgs: Array.isArray(args) ? args : [args.int1, args.int2, args.bytes1, args.bytes2],
-        ...params,
-      }
-    }
-    static setLocal(args: MethodArgs<'set_local(uint64,uint64,string,byte[4])void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-      return {
-        method: 'set_local(uint64,uint64,string,byte[4])void' as const,
-        methodArgs: Array.isArray(args) ? args : [args.int1, args.int2, args.bytes1, args.bytes2],
-        ...params,
-      }
-    }
-    static setBox(args: MethodArgs<'set_box(byte[4],string)void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-      return {
-        method: 'set_box(byte[4],string)void' as const,
-        methodArgs: Array.isArray(args) ? args : [args.name, args.value],
-        ...params,
-      }
-    }
-    static error(args: MethodArgs<'error()void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-      return {
-        method: 'error()void' as const,
-        methodArgs: Array.isArray(args) ? args : [],
-        ...params,
-      }
-    }
-    static createAbi(args: MethodArgs<'create_abi(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-      return {
-        method: 'create_abi(string)string' as const,
-        methodArgs: Array.isArray(args) ? args : [args.input],
-        ...params,
-      }
-    }
-    static updateAbi(args: MethodArgs<'update_abi(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-      return {
-        method: 'update_abi(string)string' as const,
-        methodArgs: Array.isArray(args) ? args : [args.input],
-        ...params,
-      }
-    }
-    static deleteAbi(args: MethodArgs<'delete_abi(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-      return {
-        method: 'delete_abi(string)string' as const,
-        methodArgs: Array.isArray(args) ? args : [args.input],
-        ...params,
-      }
-    }
-    static optIn(args: MethodArgs<'opt_in()void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-      return {
-        method: 'opt_in()void' as const,
-        methodArgs: Array.isArray(args) ? args : [],
-        ...params,
-      }
+    local: {
+      'local_bytes1'?: BinaryState
+      'local_bytes2'?: BinaryState
+      'local_int1'?: IntegerState
+      'local_int2'?: IntegerState
     }
   }
-  function mapBySignature(...[signature, args, params]: MapperArgs<keyof TestingApp['methods']>) {
-    switch(signature) {
-      case 'call_abi(string)string':
-      case 'call_abi':
-        return TestingAppCallFactory.callAbi(args, params)
-      case 'call_abi_txn(pay,string)string':
-      case 'call_abi_txn':
-        return TestingAppCallFactory.callAbiTxn(args, params)
-      case 'set_global(uint64,uint64,string,byte[4])void':
-      case 'set_global':
-        return TestingAppCallFactory.setGlobal(args, params)
-      case 'set_local(uint64,uint64,string,byte[4])void':
-      case 'set_local':
-        return TestingAppCallFactory.setLocal(args, params)
-      case 'set_box(byte[4],string)void':
-      case 'set_box':
-        return TestingAppCallFactory.setBox(args, params)
-      case 'error()void':
-      case 'error':
-        return TestingAppCallFactory.error(args, params)
-      case 'create_abi(string)string':
-      case 'create_abi':
-        return TestingAppCallFactory.createAbi(args, params)
-      case 'update_abi(string)string':
-      case 'update_abi':
-        return TestingAppCallFactory.updateAbi(args, params)
-      case 'delete_abi(string)string':
-      case 'delete_abi':
-        return TestingAppCallFactory.deleteAbi(args, params)
-      case 'opt_in()void':
-      case 'opt_in':
-        return TestingAppCallFactory.optIn(args, params)
+}
+export type IntegerState = { asBigInt(): bigint, asNumber(): number }
+export type BinaryState = { asByteArray(): Uint8Array, asString(): string }
+export type MethodArgs<TSignature extends keyof TestingApp['methods']> = TestingApp['methods'][TSignature]['argsObj' | 'argsTuple']
+export type MethodReturn<TSignature extends keyof TestingApp['methods']> = TestingApp['methods'][TSignature]['returns']
+type MapperArgs<TSignature extends keyof TestingApp['methods']> = TSignature extends any ? [signature: TSignature, args: MethodArgs<TSignature>, params: AppClientCallCoreParams & CoreAppCallArgs ] : never
+
+export type TestingAppCreateArgs =
+  | (BareCallArgs & CoreAppCallArgs & (OnCompleteNoOp | OnCompleteOptIn))
+  | ['create_abi(string)string', MethodArgs<'create_abi(string)string'>, (CoreAppCallArgs & (OnCompleteNoOp))?]
+export type TestingAppUpdateArgs =
+  | BareCallArgs & CoreAppCallArgs
+  | ['update_abi(string)string', MethodArgs<'update_abi(string)string'>, CoreAppCallArgs]
+export type TestingAppDeleteArgs =
+  | BareCallArgs & CoreAppCallArgs
+  | ['delete_abi(string)string', MethodArgs<'delete_abi(string)string'>, CoreAppCallArgs]
+export type TestingAppDeployArgs = {
+  deployTimeParams?: TealTemplateParams
+  createArgs?: TestingAppCreateArgs
+  updateArgs?: TestingAppUpdateArgs
+  deleteArgs?: TestingAppDeleteArgs
+}
+
+export abstract class TestingAppCallFactory {
+  static callAbi(args: MethodArgs<'call_abi(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+    return {
+      method: 'call_abi(string)string' as const,
+      methodArgs: Array.isArray(args) ? args : [args.value],
+      ...params,
     }
   }
-
-  /** A client to make calls to the TestingApp smart contract */
-  export class TestingAppClient {
-    /** The underlying `ApplicationClient` for when you want to have more flexibility */
-    public readonly appClient: ApplicationClient
-
-    /**
-     * Creates a new instance of `TestingAppClient`
-     * @param appDetails The details to identify the app to deploy
-     * @param algod An algod client instance
-     */
-    constructor(appDetails: AppDetails, algod: Algodv2) {
-      this.appClient = algokit.getAppClient({
-        ...appDetails,
-        app: APP_SPEC
-      }, algod)
+  static callAbiTxn(args: MethodArgs<'call_abi_txn(pay,string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+    return {
+      method: 'call_abi_txn(pay,string)string' as const,
+      methodArgs: Array.isArray(args) ? args : [args.txn, args.value],
+      ...params,
     }
+  }
+  static setGlobal(args: MethodArgs<'set_global(uint64,uint64,string,byte[4])void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+    return {
+      method: 'set_global(uint64,uint64,string,byte[4])void' as const,
+      methodArgs: Array.isArray(args) ? args : [args.int1, args.int2, args.bytes1, args.bytes2],
+      ...params,
+    }
+  }
+  static setLocal(args: MethodArgs<'set_local(uint64,uint64,string,byte[4])void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+    return {
+      method: 'set_local(uint64,uint64,string,byte[4])void' as const,
+      methodArgs: Array.isArray(args) ? args : [args.int1, args.int2, args.bytes1, args.bytes2],
+      ...params,
+    }
+  }
+  static setBox(args: MethodArgs<'set_box(byte[4],string)void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+    return {
+      method: 'set_box(byte[4],string)void' as const,
+      methodArgs: Array.isArray(args) ? args : [args.name, args.value],
+      ...params,
+    }
+  }
+  static error(args: MethodArgs<'error()void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+    return {
+      method: 'error()void' as const,
+      methodArgs: Array.isArray(args) ? args : [],
+      ...params,
+    }
+  }
+  static createAbi(args: MethodArgs<'create_abi(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+    return {
+      method: 'create_abi(string)string' as const,
+      methodArgs: Array.isArray(args) ? args : [args.input],
+      ...params,
+    }
+  }
+  static updateAbi(args: MethodArgs<'update_abi(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+    return {
+      method: 'update_abi(string)string' as const,
+      methodArgs: Array.isArray(args) ? args : [args.input],
+      ...params,
+    }
+  }
+  static deleteAbi(args: MethodArgs<'delete_abi(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+    return {
+      method: 'delete_abi(string)string' as const,
+      methodArgs: Array.isArray(args) ? args : [args.input],
+      ...params,
+    }
+  }
+  static optIn(args: MethodArgs<'opt_in()void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+    return {
+      method: 'opt_in()void' as const,
+      methodArgs: Array.isArray(args) ? args : [],
+      ...params,
+    }
+  }
+}
+function mapBySignature(...[signature, args, params]: MapperArgs<keyof TestingApp['methods']>) {
+  switch(signature) {
+    case 'call_abi(string)string':
+    case 'call_abi':
+      return TestingAppCallFactory.callAbi(args, params)
+    case 'call_abi_txn(pay,string)string':
+    case 'call_abi_txn':
+      return TestingAppCallFactory.callAbiTxn(args, params)
+    case 'set_global(uint64,uint64,string,byte[4])void':
+    case 'set_global':
+      return TestingAppCallFactory.setGlobal(args, params)
+    case 'set_local(uint64,uint64,string,byte[4])void':
+    case 'set_local':
+      return TestingAppCallFactory.setLocal(args, params)
+    case 'set_box(byte[4],string)void':
+    case 'set_box':
+      return TestingAppCallFactory.setBox(args, params)
+    case 'error()void':
+    case 'error':
+      return TestingAppCallFactory.error(args, params)
+    case 'create_abi(string)string':
+    case 'create_abi':
+      return TestingAppCallFactory.createAbi(args, params)
+    case 'update_abi(string)string':
+    case 'update_abi':
+      return TestingAppCallFactory.updateAbi(args, params)
+    case 'delete_abi(string)string':
+    case 'delete_abi':
+      return TestingAppCallFactory.deleteAbi(args, params)
+    case 'opt_in()void':
+    case 'opt_in':
+      return TestingAppCallFactory.optIn(args, params)
+  }
+}
 
-    public async mapReturnValue<TReturn>(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult): Promise<AppCallTransactionResultOfType<TReturn>> {
-      const result = await resultPromise
-      if(result.return?.decodeError) {
-        throw result.return.decodeError
-      }
-      const returnValue = result.return?.returnValue as TReturn
+/** A client to make calls to the TestingApp smart contract */
+export class TestingAppClient {
+  /** The underlying `ApplicationClient` for when you want to have more flexibility */
+  public readonly appClient: ApplicationClient
+
+  /**
+   * Creates a new instance of `TestingAppClient`
+   * @param appDetails The details to identify the app to deploy
+   * @param algod An algod client instance
+   */
+  constructor(appDetails: AppDetails, algod: Algodv2) {
+    this.appClient = algokit.getAppClient({
+      ...appDetails,
+      app: APP_SPEC
+    }, algod)
+  }
+
+  public async mapReturnValue<TReturn>(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult, returnValueFormatter?: (value: any) => TReturn): Promise<AppCallTransactionResultOfType<TReturn>> {
+    const result = await resultPromise
+    if(result.return?.decodeError) {
+      throw result.return.decodeError
+    }
+    const returnValue = result.return?.returnValue !== undefined && returnValueFormatter !== undefined
+      ? returnValueFormatter(result.return.returnValue)
+      : result.return?.returnValue as TReturn | undefined
       return { ...result, return: returnValue }
     }
 
-    public call<TSignature extends keyof TestingApp['methods']>(params: CallRequest<TSignature, any>) {
-      return this.mapReturnValue<MethodReturn<TSignature>>(this.appClient.call(params))
+    public call<TSignature extends keyof TestingApp['methods']>(params: CallRequest<TSignature, any>, returnValueFormatter?: (value: any) => MethodReturn<TSignature>) {
+      return this.mapReturnValue<MethodReturn<TSignature>>(this.appClient.call(params), returnValueFormatter)
     }
 
     /**
@@ -724,7 +744,73 @@ export type TestingApp = {
       return this.call(TestingAppCallFactory.error(args, params))
     }
 
-    public getGlobalState(): void {
+    private static getBinaryState(state: AppState, key: string): BinaryState | undefined {
+      const value = state[key]
+      if (!value) return undefined
+      if (!('valueRaw' in value))
+        throw new Error(`Failed to parse state value for ${key}; received an int when expected a byte array`)
+      return {
+        asString(): string {
+          return value.value
+        },
+        asByteArray(): Uint8Array {
+          return value.valueRaw
+        }
+      }
+    }
+
+    private static getIntegerState(state: AppState, key: string): IntegerState | undefined {
+      const value = state[key]
+      if (!value) return undefined
+      if ('valueRaw' in value)
+        throw new Error(`Failed to parse state value for ${key}; received a byte array when expected a number`)
+      return {
+        asBigInt() {
+          return typeof value.value === 'bigint' ? value.value : BigInt(value.value)
+        },
+        asNumber(): number {
+          return typeof value.value === 'bigint' ? Number(value.value) : value.value
+        },
+      }
+    }
+
+    public async getGlobalState(): Promise<TestingApp['state']['global']> {
+      const state = await this.appClient.getGlobalState()
+      return {
+        get bytes1() {
+          return TestingAppClient.getBinaryState(state, 'bytes1')
+        },
+        get bytes2() {
+          return TestingAppClient.getBinaryState(state, 'bytes2')
+        },
+        get int1() {
+          return TestingAppClient.getIntegerState(state, 'int1')
+        },
+        get int2() {
+          return TestingAppClient.getIntegerState(state, 'int2')
+        },
+        get value() {
+          return TestingAppClient.getIntegerState(state, 'value')
+        },
+      }
+    }
+
+    public async getLocalState(account: string | SendTransactionFrom): Promise<TestingApp['state']['local']> {
+      const state = await this.appClient.getLocalState(account)
+      return {
+        get local_bytes1() {
+          return TestingAppClient.getBinaryState(state, 'local_bytes1')
+        },
+        get local_bytes2() {
+          return TestingAppClient.getBinaryState(state, 'local_bytes2')
+        },
+        get local_int1() {
+          return TestingAppClient.getIntegerState(state, 'local_int1')
+        },
+        get local_int2() {
+          return TestingAppClient.getIntegerState(state, 'local_int2')
+        },
+      }
     }
 
   }
