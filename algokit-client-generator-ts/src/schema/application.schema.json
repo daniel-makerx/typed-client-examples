@@ -150,6 +150,11 @@
         },
         "structs": {
           "type": "object",
+          "properties": {
+            "output": {
+              "$ref": "#/definitions/Struct"
+            }
+          },
           "additionalProperties": {
             "$ref": "#/definitions/Struct"
           }
@@ -192,6 +197,7 @@
     "Struct": {
       "type": "object",
       "additionalProperties": false,
+      "required": ["name", "elements"],
       "properties": {
         "name": {
           "type": "string"
@@ -212,6 +218,7 @@
     },
     "StructElement": {
       "type": "array",
+      "minItems": 2,
       "items": [
         {
           "$ref": "#/definitions/FieldName"

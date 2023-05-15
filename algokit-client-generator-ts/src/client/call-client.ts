@@ -30,7 +30,7 @@ export function* callClient(ctx: GeneratorContext): DocumentParts {
 
   yield* inline(
     `public async mapReturnValue<TReturn>`,
-    `(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult): `,
+    `(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult, returnValueFormatter?: (value: any) => TReturn): `,
     `Promise<AppCallTransactionResultOfType<TReturn>> {`,
   )
   yield IncIndent
@@ -38,14 +38,17 @@ export function* callClient(ctx: GeneratorContext): DocumentParts {
   yield `if(result.return?.decodeError) {`
   yield* indent(`throw result.return.decodeError`)
   yield `}`
-  yield `const returnValue = result.return?.returnValue as TReturn`
+  yield `const returnValue = result.return?.returnValue !== undefined && returnValueFormatter !== undefined`
+  yield IncIndent
+  yield `? returnValueFormatter(result.return.returnValue)`
+  yield `: result.return?.returnValue as TReturn | undefined`
   yield `return { ...result, return: returnValue }`
   yield DecIndentAndCloseBlock
   yield NewLine
 
-  yield `public call<TSignature extends keyof ${name}['methods']>(params: CallRequest<TSignature, any>) {`
+  yield `public call<TSignature extends keyof ${name}['methods']>(params: CallRequest<TSignature, any>, returnValueFormatter?: (value: any) => MethodReturn<TSignature>) {`
   yield IncIndent
-  yield `return this.mapReturnValue<MethodReturn<TSignature>>(this.appClient.call(params))`
+  yield `return this.mapReturnValue<MethodReturn<TSignature>>(this.appClient.call(params), returnValueFormatter)`
   yield DecIndentAndCloseBlock
   yield NewLine
 
@@ -193,7 +196,10 @@ function* clientCallMethods({ app, name, callConfig, methodSignatureToUniqueName
     yield ` */`
     yield `public ${methodName}(args: MethodArgs<'${methodSignature}'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {`
     yield IncIndent
-    yield `return this.call(${name}CallFactory.${methodName}(args, params))`
+    const outputTypeName = app.hints?.[methodSignature]?.structs?.output?.name
+    yield `return this.call(${name}CallFactory.${methodName}(args, params)${
+      outputTypeName === undefined ? '' : `, ${makeSafeTypeIdentifier(outputTypeName)}`
+    })`
     yield DecIndent
     yield '}'
     yield NewLine
