@@ -65,7 +65,7 @@ describe('voting typed client', () => {
     expectType<void>(createResult.return)
     const bootstrap = await client.bootstrap({
       fund_min_bal_req: client.appClient.fundAppAccount({
-        amount: microAlgos(200_000 + 1_000 + 2_500 + 400 * (8 * 400 * totalQuestionOptions)),
+        amount: microAlgos(200_000 + 1_000 + 2_500 + 400 * (1 + 8  * totalQuestionOptions)),
         sendParams: {skipSending: true}
       }),
 
@@ -78,8 +78,11 @@ describe('voting typed client', () => {
     const signature = await ed.sign(decoded.publicKey, privateKey)
     const preconditionsResult = await client.getPreconditions({
       signature,
+    }, {
+      sendParams: {fee: microAlgos(1_000 + 3 * 1_000)},
+      boxes: [testAccount]
     })
-
+    expect(preconditionsResult.return).toBeDefined()
 
   })
 
