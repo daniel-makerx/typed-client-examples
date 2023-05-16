@@ -27,7 +27,7 @@ class CallAbiArgs(ArgsBase[str]):
 
 
 @dataclasses.dataclass(kw_only=True)
-class CallAbiTxnArgs(ArgsBase[None]):
+class CallAbiTxnArgs(ArgsBase[string]):
     txn: TransactionWithSigner
     value: str
 
