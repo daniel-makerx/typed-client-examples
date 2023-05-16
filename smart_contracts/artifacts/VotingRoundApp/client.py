@@ -44,7 +44,41 @@ class VoteArgs(ArgsBase[None]):
         return "vote(fund_min_bal_req,signature,answer_ids)void"
 
 
+@dataclasses.dataclass(kw_only=True)
+class CreateArgs(ArgsBase[None]):
+    vote_id: str
+    snapshot_public_key: bytes
+    metadata_ipfs_cid: str
+    start_time: int
+    end_time: int
+    option_counts: list[int]
+    quorum: int
+    nft_image_url: str
+
+    @staticmethod
+    def method() -> str:
+        return "create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void"
+
+
+@dataclasses.dataclass(kw_only=True)
+class BoostrapArgs(ArgsBase[None]):
+    fund_min_bal_req: TransactionWithSigner
+
+    @staticmethod
+    def method() -> str:
+        return "bootstrap(pay)void"
+
+
 T = TypeVar("T")
+TArgs = TypeVar("TArgs", bound=ArgsBase)
+
+
+@dataclasses.dataclass(kw_only=True)
+class TypedDeployCreateArgs(algokit_utils.DeployCreateCallArgs, Generic[TArgs]):
+    args: TArgs
+
+
+DeployCallCreateAbiArgs = TypedDeployCreateArgs[CreateArgs]
 
 
 def as_dict(data: T | None) -> dict[str, Any]:
@@ -53,6 +87,21 @@ def as_dict(data: T | None) -> dict[str, Any]:
     if not dataclasses.is_dataclass(data):
         raise TypeError(f"{data} must be a dataclass")
     return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}
+
+
+def convert_deploy_create(
+    deploy_args: algokit_utils.DeployCreateCallArgs | TypedDeployCreateArgs[TArgs] | None,
+) -> algokit_utils.DeployCreateCallArgs | None:
+    if deploy_args is None:
+        return None
+
+    if isinstance(deploy_args, TypedDeployCreateArgs):
+        abi_args = deploy_args.args
+        return algokit_utils.TypedCreateABICallArgs[TArgs](
+            **as_dict(deploy_args),
+            method=abi_args.method(),
+        )
+    return deploy_args
 
 
 def convert(
@@ -208,35 +257,85 @@ class VotingRoundAppClient:
             **as_dict(args),
         )
 
-    def create(  # from $.bare_call_config.no_op == 'CREATE'
+    def create(  # from $.contract.methods[name="create"]
         self,
         *,
-        transaction_parameters: algokit_utils.CreateTransactionParameters | None = None,
-    ) -> algokit_utils.TransactionResponse:
+        args: CreateArgs,
+        # vote_id: str,
+        # snapshot_public_key: bytes,
+        # metadata_ipfs_cid: str,
+        # start_time: int,
+        # end_time: int,
+        # option_counts: int,
+        # quorum: int,
+        # nft_image_url: str,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[str]:
+        """Returns {type}
+
+        Calls the create(string,byte[],string,uint64,uint64,uint8[],uint64,string) ABI method, using OnComplete = NoOp.
+
+        :params string vote_id
+        :params byte[] snapshot_public_key
+        :params string metadata_ipfs_cid
+        :params uint64 start_time
+        :params uint64 end_time
+        :params uint8[] option_counts
+        :params uint64 quorum
+        :params string nft_image_url
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return void
+        """
+        args = CreateArgs(
+            vote_id=args.vote_id,
+            snapshot_public_key=args.snapshot_public_key,
+            metadata_ipfs_cid=args.metadata_ipfs_cid,
+            start_time=args.start_time,
+            end_time=args.end_time,
+            option_counts=args.option_counts,
+            quorum=args.quorum,
+            nft_image_url=args.nft_image_url,
+        )
+        # call is used because the ABI method call config for create is no_op
+        # from $.hints["create(string,byte[],string,uint64,uint64,uint8[],uint64,string)void""].call_config
         return self.app_client.create(
-            call_abi_method=False,  # False is used to indicate we want to call the bare_method, not an ABI method
-            transaction_parameters=convert_create(transaction_parameters),
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
         )
 
-    def delete(  # from $.bare_call_config.delete_application == 'CALL'
+    def bootstrap(  # from $.contract.methods[name="bootstrap"]
         self,
         *,
+        fund_min_bal_req: TransactionWithSigner,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
-    ) -> algokit_utils.TransactionResponse:
-        return self.app_client.delete(
-            call_abi_method=False,  # False is used to indicate we want to call the bare_method, not an ABI method
+    ) -> algokit_utils.ABITransactionResponse[str]:
+        """Returns {type}
+
+        Calls the create(string,byte[],string,uint64,uint64,uint8[],uint64,string) ABI method, using OnComplete = NoOp.
+
+        :params pay fund_min_bal_req
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return void
+        """
+        args = BoostrapArgs(fund_min_bal_req=fund_min_bal_req)
+        # call is used because the ABI method call config for bootstrap is no_op
+        # from $.hints["bootstrap(pay)void""].call_config
+        return self.app_client.call(
+            call_abi_method=args.method(),
             transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
         )
 
-    def update(  # from $.bare_call_config.update_application == 'CALL'
-        self,
-        *,
-        transaction_parameters: algokit_utils.TransactionParameters | None = None,
-    ) -> algokit_utils.TransactionResponse:
-        return self.app_client.update(
-            call_abi_method=False,  # False is used to indicate we want to call the bare_method, not an ABI method
-            transaction_parameters=convert(transaction_parameters),
-        )
+    # def delete(  # from $.bare_call_config.delete_application == 'CALL'
+    #     self,
+    #     *,
+    #     transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    # ) -> algokit_utils.TransactionResponse:
+    #     return self.app_client.delete(
+    #         call_abi_method=False,  # False is used to indicate we want to call the bare_method, not an ABI method
+    #         transaction_parameters=convert(transaction_parameters),
+    #     )
 
     def deploy(
         self,
@@ -249,7 +348,7 @@ class VotingRoundAppClient:
         on_update: algokit_utils.OnUpdate = algokit_utils.OnUpdate.Fail,
         on_schema_break: algokit_utils.OnSchemaBreak = algokit_utils.OnSchemaBreak.Fail,
         template_values: algokit_utils.TemplateValueMapping | None = None,
-        create_args: algokit_utils.DeployCallArgs | None = None,
+        create_args: DeployCallCreateAbiArgs | algokit_utils.DeployCreateCallArgs | None = None,
         update_args: algokit_utils.DeployCallArgs | None = None,
         delete_args: algokit_utils.DeployCallArgs | None = None,
     ) -> algokit_utils.DeployResponse:
@@ -262,7 +361,7 @@ class VotingRoundAppClient:
             on_update=on_update,
             on_schema_break=on_schema_break,
             template_values=template_values,
-            create_args=create_args,
+            create_args=convert_deploy_create(create_args),
             update_args=update_args,
             delete_args=delete_args,
         )
