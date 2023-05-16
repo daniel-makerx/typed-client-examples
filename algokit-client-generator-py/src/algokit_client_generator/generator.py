@@ -23,6 +23,20 @@ class GenerationSettings:
         return len(self.indent)
 
 
+def _get_unique_symbol_by_incrementing(
+    existing_symbols: set[str], base_name: str, factory: Callable[[str, str], str]
+) -> str:
+    # TODO: better strategy for ensuring unique symbols
+    suffix = 0
+    while True:
+        suffix_str = str(suffix) if suffix else ""
+        symbol = factory(base_name, suffix_str)
+        if symbol not in existing_symbols:
+            existing_symbols.add(symbol)
+            return symbol
+        suffix += 1
+
+
 class GenerateContext:
     def __init__(self, app_spec: ApplicationSpecification):
         self.app_spec = app_spec
@@ -508,19 +522,6 @@ def deploy(
         delete_args=delete_args,
     )"""
     )
-
-
-def _get_unique_symbol_by_incrementing(
-    existing_symbols: set[str], base_name: str, factory: Callable[[str, str], str]
-) -> str:
-    suffix = 0
-    while True:
-        suffix_str = str(suffix) if suffix else ""
-        symbol = factory(base_name, suffix_str)
-        if symbol not in existing_symbols:
-            existing_symbols.add(symbol)
-            return symbol
-        suffix += 1
 
 
 def generate(context: GenerateContext) -> DocumentParts:
