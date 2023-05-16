@@ -1,5 +1,5 @@
 import dataclasses
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 from typing import Literal
 
 from algokit_utils import ApplicationSpecification, OnCompleteActionName
@@ -7,6 +7,7 @@ from algokit_utils import ApplicationSpecification, OnCompleteActionName
 from algokit_client_generator import utils
 from algokit_client_generator.document import DocumentParts, Part
 from algokit_client_generator.spec import ABIContractMethod, ContractMethod, get_contract_methods
+from algokit_client_generator.utils import get_unique_symbol_by_incrementing
 
 ESCAPED_QUOTE = r"\""
 SINGLE_QUOTE = '"'
@@ -23,29 +24,22 @@ class GenerationSettings:
         return len(self.indent)
 
 
-def _get_unique_symbol_by_incrementing(
-    existing_symbols: set[str], base_name: str, factory: Callable[[str, str], str]
-) -> str:
-    # TODO: better strategy for ensuring unique symbols
-    suffix = 0
-    while True:
-        suffix_str = str(suffix) if suffix else ""
-        symbol = factory(base_name, suffix_str)
-        if symbol not in existing_symbols:
-            existing_symbols.add(symbol)
-            return symbol
-        suffix += 1
-
-
 class GenerateContext:
     def __init__(self, app_spec: ApplicationSpecification):
         self.app_spec = app_spec
+        # TODO: track these as they are emitted?
         self.used_module_symbols = {
+            "_APP_SPEC_JSON",
             "APP_SPEC",
             "_T",
+            "_TArgs",
             "_TResult",
             "_ArgsBase",
+            "_TypedDeployCreateArgs",
+            "_TypedDeployArgs",
             "_as_dict",
+            "_convert_on_complete",
+            "_convert_deploy_args",
         }
         self.used_client_symbols = {
             "__init__",
@@ -60,22 +54,10 @@ class GenerateContext:
             "clear_state",
             "deploy",
         }
-        self.client_name = _get_unique_symbol_by_incrementing(
-            self.used_module_symbols, f"{self.app_spec.contract.name}_client", utils.get_class_name
+        self.client_name = get_unique_symbol_by_incrementing(
+            self.used_module_symbols, utils.get_class_name(f"{self.app_spec.contract.name}_client")
         )
-        self.methods = get_contract_methods(app_spec)
-        # calculate unique symbol names required for ABI methods
-        for abi_method in self.methods.all_abi_methods:
-            abi = abi_method.abi
-            assert abi
-            method_name = abi.method.name
-            abi.args_class_name = _get_unique_symbol_by_incrementing(
-                self.used_module_symbols, f"{method_name}_args", utils.get_class_name
-            )
-            if abi_method.call_config == "call" and "no_op" in abi_method.on_complete:
-                abi.client_method_name = _get_unique_symbol_by_incrementing(
-                    self.used_client_symbols, method_name, utils.get_method_name
-                )
+        self.methods = get_contract_methods(app_spec, self.used_module_symbols, self.used_client_symbols)
         self.disable_linting = True
         self.settings = GenerationSettings()
 
@@ -91,6 +73,7 @@ def generated_comment(context: GenerateContext) -> DocumentParts:
 
 def disable_linting(context: GenerateContext) -> DocumentParts:
     yield "# flake8: noqa"  # this works for flake8 and ruff
+    yield "# fmt: off"  # disable formatting
 
 
 def imports(context: GenerateContext) -> DocumentParts:
@@ -126,8 +109,7 @@ def docstring(value: str) -> DocumentParts:
     yield Part.RestoreLineMode
 
 
-def typed_argument_class(contract_method: ContractMethod) -> DocumentParts:
-    abi = contract_method.abi
+def typed_argument_class(abi: ABIContractMethod) -> DocumentParts:
     assert abi
     yield "@dataclasses.dataclass(kw_only=True)"
     yield f"class {abi.args_class_name}(_ArgsBase[{abi.python_type}]):"
@@ -175,13 +157,42 @@ def indented(code_block: str) -> DocumentParts:
 
 
 def typed_arguments(context: GenerateContext) -> DocumentParts:
+    # typed args classes
+    processed_abi_signatures: set[str] = set()
     for method in context.methods.all_abi_methods:
-        yield from typed_argument_class(method)
+        abi = method.abi
+        assert abi
+        abi_signature = abi.method.get_signature()
+        if abi_signature in processed_abi_signatures:
+            continue
+        processed_abi_signatures.add(abi_signature)
+        yield from typed_argument_class(abi)
         yield Part.Gap2
+
+    # typed deploy args
+    for method in context.methods.create:
+        if not method.abi:
+            continue
+        yield f"{method.abi.deploy_create_args_class_name} = _TypedDeployCreateArgs[{method.abi.args_class_name}]"
+
+    processed_abi_signatures.clear()
+    for method in (m for m in context.methods.update_application + context.methods.delete_application if m.abi):
+        abi = method.abi
+        assert abi
+        abi_signature = abi.method.get_signature()
+        if abi_signature in processed_abi_signatures:
+            continue
+        processed_abi_signatures.add(abi_signature)
+        yield f"{abi.deploy_args_class_name} = _TypedDeployArgs[{abi.args_class_name}]"
+
+    yield Part.Gap2
 
 
 def helpers(context: GenerateContext) -> DocumentParts:
     yield '_T = typing.TypeVar("_T")'
+    has_abi_create = any(m.abi for m in context.methods.create)
+    has_abi_update = any(m.abi for m in context.methods.update_application)
+    has_abi_delete = any(m.abi for m in context.methods.delete_application)
     if context.methods.has_abi_methods:
         yield '_TReturn = typing.TypeVar("_TReturn")'
         yield Part.Gap2
@@ -194,6 +205,28 @@ class _ArgsBase(ABC, typing.Generic[_TReturn]):
         ..."""
         )
     yield Part.Gap2
+    if has_abi_create or has_abi_update or has_abi_delete:
+        yield '_TArgs = typing.TypeVar("_TArgs", bound=_ArgsBase)'
+        yield Part.Gap2
+    if has_abi_create:
+        yield from indented(
+            """
+@dataclasses.dataclass(kw_only=True)
+class _TypedDeployCreateArgs(algokit_utils.DeployCreateCallArgs, typing.Generic[_TArgs]):
+    args: _TArgs
+"""
+        )
+        yield Part.Gap2
+    if has_abi_update or has_abi_delete:
+        yield from indented(
+            """
+@dataclasses.dataclass(kw_only=True)
+class _TypedDeployArgs(algokit_utils.DeployCallArgs, typing.Generic[_TArgs]):
+    args: _TArgs"""
+        )
+        yield Part.Gap2
+
+    yield Part.Gap2
     yield from indented(
         """
 def _as_dict(data: _T | None) -> dict[str, typing.Any]:
@@ -202,12 +235,33 @@ def _as_dict(data: _T | None) -> dict[str, typing.Any]:
     if not dataclasses.is_dataclass(data):
         raise TypeError(f"{data} must be a dataclass")
     return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}
-
-
+"""
+    )
+    yield Part.Gap2
+    yield from indented(
+        """
 def _convert_on_complete(on_complete: algokit_utils.OnCompleteActionName) -> algosdk.transaction.OnComplete:
     on_complete_enum = on_complete.replace("_", " ").title().replace(" ", "") + "OC"
     return getattr(algosdk.transaction.OnComplete, on_complete_enum)"""
     )
+    yield Part.Gap2
+    yield from indented(
+        """
+def _convert_deploy_args(
+    deploy_args: algokit_utils.DeployCallArgs | None,
+) -> dict[str, typing.Any] | None:
+    if deploy_args is None:
+        return None
+
+    deploy_args_dict = _as_dict(deploy_args)
+    if hasattr(deploy_args, "args") and hasattr(deploy_args.args, "method"):
+        deploy_args_dict["args"] = _as_dict(deploy_args.args)
+        deploy_args_dict["method"] = deploy_args.args.method()
+
+    return deploy_args_dict
+        """
+    )
+    yield Part.Gap2
 
 
 def typed_client(context: GenerateContext) -> DocumentParts:
@@ -286,10 +340,11 @@ class {context.client_name}:
 
 def embed_app_spec(context: GenerateContext) -> DocumentParts:
     yield Part.InlineMode
-    yield 'APP_SPEC = """'
+    yield '_APP_SPEC_JSON = r"""'
     yield context.app_spec.to_json()
     yield '"""'
     yield Part.RestoreLineMode
+    yield "APP_SPEC = algokit_utils.ApplicationSpecification.from_json(_APP_SPEC_JSON)"
 
 
 def call_method(context: GenerateContext, contract_method: ABIContractMethod) -> DocumentParts:
@@ -383,16 +438,24 @@ def on_complete_literals(on_completes: Iterable[OnCompleteActionName]) -> Docume
         yield ' = "no_op"'
 
 
-def special_typed_args(methods: list[ContractMethod]) -> DocumentParts:
-    yield "args: "
-    for idx, method in enumerate(m for m in methods if m.abi):
-        assert method.abi
-        assert method.abi.args_class_name
+def multi_typed_arg(arg_name: str, arg_types: list[str], *, include_none_default: bool) -> DocumentParts:
+    yield Part.InlineMode
+    yield f"{arg_name}: "
+    for idx, arg in enumerate(m for m in arg_types):
         if idx:
             yield " | "
-        yield method.abi.args_class_name
-    if any(not m.abi for m in methods):
-        yield " | None = None"
+        yield arg
+    if include_none_default:
+        yield " = None"
+    yield Part.RestoreLineMode
+
+
+def special_typed_args(methods: list[ContractMethod]) -> DocumentParts:
+    has_bare = any(not m.abi for m in methods)
+    args = [m.abi.args_class_name for m in methods if m.abi]
+    if has_bare:
+        args.append("None")
+    yield from multi_typed_arg("args", args, include_none_default=has_bare)
 
 
 def special_overload(
@@ -489,8 +552,23 @@ def clear_state(
     )
 
 
+def deploy_method_args(context: GenerateContext, arg_name: str, methods: list[ContractMethod]) -> DocumentParts:
+    yield Part.InlineMode
+    has_bare = any(not m.abi for m in methods) or not methods
+    args = [
+        m.abi.deploy_create_args_class_name if m.call_config == "create" else m.abi.deploy_args_class_name
+        for m in methods
+        if m.abi
+    ]
+    if has_bare:
+        args.append("algokit_utils.DeployCallArgs")
+        args.append("None")
+    yield from multi_typed_arg(arg_name, args, include_none_default=has_bare)
+    yield ","
+    yield Part.RestoreLineMode
+
+
 def deploy_method(context: GenerateContext) -> DocumentParts:
-    # TODO: typing
     yield from indented(
         """
 def deploy(
@@ -504,9 +582,15 @@ def deploy(
     on_update: algokit_utils.OnUpdate = algokit_utils.OnUpdate.Fail,
     on_schema_break: algokit_utils.OnSchemaBreak = algokit_utils.OnSchemaBreak.Fail,
     template_values: algokit_utils.TemplateValueMapping | None = None,
-    create_args: algokit_utils.DeployCallArgs | None = None,
-    update_args: algokit_utils.DeployCallArgs | None = None,
-    delete_args: algokit_utils.DeployCallArgs | None = None,
+"""
+    )
+    yield Part.IncIndent
+    yield from deploy_method_args(context, "create_args", context.methods.create)
+    yield from deploy_method_args(context, "update_args", context.methods.update_application)
+    yield from deploy_method_args(context, "delete_args", context.methods.delete_application)
+    yield Part.DecIndent
+    yield from indented(
+        """
 ) -> algokit_utils.DeployResponse:
     return self.app_client.deploy(
         version,
@@ -517,9 +601,9 @@ def deploy(
         on_update=on_update,
         on_schema_break=on_schema_break,
         template_values=template_values,
-        create_args=create_args,
-        update_args=update_args,
-        delete_args=delete_args,
+        create_args=_convert_deploy_args(create_args),
+        update_args=_convert_deploy_args(update_args),
+        delete_args=_convert_deploy_args(delete_args),
     )"""
     )
 

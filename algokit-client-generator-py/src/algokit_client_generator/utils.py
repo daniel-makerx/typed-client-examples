@@ -52,3 +52,14 @@ def map_abi_type_to_python(abi_type: str) -> str:
     if python_type:
         return python_type
     return abi_type
+
+
+def get_unique_symbol_by_incrementing(existing_symbols: set[str], base_name: str) -> str:
+    suffix = 0
+    while True:
+        suffix_str = str(suffix) if suffix else ""
+        symbol = base_name + suffix_str
+        if symbol not in existing_symbols:
+            existing_symbols.add(symbol)
+            return symbol
+        suffix += 1
