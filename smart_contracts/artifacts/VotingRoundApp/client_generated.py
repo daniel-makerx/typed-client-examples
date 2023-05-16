@@ -355,6 +355,36 @@ class CreateArgs(_ArgsBase[None]):
 DeployCreate_CreateArgs = _TypedDeployCreateArgs[CreateArgs]
 
 
+@dataclasses.dataclass(kw_only=True)
+class GlobalState:
+    close_time: int
+    """The unix timestamp of the time the vote was closed"""
+    end_time: int
+    """The unix timestamp of the ending time of voting"""
+    is_bootstrapped: int
+    """Whether or not the contract has been bootstrapped with answers"""
+    metadata_ipfs_cid: bytes
+    """The IPFS content ID of the voting metadata file"""
+    nft_asset_id: int
+    """The asset ID of a result NFT if one has been created"""
+    nft_image_url: bytes
+    """The IPFS URL of the default image to use as the media of the result NFT"""
+    option_counts: bytes
+    """The number of options for each question"""
+    quorum: int
+    """The minimum number of voters to reach quorum"""
+    snapshot_public_key: bytes
+    """The public key of the Ed25519 compatible private key that was used to encrypt entries in the vote gating snapshot"""
+    start_time: int
+    """The unix timestamp of the starting time of voting"""
+    total_options: int
+    """The total number of options"""
+    vote_id: bytes
+    """The identifier of this voting round"""
+    voter_count: int
+    """The minimum number of voters who have voted"""
+
+
 class VotingRoundAppClient:
     @typing.overload
     def __init__(
@@ -412,6 +442,10 @@ class VotingRoundAppClient:
             suggested_params=suggested_params,
             template_values=template_values,
         )
+
+    def get_global_state(self) -> GlobalState:
+        state = {k.decode("utf8"): v for k, v in self.app_client.get_global_state(raw=True).items()}
+        return GlobalState(**state)
 
     def bootstrap(
         self,

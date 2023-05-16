@@ -443,6 +443,23 @@ Deploy_UpdateAbiArgs = _TypedDeployArgs[UpdateAbiArgs]
 Deploy_DeleteAbiArgs = _TypedDeployArgs[DeleteAbiArgs]
 
 
+@dataclasses.dataclass(kw_only=True)
+class GlobalState:
+    bytes1: bytes
+    bytes2: bytes
+    int1: int
+    int2: int
+    value: int
+
+
+@dataclasses.dataclass(kw_only=True)
+class LocalState:
+    local_bytes1: bytes
+    local_bytes2: bytes
+    local_int1: int
+    local_int2: int
+
+
 class TestingAppClient:
     @typing.overload
     def __init__(
@@ -500,6 +517,14 @@ class TestingAppClient:
             suggested_params=suggested_params,
             template_values=template_values,
         )
+
+    def get_global_state(self) -> GlobalState:
+        state = {k.decode("utf8"): v for k, v in self.app_client.get_global_state(raw=True).items()}
+        return GlobalState(**state)
+
+    def get_local_state(self, account: str | None = None) -> LocalState:
+        state = {k.decode("utf8"): v for k, v in self.app_client.get_local_state(account, raw=True).items()}
+        return LocalState(**state)
 
     def call_abi(
         self,

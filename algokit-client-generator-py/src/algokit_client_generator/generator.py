@@ -40,6 +40,8 @@ class GenerateContext:
             "_as_dict",
             "_convert_on_complete",
             "_convert_deploy_args",
+            "GlobalState",
+            "LocalState",
         }
         self.used_client_symbols = {
             "__init__",
@@ -53,6 +55,8 @@ class GenerateContext:
             "close_out",
             "clear_state",
             "deploy",
+            "get_global_state",
+            "get_local_state",
         }
         self.client_name = get_unique_symbol_by_incrementing(
             self.used_module_symbols, utils.get_class_name(f"{self.app_spec.contract.name}_client")
@@ -156,38 +160,6 @@ def indented(code_block: str) -> DocumentParts:
         current_indents -= 1
 
 
-def typed_arguments(context: GenerateContext) -> DocumentParts:
-    # typed args classes
-    processed_abi_signatures: set[str] = set()
-    for method in context.methods.all_abi_methods:
-        abi = method.abi
-        assert abi
-        abi_signature = abi.method.get_signature()
-        if abi_signature in processed_abi_signatures:
-            continue
-        processed_abi_signatures.add(abi_signature)
-        yield from typed_argument_class(abi)
-        yield Part.Gap2
-
-    # typed deploy args
-    for method in context.methods.create:
-        if not method.abi:
-            continue
-        yield f"{method.abi.deploy_create_args_class_name} = _TypedDeployCreateArgs[{method.abi.args_class_name}]"
-
-    processed_abi_signatures.clear()
-    for method in (m for m in context.methods.update_application + context.methods.delete_application if m.abi):
-        abi = method.abi
-        assert abi
-        abi_signature = abi.method.get_signature()
-        if abi_signature in processed_abi_signatures:
-            continue
-        processed_abi_signatures.add(abi_signature)
-        yield f"{abi.deploy_args_class_name} = _TypedDeployArgs[{abi.args_class_name}]"
-
-    yield Part.Gap2
-
-
 def helpers(context: GenerateContext) -> DocumentParts:
     yield '_T = typing.TypeVar("_T")'
     has_abi_create = any(m.abi for m in context.methods.create)
@@ -264,6 +236,61 @@ def _convert_deploy_args(
     yield Part.Gap2
 
 
+def typed_arguments(context: GenerateContext) -> DocumentParts:
+    # typed args classes
+    processed_abi_signatures: set[str] = set()
+    for method in context.methods.all_abi_methods:
+        abi = method.abi
+        assert abi
+        abi_signature = abi.method.get_signature()
+        if abi_signature in processed_abi_signatures:
+            continue
+        processed_abi_signatures.add(abi_signature)
+        yield from typed_argument_class(abi)
+        yield Part.Gap2
+
+    # typed deploy args
+    for method in context.methods.create:
+        if not method.abi:
+            continue
+        yield f"{method.abi.deploy_create_args_class_name} = _TypedDeployCreateArgs[{method.abi.args_class_name}]"
+
+    processed_abi_signatures.clear()
+    for method in (m for m in context.methods.update_application + context.methods.delete_application if m.abi):
+        abi = method.abi
+        assert abi
+        abi_signature = abi.method.get_signature()
+        if abi_signature in processed_abi_signatures:
+            continue
+        processed_abi_signatures.add(abi_signature)
+        yield f"{abi.deploy_args_class_name} = _TypedDeployArgs[{abi.args_class_name}]"
+
+    yield Part.Gap2
+
+
+def state_type(context: GenerateContext, class_name: str, schema: dict[str, dict]) -> DocumentParts:
+    if not schema:
+        return
+
+    yield "@dataclasses.dataclass(kw_only=True)"
+    yield f"class {class_name}:"
+    yield Part.IncIndent
+    for field, value in schema.items():
+        python_type = utils.map_abi_type_to_python(value["type"])
+        yield f"{field}: {python_type}"
+        desc = value["descr"]
+        if desc:
+            yield from docstring(desc)
+    yield Part.DecIndent
+    yield Part.Gap2
+
+
+def state_types(context: GenerateContext) -> DocumentParts:
+    app_spec = context.app_spec
+    yield from state_type(context, "GlobalState", app_spec.schema.get("global", {}).get("declared", {}))
+    yield from state_type(context, "LocalState", app_spec.schema.get("local", {}).get("declared", {}))
+
+
 def typed_client(context: GenerateContext) -> DocumentParts:
     yield from indented(
         f"""
@@ -327,6 +354,10 @@ class {context.client_name}:
     )
     yield Part.Gap1
     yield Part.IncIndent
+    yield from get_global_state_method(context)
+    yield Part.Gap1
+    yield from get_local_state_method(context)
+    yield Part.Gap1
     yield from call_methods(context)
     yield from special_method(context, "create", context.methods.create)
     yield from special_method(context, "update", context.methods.update_application)
@@ -581,8 +612,7 @@ def deploy(
     allow_delete: bool | None = None,
     on_update: algokit_utils.OnUpdate = algokit_utils.OnUpdate.Fail,
     on_schema_break: algokit_utils.OnSchemaBreak = algokit_utils.OnSchemaBreak.Fail,
-    template_values: algokit_utils.TemplateValueMapping | None = None,
-"""
+    template_values: algokit_utils.TemplateValueMapping | None = None,"""
     )
     yield Part.IncIndent
     yield from deploy_method_args(context, "create_args", context.methods.create)
@@ -608,6 +638,28 @@ def deploy(
     )
 
 
+def get_global_state_method(context: GenerateContext) -> DocumentParts:
+    if not context.app_spec.schema.get("global", {}).get("declared", {}):
+        return
+    yield "def get_global_state(self) -> GlobalState:"
+    yield Part.IncIndent
+    # TODO: what if the key can't be decoded to utf8
+    yield 'state = {k.decode("utf8"): v for k, v in self.app_client.get_global_state(raw=True).items()}'
+    yield "return GlobalState(**state)"
+    yield Part.DecIndent
+
+
+def get_local_state_method(context: GenerateContext) -> DocumentParts:
+    if not context.app_spec.schema.get("local", {}).get("declared", {}):
+        return
+    yield "def get_local_state(self, account: str | None = None) -> LocalState:"
+    yield Part.IncIndent
+    # TODO: what if the key can't be decoded to utf8
+    yield 'state = {k.decode("utf8"): v for k, v in self.app_client.get_local_state(account, raw=True).items()}'
+    yield "return LocalState(**state)"
+    yield Part.DecIndent
+
+
 def generate(context: GenerateContext) -> DocumentParts:
     if context.disable_linting:
         yield from disable_linting(context)
@@ -618,5 +670,7 @@ def generate(context: GenerateContext) -> DocumentParts:
     yield from helpers(context)
     yield Part.Gap2
     yield from typed_arguments(context)
+    yield Part.Gap2
+    yield from state_types(context)
     yield Part.Gap2
     yield from typed_client(context)

@@ -219,6 +219,12 @@ DeployCreate_CreateStringArgs = _TypedDeployCreateArgs[CreateStringArgs]
 DeployCreate_CreateVoidArgs = _TypedDeployCreateArgs[CreateVoidArgs]
 
 
+@dataclasses.dataclass(kw_only=True)
+class GlobalState:
+    greeting: bytes
+    times: int
+
+
 class LifeCycleAppClient:
     @typing.overload
     def __init__(
@@ -276,6 +282,10 @@ class LifeCycleAppClient:
             suggested_params=suggested_params,
             template_values=template_values,
         )
+
+    def get_global_state(self) -> GlobalState:
+        state = {k.decode("utf8"): v for k, v in self.app_client.get_global_state(raw=True).items()}
+        return GlobalState(**state)
 
     def hello_1_args(
         self,
