@@ -5,7 +5,7 @@ from typing import Any, Generic, TypeVar, cast, overload
 
 import algokit_utils
 import algosdk
-from algosdk.atomic_transaction_composer import TransactionSigner
+from algosdk.atomic_transaction_composer import TransactionSigner, TransactionWithSigner
 
 TReturn = TypeVar("TReturn")
 
@@ -16,11 +16,33 @@ class ArgsBase(ABC, Generic[TReturn]):
     def method() -> str:
         ...
 
+
 @dataclasses.dataclass(kw_only=True)
 class CloseArgs(ArgsBase[None]):
     @staticmethod
     def method() -> str:
-        return "close()void"
+        return "close()ßvoid"
+
+
+@dataclasses.dataclass(kw_only=True)
+class GetPreconditionsArgs(ArgsBase[None]):
+    signature: bytes
+
+    @staticmethod
+    def method() -> str:
+        return "get_preconditions(signature)Tuple(int,int,int,int)"
+
+
+@dataclasses.dataclass(kw_only=True)
+class VoteArgs(ArgsBase[None]):
+    fund_min_bal_req: TransactionWithSigner
+    signature: bytes
+    answer_ids: list[int]
+
+    @staticmethod
+    def method() -> str:
+        return "vote(fund_min_bal_req,signature,answer_ids)void"
+
 
 T = TypeVar("T")
 
@@ -112,11 +134,11 @@ class VotingRoundAppClient:
             template_values=template_values,
         )
 
-    def close(  # from $.contract.methods[name="hello"]
+    def close(
         self,
         *,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
-    ) -> algokit_utils.ABITransactionResponse[str]:
+    ) -> algokit_utils.ABITransactionResponse[None]:
         """Returns void
 
         Calls the close() ABI method, using OnComplete = NoOp.
@@ -128,6 +150,58 @@ class VotingRoundAppClient:
 
         # call is used because the ABI method call config for close is no_op
         # from $.hints["close()void""].call_config
+        return self.app_client.call(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
+        )
+
+    def get_preconditions(
+        self,
+        *,
+        signature: bytes,
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[(int, int, int, int)]:
+        """Returns (uint,uint,uint,uint)
+
+        Calls the close() ABI method, using OnComplete = NoOp.
+
+        :params bytes signature:
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return (int,int,int,int)
+        """
+        args = GetPreconditionsArgs(signature=signature)
+
+        # call is used because the ABI method call config for close is no_op
+        # from $.hints["get_preconditions(signature)Tuple(int,int,int,int)""].call_config
+        return self.app_client.call(
+            call_abi_method=args.method(),
+            transaction_parameters=convert(transaction_parameters),
+            **as_dict(args),
+        )
+
+    def vote(
+        self,
+        *,
+        fund_min_bal_req: TransactionWithSigner,
+        signature: bytes,
+        answer_ids: list[int],
+        transaction_parameters: algokit_utils.TransactionParameters | None = None,
+    ) -> algokit_utils.ABITransactionResponse[None]:
+        """Returns void
+
+        Calls the close() ABI method, using OnComplete = NoOp.
+
+        :params TransactionWithSigner fund_min_bal_req:
+        :params bytes signature:
+        :params list[int] answer_ids:
+        :params TransactionParameters transaction_parameters: Any additional parameters for the transaction
+        :return void
+        """
+        args = VoteArgs(fund_min_bal_req=fund_min_bal_req, signature=signature, answer_ids=answer_ids)
+
+        # call is used because the ABI method call config for close is no_op
+        # from $.hints["vote(fund_min_bal_req,signature,answer_ids)void"].call_config
         return self.app_client.call(
             call_abi_method=args.method(),
             transaction_parameters=convert(transaction_parameters),
