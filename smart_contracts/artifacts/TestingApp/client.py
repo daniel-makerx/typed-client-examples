@@ -27,7 +27,7 @@ class CallAbiArgs(ArgsBase[str]):
 
 
 @dataclasses.dataclass(kw_only=True)
-class CallAbiTxnArgs(ArgsBase[string]):
+class CallAbiTxnArgs(ArgsBase[str]):
     txn: TransactionWithSigner
     value: str
 
@@ -79,7 +79,7 @@ class CallErrorArgs(ArgsBase[None]):
 
 @dataclasses.dataclass(kw_only=True)
 class CallCreateAbiArgs(ArgsBase[str]):
-    input: str
+    input: str  # noqa: ignore[A003]
 
     @staticmethod
     def method() -> str:
@@ -88,7 +88,7 @@ class CallCreateAbiArgs(ArgsBase[str]):
 
 @dataclasses.dataclass(kw_only=True)
 class CallUpdateAbiArgs(ArgsBase[str]):
-    input: str
+    input: str  # noqa: ignore[A003]
 
     @staticmethod
     def method() -> str:
@@ -97,7 +97,7 @@ class CallUpdateAbiArgs(ArgsBase[str]):
 
 @dataclasses.dataclass(kw_only=True)
 class CallDeleteAbiArgs(ArgsBase[str]):
-    input: str
+    input: str  # noqa: ignore[A003]
 
     @staticmethod
     def method() -> str:
@@ -421,7 +421,7 @@ class TestingAppClient:
     def create_abi(  # from $.contract.methods[name="create_abi"]
         self,
         *,
-        input: str,
+        input: str,  # noqa: ignore[A003]
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[str]:
         """Returns {type}
@@ -443,7 +443,7 @@ class TestingAppClient:
     def update_abi(  # from $.contract.methods[name="update_abi"]
         self,
         *,
-        input: str,
+        input: str,  # noqa: ignore[A003]
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[str]:
         """Returns {type}
@@ -465,7 +465,7 @@ class TestingAppClient:
     def delete_abi(  # from $.contract.methods[name="delete_abi"]
         self,
         *,
-        input: str,
+        input: str,  # noqa: ignore[A003]
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[str]:
         """Returns {type}

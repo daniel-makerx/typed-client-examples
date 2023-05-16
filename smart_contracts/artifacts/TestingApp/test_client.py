@@ -101,7 +101,7 @@ def test_error(testingapp_client: TestingAppClient) -> None:
     testingapp_client.deploy(
         template_values={"VALUE": 1}, allow_delete=True, allow_update=True, on_update=OnUpdate.UpdateApp
     )
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: ignore[B017]
         testingapp_client.error()
 
 
