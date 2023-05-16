@@ -21,7 +21,7 @@ class ArgsBase(ABC, Generic[TReturn]):
 class CloseArgs(ArgsBase[None]):
     @staticmethod
     def method() -> str:
-        return "close()ßvoid"
+        return "close()void"
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -30,7 +30,7 @@ class GetPreconditionsArgs(ArgsBase[None]):
 
     @staticmethod
     def method() -> str:
-        return "get_preconditions(signature)Tuple(int,int,int,int)"
+        return "get_preconditions(byte[])(uint64,uint64,uint64,uint64)"
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -41,7 +41,7 @@ class VoteArgs(ArgsBase[None]):
 
     @staticmethod
     def method() -> str:
-        return "vote(fund_min_bal_req,signature,answer_ids)void"
+        return "vote(pay,byte[],uint8[])void"
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -210,7 +210,7 @@ class VotingRoundAppClient:
         *,
         signature: bytes,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
-    ) -> algokit_utils.ABITransactionResponse[(int, int, int, int)]:
+    ) -> algokit_utils.ABITransactionResponse[tuple[int, int, int, int]]:
         """Returns (uint,uint,uint,uint)
 
         Calls the close() ABI method, using OnComplete = NoOp.
