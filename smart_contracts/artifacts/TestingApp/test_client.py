@@ -72,7 +72,7 @@ def test_set_local(testingapp_client: TestingAppClient) -> None:
     testingapp_client.deploy(
         template_values={"VALUE": 1}, allow_delete=True, allow_update=True, on_update=OnUpdate.UpdateApp
     )
-    testingapp_client.opt_in()
+    testingapp_client.opt_in(args=OptInArgs())
     response = testingapp_client.set_local(int1=1, int2=2, bytes1="test", bytes2=b"test")
 
     assert response.return_value is None
@@ -152,7 +152,7 @@ def test_get_global_state(testingapp_client: TestingAppClient) -> None:
     testingapp_client.set_global(int1=1, int2=2, bytes1="test", bytes2=b"test")
     response = testingapp_client.get_global_state()
 
-    assert response.bytes1 == "test"
+    assert response.bytes1 == b"test"
     assert response.bytes2 == "test"
     assert response.int1 == 1
     assert response.int2 == 2
@@ -163,7 +163,7 @@ def test_get_local_state(testingapp_client: TestingAppClient) -> None:
     testingapp_client.deploy(
         template_values={"VALUE": 1}, allow_delete=True, allow_update=True, on_update=OnUpdate.UpdateApp
     )
-    testingapp_client.opt_in()
+    testingapp_client.opt_in(args=OptInArgs())
     testingapp_client.set_local(int1=1, int2=2, bytes1="test", bytes2=b"test")
     response = testingapp_client.get_local_state(account=None)
 

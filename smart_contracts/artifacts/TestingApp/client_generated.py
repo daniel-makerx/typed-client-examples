@@ -368,7 +368,7 @@ class SetGlobalArgs(_ArgsBase[None]):
     int1: int
     int2: int
     bytes1: str
-    bytes2: tuple[bytes, bytes, bytes, bytes]
+    bytes2: bytes | tuple[int, int, int, int]
 
     @staticmethod
     def method() -> str:
@@ -380,7 +380,7 @@ class SetLocalArgs(_ArgsBase[None]):
     int1: int
     int2: int
     bytes1: str
-    bytes2: tuple[bytes, bytes, bytes, bytes]
+    bytes2: bytes | tuple[int, int, int, int]
 
     @staticmethod
     def method() -> str:
@@ -389,7 +389,7 @@ class SetLocalArgs(_ArgsBase[None]):
 
 @dataclasses.dataclass(kw_only=True)
 class SetBoxArgs(_ArgsBase[None]):
-    name: tuple[bytes, bytes, bytes, bytes]
+    name: bytes | tuple[int, int, int, int]
     value: str
 
     @staticmethod
@@ -564,7 +564,7 @@ class TestingAppClient:
         int1: int,
         int2: int,
         bytes1: str,
-        bytes2: tuple[bytes, bytes, bytes, bytes],
+        bytes2: bytes | tuple[int, int, int, int],
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[None]:
         args = SetGlobalArgs(
@@ -585,7 +585,7 @@ class TestingAppClient:
         int1: int,
         int2: int,
         bytes1: str,
-        bytes2: tuple[bytes, bytes, bytes, bytes],
+        bytes2: bytes | tuple[int, int, int, int],
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[None]:
         args = SetLocalArgs(
@@ -603,7 +603,7 @@ class TestingAppClient:
     def set_box(
         self,
         *,
-        name: tuple[bytes, bytes, bytes, bytes],
+        name: bytes | tuple[int, int, int, int],
         value: str,
         transaction_parameters: algokit_utils.TransactionParameters | None = None,
     ) -> algokit_utils.ABITransactionResponse[None]:

@@ -28,11 +28,12 @@ def map_abi_type_to_python(abi_type: str) -> str:
             abi_type = abi_type[: -2 - len(array_size)]
             array_size = int(array_size)
             inner_type = ", ".join([map_abi_type_to_python(abi_type)] * array_size)
-            return f"tuple[{inner_type}]"
+            tuple_type = f"tuple[{inner_type}]"
+            if abi_type == "byte":
+                return f"bytes | {tuple_type}"
+            return tuple_type
         else:
             abi_type = abi_type[:-2]
-            if abi_type == "byte":
-                return "bytes"
             return f"list[{map_abi_type_to_python(abi_type)}]"
     if abi_type.startswith("(") and abi_type.endswith(")"):
         abi_type = abi_type[1:-1]
@@ -46,7 +47,7 @@ def map_abi_type_to_python(abi_type: str) -> str:
         "uint64": "int",  # < 2^64
         "void": "None",
         "byte[]": "bytes",
-        "byte": "bytes",  # length 1
+        "byte": "int",  # length 1
         "pay": "TransactionWithSigner",
     }.get(abi_type)
     if python_type:
