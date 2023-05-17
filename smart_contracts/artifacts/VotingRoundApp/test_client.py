@@ -62,7 +62,7 @@ def deploy_voting_client(
         parameters=algokit_utils.TransferParameters(
             from_account=algokit_utils.get_localnet_default_account(algod_client),
             to_address=new_account.address,
-            micro_algos=algosdk.util.algos_to_microalgos(100),
+            micro_algos=algosdk.util.algos_to_microalgos(10000),
         ),
     )
 
@@ -92,12 +92,11 @@ def voter(algod_client: AlgodClient) -> tuple[Account, bytes]:
     return voter_account, signature
 
 
-def test_close(deploy_voting_client: VotingRoundAppClient, algod_client: AlgodClient) -> None:
-    sp = algod_client.suggested_params()
-    sp.fee = algosdk.util.algos_to_microalgos(2)
+def test_close(deploy_voting_client: VotingRoundAppClient) -> None:
+    sp = deploy_voting_client.app_client.algod_client.suggested_params()
+    sp.fee = algosdk.util.algos_to_microalgos(1)
     sp.flat_fee = True
     deploy_voting_client.close(transaction_parameters=algokit_utils.TransactionParameters(suggested_params=sp))
-
     # assert response.return_value == "Hello, World"
 
 
@@ -187,8 +186,6 @@ def test_create(
 def test_boostrap(
     deploy_voting_client: VotingRoundAppClient, algod_client: AlgodClient, deploy_create_args: DeployCallCreateAbiArgs
 ) -> None:
-    deploy_voting_client.deploy(allow_delete=True, create_args=deploy_create_args)
-
     from_account = algokit_utils.get_localnet_default_account(deploy_voting_client.app_client.algod_client)
     payment = algosdk.transaction.PaymentTxn(
         sender=from_account.address,
