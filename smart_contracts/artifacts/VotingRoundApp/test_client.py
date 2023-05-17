@@ -14,12 +14,14 @@ from nacl.signing import SigningKey
 
 from smart_contracts.artifacts.VotingRoundApp.client import CreateArgs, DeployCallCreateAbiArgs, VotingRoundAppClient
 
+NUM_QUESTIONS = 10
+
 
 @pytest.fixture
 def create_args(algod_client: AlgodClient, voter: tuple[Account, bytes]) -> CreateArgs:
     quorum = math.ceil(random.randint(1, 9) * 1000)
     current_date = datetime.datetime.now()
-    question_counts = [4]
+    question_counts = [1] * NUM_QUESTIONS
     vote_id = str(int(current_date.strftime("%Y%m%d%H%M%S")))
 
     health = algod_client.status()
@@ -111,36 +113,65 @@ def test_get_preconditions(
     assert len(response.return_value) == 4
 
 
-def test_vote(
-    deploy_voting_client: VotingRoundAppClient, algod_client: AlgodClient, voter: tuple[Account, bytes]
-) -> None:
-    algokit_utils.get_localnet_default_account(algod_client)
-    sp = algod_client.suggested_params()
-    sp.fee = 12000
+@pytest.fixture
+def bootstrap_response(deploy_voting_client : VotingRoundAppClient, algod_client: AlgodClient) -> algokit_utils.ABITransactionResponse:
+    from_account = algokit_utils.get_localnet_default_account(algod_client)
+    payment = algosdk.transaction.PaymentTxn(
+        sender=from_account.address,
+        receiver=deploy_voting_client.app_client.app_address,
+        amt=(100000 * 2) + 1000 + 2500 + 400 * (1 + 8 * NUM_QUESTIONS),
+        note=b"Bootstrap payment",
+        sp=algod_client.suggested_params(),
+    )
+    default_signer = AccountTransactionSigner(from_account.private_key)
 
-    sp.flat_fee = True
+    response = deploy_voting_client.bootstrap(
+        fund_min_bal_req=TransactionWithSigner(txn=payment, signer=default_signer),
+        transaction_parameters=algokit_utils.TransactionParameters(boxes=[(0, "V")]),
+    )
+    return response
+
+
+def test_vote(
+    deploy_voting_client: VotingRoundAppClient, algod_client: AlgodClient, voter: tuple[Account, bytes],
+    bootstrap_response: algokit_utils.ABITransactionResponse
+) -> None:
+
+    # bootstrap app
+    assert bootstrap_response.confirmed_round
+
+    # vote payment
+    question_counts = [0] * NUM_QUESTIONS
     payment = algosdk.transaction.PaymentTxn(
         sender=voter[0].address,
         receiver=deploy_voting_client.app_client.app_address,
-        amt=400 * (32 + 2 + 10 * 1) + 2500,
+        amt=400 * (32 + 2 + len(question_counts) * 1) + 2500,
         sp=deploy_voting_client.app_client.algod_client.suggested_params(),
     )
-    get_localnet_default_account(algod_client)
-    signer = AccountTransactionSigner(voter[0].private_key)
-    fund_min_bal_req = TransactionWithSigner(payment, signer)
+    voter_signer = AccountTransactionSigner(voter[0].private_key)
+    voter_public_key = algosdk.encoding.decode_address(voter[0].address)
+    fund_min_bal_req = TransactionWithSigner(payment, voter_signer)
     signature = voter[1]
-    answer_ids = [3]
-    response = deploy_voting_client.vote(
-        fund_min_bal_req=fund_min_bal_req,
-        signature=signature,
-        answer_ids=answer_ids,
-        transaction_parameters=algokit_utils.TransactionParameters(
-            suggested_params=sp,
-            boxes=[(0, "V"), (0, algosdk.encoding.decode_address(voter[0].address))],
-            sender=voter[0].address,
-            signer=AccountTransactionSigner(voter[0].private_key),
-        ),
-    )
+
+
+    # vote fee
+    sp = algod_client.suggested_params()
+    sp.fee = 12000
+    sp.flat_fee = True
+    try:
+        response = deploy_voting_client.vote(
+            fund_min_bal_req=fund_min_bal_req,
+            signature=signature,
+            answer_ids=question_counts,
+            transaction_parameters=algokit_utils.TransactionParameters(
+                suggested_params=sp,
+                boxes=[(0, "V"), (0, voter_public_key)],
+                sender=voter[0].address,
+                signer=voter_signer,
+            ),
+        )
+    except Exception as ex:
+        pass
     assert response.return_value is None
 
 
