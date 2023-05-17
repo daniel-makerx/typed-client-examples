@@ -1,4 +1,7 @@
 import re
+from collections.abc import Iterable
+
+from algokit_client_generator.document import DocumentParts, Part
 
 
 def get_parts(value: str) -> list[str]:
@@ -64,3 +67,57 @@ def get_unique_symbol_by_incrementing(existing_symbols: set[str], base_name: str
             existing_symbols.add(symbol)
             return symbol
         suffix += 1
+
+
+SINGLE_QUOTE = '"'
+TRIPLE_QUOTE = '"""'
+
+
+def lines(block: str) -> DocumentParts:
+    yield from block.splitlines()
+
+
+def join(delimiter: str, items: Iterable[str]) -> DocumentParts:
+    for idx, item in enumerate(m for m in items):
+        if idx:
+            yield delimiter
+        yield item
+
+
+def string_literal(value: str) -> str:
+    return f'"{value}"'  # TODO escape quotes
+
+
+def docstring(value: str) -> DocumentParts:
+    yield Part.InlineMode
+    yield TRIPLE_QUOTE
+    value_lines = value.splitlines()
+    last_idx = len(value_lines) - 1
+    for idx, line in enumerate(value_lines):
+        if idx == 0 and line.startswith(SINGLE_QUOTE):
+            yield " "
+        yield line
+        if idx == last_idx and line.endswith(SINGLE_QUOTE):
+            yield " "
+        if idx != last_idx:
+            yield Part.NewLine
+    yield TRIPLE_QUOTE
+    yield Part.RestoreLineMode
+
+
+def indented(code_block: str) -> DocumentParts:
+    code_block = code_block.strip()
+    current_indents = 0
+    source_indent_size = 4
+    for line in code_block.splitlines():
+        indents = (len(line) - len(line.lstrip(" "))) / source_indent_size
+        while indents > current_indents:
+            yield Part.IncIndent
+            current_indents += 1
+        while indents < current_indents:
+            yield Part.DecIndent
+            current_indents -= 1
+        yield line.strip()
+    while current_indents > 0:
+        yield Part.DecIndent
+        current_indents -= 1

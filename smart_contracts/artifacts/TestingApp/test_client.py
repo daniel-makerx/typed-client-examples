@@ -92,9 +92,7 @@ def test_set_box(testingapp_client: TestingAppClient) -> None:
         ),
     )
     response = testingapp_client.set_box(
-        name=b"test",
-        value="test",
-        transaction_parameters=algokit_utils.TransactionParameters(boxes=[(0, b"test")])
+        name=b"test", value="test", transaction_parameters=algokit_utils.TransactionParameters(boxes=[(0, b"test")])
     )
 
     assert response.return_value is None
@@ -155,8 +153,8 @@ def test_get_global_state(testingapp_client: TestingAppClient) -> None:
     testingapp_client.set_global(int1=1, int2=2, bytes1="test", bytes2=b"test")
     response = testingapp_client.get_global_state()
 
-    assert response.bytes1 == b"test"
-    assert response.bytes2 == "test"
+    assert response.bytes1.as_bytes == b"test"
+    assert response.bytes2.as_str == "test"
     assert response.int1 == 1
     assert response.int2 == 2
     assert response.value == 1
@@ -170,8 +168,8 @@ def test_get_local_state(testingapp_client: TestingAppClient) -> None:
     testingapp_client.set_local(int1=1, int2=2, bytes1="test", bytes2=b"test")
     response = testingapp_client.get_local_state(account=None)
 
-    assert response.local_bytes1 == "test"
-    assert response.local_bytes2 == "test"
+    assert response.local_bytes1.as_str == "test"
+    assert response.local_bytes2.as_str == "test"
     assert response.local_int1 == 1
     assert response.local_int2 == 2
 

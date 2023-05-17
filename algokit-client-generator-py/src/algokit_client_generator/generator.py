@@ -7,11 +7,8 @@ from algokit_utils import ApplicationSpecification, OnCompleteActionName
 from algokit_client_generator import utils
 from algokit_client_generator.document import DocumentParts, Part
 from algokit_client_generator.spec import ABIContractMethod, ContractMethod, get_contract_methods
-from algokit_client_generator.utils import get_unique_symbol_by_incrementing
 
 ESCAPED_QUOTE = r"\""
-SINGLE_QUOTE = '"'
-TRIPLE_QUOTE = '"""'
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -58,16 +55,12 @@ class GenerateContext:
             "get_global_state",
             "get_local_state",
         }
-        self.client_name = get_unique_symbol_by_incrementing(
+        self.client_name = utils.get_unique_symbol_by_incrementing(
             self.used_module_symbols, utils.get_class_name(f"{self.app_spec.contract.name}_client")
         )
         self.methods = get_contract_methods(app_spec, self.used_module_symbols, self.used_client_symbols)
         self.disable_linting = True
         self.settings = GenerationSettings()
-
-
-def lines(block: str) -> DocumentParts:
-    yield from block.splitlines()
 
 
 def generated_comment(context: GenerateContext) -> DocumentParts:
@@ -81,8 +74,9 @@ def disable_linting(context: GenerateContext) -> DocumentParts:
 
 
 def imports(context: GenerateContext) -> DocumentParts:
-    yield from lines(
-        """import dataclasses
+    yield from utils.lines(
+        """import base64
+import dataclasses
 import typing
 from abc import ABC, abstractmethod
 
@@ -92,34 +86,13 @@ from algosdk.atomic_transaction_composer import TransactionSigner, TransactionWi
     )
 
 
-def string_literal(value: str) -> str:
-    return f'"{value}"'  # TODO escape quotes
-
-
-def docstring(value: str) -> DocumentParts:
-    yield Part.InlineMode
-    yield TRIPLE_QUOTE
-    value_lines = value.splitlines()
-    last_idx = len(value_lines) - 1
-    for idx, line in enumerate(value_lines):
-        if idx == 0 and line.startswith(SINGLE_QUOTE):
-            yield " "
-        yield line
-        if idx == last_idx and line.endswith(SINGLE_QUOTE):
-            yield " "
-        if idx != last_idx:
-            yield Part.NewLine
-    yield TRIPLE_QUOTE
-    yield Part.RestoreLineMode
-
-
 def typed_argument_class(abi: ABIContractMethod) -> DocumentParts:
     assert abi
     yield "@dataclasses.dataclass(kw_only=True)"
     yield f"class {abi.args_class_name}(_ArgsBase[{abi.python_type}]):"
     yield Part.IncIndent
     if abi.method.desc:
-        yield from docstring(abi.method.desc)
+        yield from utils.docstring(abi.method.desc)
         yield Part.Gap1
     if abi.args:
         for arg in abi.args:
@@ -129,35 +102,17 @@ def typed_argument_class(abi: ABIContractMethod) -> DocumentParts:
                 yield " | None = None"
             yield Part.RestoreLineMode
             if arg.desc:
-                yield from docstring(arg.desc)
+                yield from utils.docstring(arg.desc)
         yield Part.Gap1
     yield "@staticmethod"
     yield "def method() -> str:"
     yield Part.IncIndent
     yield Part.InlineMode
     yield "return "
-    yield string_literal(abi.method.get_signature())
+    yield utils.string_literal(abi.method.get_signature())
     yield Part.DecIndent
     yield Part.DecIndent
     yield Part.RestoreLineMode
-
-
-def indented(code_block: str) -> DocumentParts:
-    code_block = code_block.strip()
-    current_indents = 0
-    source_indent_size = 4
-    for line in code_block.splitlines():
-        indents = (len(line) - len(line.lstrip(" "))) / source_indent_size
-        while indents > current_indents:
-            yield Part.IncIndent
-            current_indents += 1
-        while indents < current_indents:
-            yield Part.DecIndent
-            current_indents -= 1
-        yield line.strip()
-    while current_indents > 0:
-        yield Part.DecIndent
-        current_indents -= 1
 
 
 def helpers(context: GenerateContext) -> DocumentParts:
@@ -168,7 +123,7 @@ def helpers(context: GenerateContext) -> DocumentParts:
     if context.methods.has_abi_methods:
         yield '_TReturn = typing.TypeVar("_TReturn")'
         yield Part.Gap2
-        yield from indented(
+        yield from utils.indented(
             """
 class _ArgsBase(ABC, typing.Generic[_TReturn]):
     @staticmethod
@@ -181,7 +136,7 @@ class _ArgsBase(ABC, typing.Generic[_TReturn]):
         yield '_TArgs = typing.TypeVar("_TArgs", bound=_ArgsBase)'
         yield Part.Gap2
     if has_abi_create:
-        yield from indented(
+        yield from utils.indented(
             """
 @dataclasses.dataclass(kw_only=True)
 class _TypedDeployCreateArgs(algokit_utils.DeployCreateCallArgs, typing.Generic[_TArgs]):
@@ -190,7 +145,7 @@ class _TypedDeployCreateArgs(algokit_utils.DeployCreateCallArgs, typing.Generic[
         )
         yield Part.Gap2
     if has_abi_update or has_abi_delete:
-        yield from indented(
+        yield from utils.indented(
             """
 @dataclasses.dataclass(kw_only=True)
 class _TypedDeployArgs(algokit_utils.DeployCallArgs, typing.Generic[_TArgs]):
@@ -199,7 +154,7 @@ class _TypedDeployArgs(algokit_utils.DeployCallArgs, typing.Generic[_TArgs]):
         yield Part.Gap2
 
     yield Part.Gap2
-    yield from indented(
+    yield from utils.indented(
         """
 def _as_dict(data: _T | None) -> dict[str, typing.Any]:
     if data is None:
@@ -210,14 +165,14 @@ def _as_dict(data: _T | None) -> dict[str, typing.Any]:
 """
     )
     yield Part.Gap2
-    yield from indented(
+    yield from utils.indented(
         """
 def _convert_on_complete(on_complete: algokit_utils.OnCompleteActionName) -> algosdk.transaction.OnComplete:
     on_complete_enum = on_complete.replace("_", " ").title().replace(" ", "") + "OC"
     return getattr(algosdk.transaction.OnComplete, on_complete_enum)"""
     )
     yield Part.Gap2
-    yield from indented(
+    yield from utils.indented(
         """
 def _convert_deploy_args(
     deploy_args: algokit_utils.DeployCallArgs | None,
@@ -230,8 +185,7 @@ def _convert_deploy_args(
         deploy_args_dict["args"] = _as_dict(deploy_args.args)
         deploy_args_dict["method"] = deploy_args.args.method()
 
-    return deploy_args_dict
-        """
+    return deploy_args_dict"""
     )
     yield Part.Gap2
 
@@ -272,27 +226,59 @@ def state_type(context: GenerateContext, class_name: str, schema: dict[str, dict
     if not schema:
         return
 
-    yield "@dataclasses.dataclass(kw_only=True)"
     yield f"class {class_name}:"
     yield Part.IncIndent
+    yield "def __init__(self, data: dict[bytes, bytes | int]):"
+    yield Part.IncIndent
     for field, value in schema.items():
-        python_type = utils.map_abi_type_to_python(value["type"])
-        yield f"{field}: {python_type}"
+        key = value["key"]
+        if value["type"] == "bytes":
+            yield f'self.{field} = ByteReader(typing.cast(bytes, data.get(b"{key}")))'
+        else:
+            yield f'self.{field} = typing.cast(int, data.get(b"{key}"))'
         desc = value["descr"]
         if desc:
-            yield from docstring(desc)
+            yield from utils.docstring(desc)
+    yield Part.DecIndent
     yield Part.DecIndent
     yield Part.Gap2
 
 
 def state_types(context: GenerateContext) -> DocumentParts:
     app_spec = context.app_spec
-    yield from state_type(context, "GlobalState", app_spec.schema.get("global", {}).get("declared", {}))
-    yield from state_type(context, "LocalState", app_spec.schema.get("local", {}).get("declared", {}))
+    global_schema = app_spec.schema.get("global", {}).get("declared", {})
+    local_schema = app_spec.schema.get("local", {}).get("declared", {})
+    has_bytes = any(i.get("type") == "bytes" for i in [*global_schema.values(), *local_schema.values()])
+    if has_bytes:
+        yield from utils.indented(
+            """
+class ByteReader:
+    def __init__(self, data: bytes):
+        self._data = data
+
+    @property
+    def as_bytes(self) -> bytes:
+        return self._data
+
+    @property
+    def as_str(self) -> str:
+        return self._data.decode("utf8")
+
+    @property
+    def as_base64(self) -> str:
+        return base64.b64encode(self._data).decode("utf8")
+
+    @property
+    def as_hex(self) -> str:
+        return self._data.hex()"""
+        )
+        yield Part.Gap2
+    yield from state_type(context, "GlobalState", global_schema)
+    yield from state_type(context, "LocalState", local_schema)
 
 
 def typed_client(context: GenerateContext) -> DocumentParts:
-    yield from indented(
+    yield from utils.indented(
         f"""
 class {context.client_name}:
     @typing.overload
@@ -359,11 +345,17 @@ class {context.client_name}:
     yield from get_local_state_method(context)
     yield Part.Gap1
     yield from call_methods(context)
+    yield Part.Gap1
     yield from special_method(context, "create", context.methods.create)
+    yield Part.Gap1
     yield from special_method(context, "update", context.methods.update_application)
+    yield Part.Gap1
     yield from special_method(context, "delete", context.methods.delete_application)
+    yield Part.Gap1
     yield from special_method(context, "opt_in", context.methods.opt_in)
+    yield Part.Gap1
     yield from special_method(context, "close_out", context.methods.close_out)
+    yield Part.Gap1
     yield from clear_method(context)
     yield Part.Gap1
     yield from deploy_method(context)
@@ -404,7 +396,7 @@ def call_method(context: GenerateContext, contract_method: ABIContractMethod) ->
             yield f"{arg.name}={arg.name},"
         yield Part.DecIndent, ")"
 
-    yield from indented(
+    yield from utils.indented(
         """
 return self.app_client.call(
     call_abi_method=args.method(),
@@ -420,9 +412,12 @@ def call_methods(context: GenerateContext) -> DocumentParts:
         if method.abi:
             yield from call_method(context, method.abi)
         else:
-            yield from indented(
+            yield from utils.indented(
                 """
-def no_op(self) -> algokit_utils.TransactionResponse:
+def no_op(
+    self,
+    transaction_parameters: algokit_utils.TransactionParameters | None = None
+) -> algokit_utils.TransactionResponse:
     return self.app_client.call(
         call_abi_method=False,
         transaction_parameters=_as_dict(transaction_parameters),
@@ -439,7 +434,7 @@ def signature(
     for arg in args:
         yield Part.InlineMode
         if isinstance(arg, str):
-            yield f"{arg}"
+            yield arg
         else:
             yield from arg
         yield ","
@@ -462,20 +457,19 @@ def signature(
 
 
 def on_complete_literals(on_completes: Iterable[OnCompleteActionName]) -> DocumentParts:
+    yield Part.InlineMode
     yield 'on_complete: typing.Literal["'
-    yield '", "'.join(on_completes)
+    yield from utils.join('", "', on_completes)
     yield '"]'
     if "no_op" in on_completes:
         yield ' = "no_op"'
+    yield Part.RestoreLineMode
 
 
 def multi_typed_arg(arg_name: str, arg_types: list[str], *, include_none_default: bool) -> DocumentParts:
     yield Part.InlineMode
     yield f"{arg_name}: "
-    for idx, arg in enumerate(m for m in arg_types):
-        if idx:
-            yield " | "
-        yield arg
+    yield from utils.join(" | ", arg_types)
     if include_none_default:
         yield " = None"
     yield Part.RestoreLineMode
@@ -509,9 +503,7 @@ def special_overload(
     else:
         args.append("transaction_parameters: algokit_utils.TransactionParameters | None = None")
     yield from signature(context, method_name, args, [return_type])
-    yield Part.IncIndent
-    yield "..."
-    yield Part.DecIndent
+    yield Part.IncIndent, "...", Part.DecIndent
 
 
 def special_method(
@@ -550,9 +542,6 @@ def special_method(
     # implementation
     yield Part.IncIndent
 
-    if is_create:
-        yield "transaction_parameters_dict = _as_dict(transaction_parameters)"
-        yield 'transaction_parameters_dict["on_complete"] = _convert_on_complete(on_complete)'
     yield f"return self.app_client.{method_name}("
     yield Part.IncIndent
     if bare_only:
@@ -560,7 +549,10 @@ def special_method(
     else:
         yield "call_abi_method=args.method() if args else False,"
     if is_create:
-        yield "transaction_parameters=transaction_parameters_dict,"
+        yield (
+            "transaction_parameters=_as_dict(transaction_parameters) | "
+            '{"on_complete": _convert_on_complete(on_complete)},'
+        )
     else:
         yield "transaction_parameters=_as_dict(transaction_parameters),"
     if not bare_only:
@@ -568,11 +560,10 @@ def special_method(
     yield Part.DecIndent
     yield ")"
     yield Part.DecIndent
-    yield Part.Gap1
 
 
 def clear_method(context: GenerateContext) -> DocumentParts:
-    yield from indented(
+    yield from utils.indented(
         """
 def clear_state(
     self,
@@ -600,7 +591,7 @@ def deploy_method_args(context: GenerateContext, arg_name: str, methods: list[Co
 
 
 def deploy_method(context: GenerateContext) -> DocumentParts:
-    yield from indented(
+    yield from utils.indented(
         """
 def deploy(
     self,
@@ -619,7 +610,7 @@ def deploy(
     yield from deploy_method_args(context, "update_args", context.methods.update_application)
     yield from deploy_method_args(context, "delete_args", context.methods.delete_application)
     yield Part.DecIndent
-    yield from indented(
+    yield from utils.indented(
         """
 ) -> algokit_utils.DeployResponse:
     return self.app_client.deploy(
@@ -644,8 +635,8 @@ def get_global_state_method(context: GenerateContext) -> DocumentParts:
     yield "def get_global_state(self) -> GlobalState:"
     yield Part.IncIndent
     # TODO: what if the key can't be decoded to utf8
-    yield 'state = {k.decode("utf8"): v for k, v in self.app_client.get_global_state(raw=True).items()}'
-    yield "return GlobalState(**state)"
+    yield "state = self.app_client.get_global_state(raw=True)"
+    yield "return GlobalState(state)"
     yield Part.DecIndent
 
 
@@ -655,8 +646,8 @@ def get_local_state_method(context: GenerateContext) -> DocumentParts:
     yield "def get_local_state(self, account: str | None = None) -> LocalState:"
     yield Part.IncIndent
     # TODO: what if the key can't be decoded to utf8
-    yield 'state = {k.decode("utf8"): v for k, v in self.app_client.get_local_state(account, raw=True).items()}'
-    yield "return LocalState(**state)"
+    yield "state = self.app_client.get_local_state(account, raw=True)"
+    yield "return LocalState(state)"
     yield Part.DecIndent
 
 
