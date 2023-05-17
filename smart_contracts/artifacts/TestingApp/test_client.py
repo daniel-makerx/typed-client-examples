@@ -6,14 +6,15 @@ from algosdk.atomic_transaction_composer import TransactionWithSigner
 from algosdk.v2client.algod import AlgodClient
 from algosdk.v2client.indexer import IndexerClient
 
-from smart_contracts.artifacts.TestingApp.client import (
-    CallCreateAbiArgs,
-    CallDeleteAbiArgs,
-    CallUpdateAbiArgs,
-    DeployCallCreateAbiArgs,
-    DeployCallDeleteAbiArgs,
-    DeployCallUpdateAbiArgs,
+from smart_contracts.artifacts.TestingApp.client_generated import (
+    CreateAbiArgs,
+    DeleteAbiArgs,
+    Deploy_DeleteAbiArgs,
+    Deploy_UpdateAbiArgs,
+    DeployCreate_CreateAbiArgs,
+    OptInArgs,
     TestingAppClient,
+    UpdateAbiArgs,
 )
 
 
@@ -40,7 +41,7 @@ def test_call_abi(testingapp_client: TestingAppClient) -> None:
     assert response.confirmed_round is None
 
 
-def test_call_abi_(testingapp_client: TestingAppClient, algod_client: AlgodClient) -> None:
+def test_call_abi_txn(testingapp_client: TestingAppClient, algod_client: AlgodClient) -> None:
     testingapp_client.deploy(
         template_values={"VALUE": 1}, allow_delete=True, allow_update=True, on_update=OnUpdate.UpdateApp
     )
@@ -91,7 +92,9 @@ def test_set_box(testingapp_client: TestingAppClient) -> None:
         ),
     )
     response = testingapp_client.set_box(
-        name=b"test", value="test", transaction_parameters=algokit_utils.TransactionParameters(boxes=[(0, b"test")])
+        name=b"test",
+        value="test",
+        transaction_parameters=algokit_utils.TransactionParameters(boxes=[(0, b"test")])
     )
 
     assert response.return_value is None
@@ -113,7 +116,7 @@ def test_create_abi(algod_client: AlgodClient, indexer_client: IndexerClient, ne
         template_values={"VALUE": 1, "UPDATABLE": 1, "DELETABLE": 1},
     )
 
-    response = testingapp_client.create_abi(input="test")
+    response = testingapp_client.create(args=CreateAbiArgs(input="test"))
 
     assert response.return_value == "test"
 
@@ -122,7 +125,7 @@ def test_update_abi(testingapp_client: TestingAppClient) -> None:
     testingapp_client.deploy(
         template_values={"VALUE": 1}, allow_delete=True, allow_update=True, on_update=OnUpdate.UpdateApp
     )
-    response = testingapp_client.update_abi(input="test")
+    response = testingapp_client.update(args=UpdateAbiArgs(input="test"))
 
     assert response.return_value == "test"
 
@@ -131,7 +134,7 @@ def test_delete_abi(testingapp_client: TestingAppClient) -> None:
     testingapp_client.deploy(
         template_values={"VALUE": 1}, allow_delete=True, allow_update=True, on_update=OnUpdate.UpdateApp
     )
-    response = testingapp_client.delete_abi(input="test")
+    response = testingapp_client.delete(args=DeleteAbiArgs(input="test"))
 
     assert response.return_value == "test"
 
@@ -140,7 +143,7 @@ def test_opt_in(testingapp_client: TestingAppClient) -> None:
     testingapp_client.deploy(
         template_values={"VALUE": 1}, allow_delete=True, allow_update=True, on_update=OnUpdate.UpdateApp
     )
-    response = testingapp_client.opt_in()
+    response = testingapp_client.opt_in(args=OptInArgs())
 
     assert response.confirmed_round
 
@@ -178,9 +181,9 @@ def test_deploy_create_1arg(testingapp_client: TestingAppClient) -> None:
         allow_update=True,
         allow_delete=True,
         template_values={"VALUE": 1},
-        create_args=DeployCallCreateAbiArgs(args=CallCreateAbiArgs(input="Deploy Greetings")),
-        update_args=DeployCallUpdateAbiArgs(args=CallUpdateAbiArgs(input="Deploy Update")),
-        delete_args=DeployCallDeleteAbiArgs(args=CallDeleteAbiArgs(input="Deploy Delete")),
+        create_args=DeployCreate_CreateAbiArgs(args=CreateAbiArgs(input="Deploy Greetings")),
+        update_args=Deploy_UpdateAbiArgs(args=UpdateAbiArgs(input="Deploy Update")),
+        delete_args=Deploy_DeleteAbiArgs(args=DeleteAbiArgs(input="Deploy Delete")),
     )
     assert testingapp_client.app_client.app_id
     assert isinstance(response.create_response, algokit_utils.ABITransactionResponse)
@@ -193,9 +196,9 @@ def test_deploy_create_1arg(testingapp_client: TestingAppClient) -> None:
         allow_delete=True,
         on_update=OnUpdate.UpdateApp,
         template_values={"VALUE": 2},
-        create_args=DeployCallCreateAbiArgs(args=CallCreateAbiArgs(input="Deploy Greetings")),
-        update_args=DeployCallUpdateAbiArgs(args=CallUpdateAbiArgs(input="Deploy Update")),
-        delete_args=DeployCallDeleteAbiArgs(args=CallDeleteAbiArgs(input="Deploy Delete")),
+        create_args=DeployCreate_CreateAbiArgs(args=CreateAbiArgs(input="Deploy Greetings")),
+        update_args=Deploy_UpdateAbiArgs(args=UpdateAbiArgs(input="Deploy Update")),
+        delete_args=Deploy_DeleteAbiArgs(args=DeleteAbiArgs(input="Deploy Delete")),
     )
     assert testingapp_client.app_client.app_id
     assert isinstance(response.update_response, algokit_utils.ABITransactionResponse)
@@ -208,9 +211,9 @@ def test_deploy_create_1arg(testingapp_client: TestingAppClient) -> None:
         allow_delete=True,
         on_update=OnUpdate.ReplaceApp,
         template_values={"VALUE": 3},
-        create_args=DeployCallCreateAbiArgs(args=CallCreateAbiArgs(input="Deploy Greetings")),
-        update_args=DeployCallUpdateAbiArgs(args=CallUpdateAbiArgs(input="Deploy Update")),
-        delete_args=DeployCallDeleteAbiArgs(args=CallDeleteAbiArgs(input="Deploy Delete")),
+        create_args=DeployCreate_CreateAbiArgs(args=CreateAbiArgs(input="Deploy Greetings")),
+        update_args=Deploy_UpdateAbiArgs(args=UpdateAbiArgs(input="Deploy Update")),
+        delete_args=Deploy_DeleteAbiArgs(args=DeleteAbiArgs(input="Deploy Delete")),
     )
     assert testingapp_client.app_client.app_id
     assert isinstance(response.delete_response, algokit_utils.ABITransactionResponse)
