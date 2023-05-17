@@ -92,14 +92,6 @@ def voter(algod_client: AlgodClient) -> tuple[Account, bytes]:
     return voter_account, signature
 
 
-def test_close(deploy_voting_client: VotingRoundAppClient) -> None:
-    sp = deploy_voting_client.app_client.algod_client.suggested_params()
-    sp.fee = algosdk.util.algos_to_microalgos(1)
-    sp.flat_fee = True
-    deploy_voting_client.close(transaction_parameters=algokit_utils.TransactionParameters(suggested_params=sp))
-    # assert response.return_value == "Hello, World"
-
-
 def test_get_preconditions(
     deploy_voting_client: VotingRoundAppClient, algod_client: AlgodClient, voter: tuple[Account, bytes]
 ) -> None:
@@ -203,3 +195,27 @@ def test_boostrap(
     )
 
     # assert result.confirmed_round is None
+
+
+def test_close(deploy_voting_client: VotingRoundAppClient, algod_client: AlgodClient) -> None:
+    from_account = algokit_utils.get_localnet_default_account(deploy_voting_client.app_client.algod_client)
+    payment = algosdk.transaction.PaymentTxn(
+        sender=from_account.address,
+        receiver=deploy_voting_client.app_client.app_address,
+        amt=(100000 * 2) + 1000 + 2500 + 400,
+        note=b"Bootstrap payment",
+        sp=deploy_voting_client.app_client.algod_client.suggested_params(),
+    )
+    account = get_localnet_default_account(algod_client)
+    signer = AccountTransactionSigner(account.private_key)
+
+    deploy_voting_client.bootstrap(
+        fund_min_bal_req=TransactionWithSigner(txn=payment, signer=signer),
+        transaction_parameters=algokit_utils.TransactionParameters(boxes=[(0, "V")]),
+    )
+
+    sp = deploy_voting_client.app_client.algod_client.suggested_params()
+    sp.fee = algosdk.util.algos_to_microalgos(1)
+    sp.flat_fee = True
+    deploy_voting_client.close(transaction_parameters=algokit_utils.TransactionParameters(suggested_params=sp))
+    # assert response.return_value == "Hello, World"
