@@ -80,8 +80,25 @@ def test_close(deploy_voting_client: VotingRoundAppClient) -> None:
     # assert response.return_value == "Hello, World"
 
 
-def test_get_preconditions(deploy_voting_client: VotingRoundAppClient) -> None:
-    response = deploy_voting_client.get_preconditions(signature=b"test")
+def test_get_preconditions(deploy_voting_client: VotingRoundAppClient, algod_client: AlgodClient) -> None:
+    voter = algosdk.account.generate_account()
+    sender_generate_account = algosdk.account.generate_account()
+    sp = algod_client.suggested_params()
+    sender_account = algokit_utils.models.Account(
+        private_key=sender_generate_account[0], address=sender_generate_account[1]
+    )
+    transfer = algokit_utils.transfer(
+        client=algod_client,
+        parameters=algokit_utils.TransferParameters(
+            from_account=sender_account,
+            to_address=voter[1],
+            micro_algos=algosdk.util.algos_to_microalgos(1),
+            suggested_params=sp,
+        ),
+    )
+    decoded = algosdk.encoding.decode_address(voter[1])
+    signature = algosdk.logic.teal_sign(private_key=voter[0], contract_addr=transfer, data=decoded)
+    response = deploy_voting_client.get_preconditions(signature=signature)
     assert response.return_value == (0, 0, 0, 0)
     assert response.confirmed_round is None
 
@@ -99,7 +116,23 @@ def test_vote(deploy_voting_client: VotingRoundAppClient, algod_client: AlgodCli
         sp=algod_client.suggested_params(),
     )
     fund_min_bal_req = TransactionWithSigner(payment, deploy_voting_client.app_client.signer)
-    signature = b"test"
+    voter = algosdk.account.generate_account()
+    sender_generate_account = algosdk.account.generate_account()
+    sender_account = algokit_utils.models.Account(
+        private_key=sender_generate_account[0], address=sender_generate_account[1]
+    )
+    transfer = algokit_utils.transfer(
+        client=algod_client,
+        parameters=algokit_utils.TransferParameters(
+            from_account=sender_account,
+            to_address=voter[1],
+            micro_algos=algosdk.util.algos_to_microalgos(1),
+            suggested_params=sp,
+        ),
+    )
+    decoded = algosdk.encoding.decode_address(voter[1])
+    signature = algosdk.logic.teal_sign(private_key=voter[0], contract_addr=transfer, data=decoded)
+    # signature = b"test"
     answer_ids = [1, 2, 3]
     response = deploy_voting_client.vote(
         fund_min_bal_req=fund_min_bal_req,
