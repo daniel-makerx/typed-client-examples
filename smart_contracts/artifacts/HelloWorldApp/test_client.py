@@ -4,7 +4,7 @@ from algosdk.atomic_transaction_composer import AccountTransactionSigner
 from algosdk.v2client.algod import AlgodClient
 from algosdk.v2client.indexer import IndexerClient
 
-from smart_contracts.artifacts.HelloWorldApp.client import HelloWorldAppClient
+from smart_contracts.artifacts.HelloWorldApp.client_generated import HelloWorldAppClient
 
 
 @pytest.fixture(scope="session")
@@ -25,7 +25,7 @@ def test_hello(helloworld_client: HelloWorldAppClient) -> None:
 
 
 def test_hello_check_args(helloworld_client: HelloWorldAppClient) -> None:
-    response = helloworld_client.hello_check_args(name="World")
+    response = helloworld_client.hello_world_check(name="World")
 
     assert response.return_value is None
 

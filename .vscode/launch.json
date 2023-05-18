@@ -29,6 +29,17 @@
       "module": "smart_contracts",
       "args": ["build"],
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Generate HelloWorld Client)",
+      "type": "python",
+      "request": "launch",
+      "module": "generator",
+      "args": [
+        "../../smart_contracts/artifacts/HelloWorldApp/application.json",
+        "../../smart_contracts/artifacts/HelloWorldApp/client_generated.py"
+      ],
+      "cwd": "${workspaceFolder}/algokit-client-generator-py/algokit_utils"
     }
   ]
 }

@@ -53,6 +53,11 @@ class TypedDeployCreateArgs(algokit_utils.DeployCreateCallArgs, Generic[TArgs]):
     args: TArgs
 
 
+@dataclasses.dataclass(kw_only=True)
+class TypedDeployArgs(algokit_utils.DeployCallArgs, Generic[TArgs]):
+    args: TArgs
+
+
 DeployCreate1Arg = TypedDeployCreateArgs[Create1Arg]
 DeployCreate2Arg = TypedDeployCreateArgs[Create2Arg]
 
@@ -68,19 +73,17 @@ def as_dict(data: T | None) -> dict[str, Any]:
     return {f.name: getattr(data, f.name) for f in dataclasses.fields(data)}
 
 
-def convert_deploy_create(
-    deploy_args: algokit_utils.DeployCreateCallArgs | TypedDeployCreateArgs[TArgs] | None,
-) -> algokit_utils.DeployCreateCallArgs | None:
+def _convert_deploy_args(
+    deploy_args: algokit_utils.DeployCallArgs | None,
+) -> dict[str, Any] | None:
     if deploy_args is None:
         return None
 
-    if isinstance(deploy_args, TypedDeployCreateArgs):
-        abi_args = deploy_args.args
-        return algokit_utils.TypedCreateABICallArgs[TArgs](
-            **as_dict(deploy_args),
-            method=abi_args.method(),
-        )
-    return deploy_args
+    deploy_args_dict = as_dict(deploy_args)
+    if hasattr(deploy_args, "args") and hasattr(deploy_args.args, "method"):
+        deploy_args_dict["method"] = deploy_args.args.method()
+
+    return deploy_args_dict
 
 
 def convert(
@@ -267,7 +270,7 @@ class LifeCycleAppClient:
             on_update=on_update,
             on_schema_break=on_schema_break,
             template_values=template_values,
-            create_args=convert_deploy_create(create_args),
-            update_args=update_args,
-            delete_args=delete_args,
+            create_args=_convert_deploy_args(create_args),
+            update_args=_convert_deploy_args(update_args),
+            delete_args=_convert_deploy_args(delete_args),
         )
