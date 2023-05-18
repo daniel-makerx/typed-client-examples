@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from enum import Enum
 
 
@@ -14,9 +14,8 @@ class Part(Enum):
     Gap2 = "Gap2"
 
 
-AtomicDocumentPart = str | Part
-DocumentPart = AtomicDocumentPart | Sequence[AtomicDocumentPart]
-DocumentParts = Iterable[DocumentPart]
+DocumentPart = str | Part
+DocumentParts = DocumentPart | Iterable["DocumentParts"]
 
 
 class RenderContext:
@@ -75,15 +74,18 @@ def convert_part_inner(part: DocumentPart, context: RenderContext) -> str | None
             raise Exception(f"Unexpected part: {unknown}")
 
 
-def convert_part(part: DocumentPart, context: RenderContext) -> list[str]:
-    parts: Sequence[AtomicDocumentPart]
-    match part:
+def expand_parts(parts: DocumentParts) -> Iterable[DocumentPart]:
+    match parts:
         case str() | Part():
-            parts = [part]
+            yield parts
         case _:
-            parts = part
+            for part in parts:
+                yield from expand_parts(part)
+
+
+def convert_part(parts: DocumentParts, context: RenderContext) -> list[str]:
     results = []
-    for part in parts:
+    for part in expand_parts(parts):
         result = convert_part_inner(part, context)
         context.last_part = part
         if result is not None:

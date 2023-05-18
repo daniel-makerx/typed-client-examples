@@ -74,7 +74,7 @@ def disable_linting(context: GenerateContext) -> DocumentParts:
 
 
 def imports(context: GenerateContext) -> DocumentParts:
-    yield from utils.lines(
+    yield utils.lines(
         """import base64
 import dataclasses
 import typing
@@ -92,7 +92,7 @@ def typed_argument_class(abi: ABIContractMethod) -> DocumentParts:
     yield f"class {abi.args_class_name}(_ArgsBase[{abi.python_type}]):"
     yield Part.IncIndent
     if abi.method.desc:
-        yield from utils.docstring(abi.method.desc)
+        yield utils.docstring(abi.method.desc)
         yield Part.Gap1
     if abi.args:
         for arg in abi.args:
@@ -102,7 +102,7 @@ def typed_argument_class(abi: ABIContractMethod) -> DocumentParts:
                 yield " | None = None"
             yield Part.RestoreLineMode
             if arg.desc:
-                yield from utils.docstring(arg.desc)
+                yield utils.docstring(arg.desc)
         yield Part.Gap1
     yield "@staticmethod"
     yield "def method() -> str:"
@@ -123,7 +123,7 @@ def helpers(context: GenerateContext) -> DocumentParts:
     if context.methods.has_abi_methods:
         yield '_TReturn = typing.TypeVar("_TReturn")'
         yield Part.Gap2
-        yield from utils.indented(
+        yield utils.indented(
             """
 class _ArgsBase(ABC, typing.Generic[_TReturn]):
     @staticmethod
@@ -136,7 +136,7 @@ class _ArgsBase(ABC, typing.Generic[_TReturn]):
         yield '_TArgs = typing.TypeVar("_TArgs", bound=_ArgsBase)'
         yield Part.Gap2
     if has_abi_create:
-        yield from utils.indented(
+        yield utils.indented(
             """
 @dataclasses.dataclass(kw_only=True)
 class _TypedDeployCreateArgs(algokit_utils.DeployCreateCallArgs, typing.Generic[_TArgs]):
@@ -145,7 +145,7 @@ class _TypedDeployCreateArgs(algokit_utils.DeployCreateCallArgs, typing.Generic[
         )
         yield Part.Gap2
     if has_abi_update or has_abi_delete:
-        yield from utils.indented(
+        yield utils.indented(
             """
 @dataclasses.dataclass(kw_only=True)
 class _TypedDeployArgs(algokit_utils.DeployCallArgs, typing.Generic[_TArgs]):
@@ -154,7 +154,7 @@ class _TypedDeployArgs(algokit_utils.DeployCallArgs, typing.Generic[_TArgs]):
         yield Part.Gap2
 
     yield Part.Gap2
-    yield from utils.indented(
+    yield utils.indented(
         """
 def _as_dict(data: _T | None) -> dict[str, typing.Any]:
     if data is None:
@@ -165,14 +165,14 @@ def _as_dict(data: _T | None) -> dict[str, typing.Any]:
 """
     )
     yield Part.Gap2
-    yield from utils.indented(
+    yield utils.indented(
         """
 def _convert_on_complete(on_complete: algokit_utils.OnCompleteActionName) -> algosdk.transaction.OnComplete:
     on_complete_enum = on_complete.replace("_", " ").title().replace(" ", "") + "OC"
     return getattr(algosdk.transaction.OnComplete, on_complete_enum)"""
     )
     yield Part.Gap2
-    yield from utils.indented(
+    yield utils.indented(
         """
 def _convert_deploy_args(
     deploy_args: algokit_utils.DeployCallArgs | None,
@@ -200,7 +200,7 @@ def typed_arguments(context: GenerateContext) -> DocumentParts:
         if abi_signature in processed_abi_signatures:
             continue
         processed_abi_signatures.add(abi_signature)
-        yield from typed_argument_class(abi)
+        yield typed_argument_class(abi)
         yield Part.Gap2
 
     # typed deploy args
@@ -238,7 +238,7 @@ def state_type(context: GenerateContext, class_name: str, schema: dict[str, dict
             yield f'self.{field} = typing.cast(int, data.get(b"{key}"))'
         desc = value["descr"]
         if desc:
-            yield from utils.docstring(desc)
+            yield utils.docstring(desc)
     yield Part.DecIndent
     yield Part.DecIndent
     yield Part.Gap2
@@ -250,7 +250,7 @@ def state_types(context: GenerateContext) -> DocumentParts:
     local_schema = app_spec.schema.get("local", {}).get("declared", {})
     has_bytes = any(i.get("type") == "bytes" for i in [*global_schema.values(), *local_schema.values()])
     if has_bytes:
-        yield from utils.indented(
+        yield utils.indented(
             """
 class ByteReader:
     def __init__(self, data: bytes):
@@ -273,12 +273,12 @@ class ByteReader:
         return self._data.hex()"""
         )
         yield Part.Gap2
-    yield from state_type(context, "GlobalState", global_schema)
-    yield from state_type(context, "LocalState", local_schema)
+    yield state_type(context, "GlobalState", global_schema)
+    yield state_type(context, "LocalState", local_schema)
 
 
 def typed_client(context: GenerateContext) -> DocumentParts:
-    yield from utils.indented(
+    yield utils.indented(
         f"""
 class {context.client_name}:
     @typing.overload
@@ -340,25 +340,25 @@ class {context.client_name}:
     )
     yield Part.Gap1
     yield Part.IncIndent
-    yield from get_global_state_method(context)
+    yield get_global_state_method(context)
     yield Part.Gap1
-    yield from get_local_state_method(context)
+    yield get_local_state_method(context)
     yield Part.Gap1
-    yield from call_methods(context)
+    yield call_methods(context)
     yield Part.Gap1
-    yield from special_method(context, "create", context.methods.create)
+    yield special_method(context, "create", context.methods.create)
     yield Part.Gap1
-    yield from special_method(context, "update", context.methods.update_application)
+    yield special_method(context, "update", context.methods.update_application)
     yield Part.Gap1
-    yield from special_method(context, "delete", context.methods.delete_application)
+    yield special_method(context, "delete", context.methods.delete_application)
     yield Part.Gap1
-    yield from special_method(context, "opt_in", context.methods.opt_in)
+    yield special_method(context, "opt_in", context.methods.opt_in)
     yield Part.Gap1
-    yield from special_method(context, "close_out", context.methods.close_out)
+    yield special_method(context, "close_out", context.methods.close_out)
     yield Part.Gap1
-    yield from clear_method(context)
+    yield clear_method(context)
     yield Part.Gap1
-    yield from deploy_method(context)
+    yield deploy_method(context)
 
 
 def embed_app_spec(context: GenerateContext) -> DocumentParts:
@@ -396,7 +396,7 @@ def call_method(context: GenerateContext, contract_method: ABIContractMethod) ->
             yield f"{arg.name}={arg.name},"
         yield Part.DecIndent, ")"
 
-    yield from utils.indented(
+    yield utils.indented(
         """
 return self.app_client.call(
     call_abi_method=args.method(),
@@ -410,9 +410,9 @@ return self.app_client.call(
 def call_methods(context: GenerateContext) -> DocumentParts:
     for method in context.methods.no_op:
         if method.abi:
-            yield from call_method(context, method.abi)
+            yield call_method(context, method.abi)
         else:
-            yield from utils.indented(
+            yield utils.indented(
                 """
 def no_op(
     self,
@@ -427,7 +427,7 @@ def no_op(
 
 
 def signature(
-    context: GenerateContext, name: str, args: Sequence[str | DocumentParts], return_types: list[str]
+    context: GenerateContext, name: str, args: "Sequence[str | DocumentParts]", return_types: list[str]
 ) -> DocumentParts:
     yield f"def {name}("
     yield Part.IncIndent
@@ -436,7 +436,7 @@ def signature(
         if isinstance(arg, str):
             yield arg
         else:
-            yield from arg
+            yield arg
         yield ","
         yield Part.RestoreLineMode
 
@@ -459,7 +459,7 @@ def signature(
 def on_complete_literals(on_completes: Iterable[OnCompleteActionName]) -> DocumentParts:
     yield Part.InlineMode
     yield 'on_complete: typing.Literal["'
-    yield from utils.join('", "', on_completes)
+    yield utils.join('", "', on_completes)
     yield '"]'
     if "no_op" in on_completes:
         yield ' = "no_op"'
@@ -469,7 +469,7 @@ def on_complete_literals(on_completes: Iterable[OnCompleteActionName]) -> Docume
 def multi_typed_arg(arg_name: str, arg_types: list[str], *, include_none_default: bool) -> DocumentParts:
     yield Part.InlineMode
     yield f"{arg_name}: "
-    yield from utils.join(" | ", arg_types)
+    yield utils.join(" | ", arg_types)
     if include_none_default:
         yield " = None"
     yield Part.RestoreLineMode
@@ -480,7 +480,7 @@ def special_typed_args(methods: list[ContractMethod]) -> DocumentParts:
     args = [m.abi.args_class_name for m in methods if m.abi]
     if has_bare:
         args.append("None")
-    yield from multi_typed_arg("args", args, include_none_default=has_bare)
+    yield multi_typed_arg("args", args, include_none_default=has_bare)
 
 
 def special_overload(
@@ -502,7 +502,7 @@ def special_overload(
         args.append("transaction_parameters: algokit_utils.CreateTransactionParameters | None = None")
     else:
         args.append("transaction_parameters: algokit_utils.TransactionParameters | None = None")
-    yield from signature(context, method_name, args, [return_type])
+    yield signature(context, method_name, args, [return_type])
     yield Part.IncIndent, "...", Part.DecIndent
 
 
@@ -519,7 +519,7 @@ def special_method(
     # typed overloads
     if len(methods) > 1:
         for method in methods:
-            yield from special_overload(context, method_name, method)
+            yield special_overload(context, method_name, method)
             yield Part.Gap1
 
     # signature
@@ -537,7 +537,7 @@ def special_method(
         return_types.append("algokit_utils.TransactionResponse")
 
     return_types.extend(sorted(f"algokit_utils.ABITransactionResponse[{m.abi.python_type}]" for m in methods if m.abi))
-    yield from signature(context, method_name, args, return_types)
+    yield signature(context, method_name, args, return_types)
 
     # implementation
     yield Part.IncIndent
@@ -563,7 +563,7 @@ def special_method(
 
 
 def clear_method(context: GenerateContext) -> DocumentParts:
-    yield from utils.indented(
+    yield utils.indented(
         """
 def clear_state(
     self,
@@ -585,13 +585,13 @@ def deploy_method_args(context: GenerateContext, arg_name: str, methods: list[Co
     if has_bare:
         args.append("algokit_utils.DeployCallArgs")
         args.append("None")
-    yield from multi_typed_arg(arg_name, args, include_none_default=has_bare)
+    yield multi_typed_arg(arg_name, args, include_none_default=has_bare)
     yield ","
     yield Part.RestoreLineMode
 
 
 def deploy_method(context: GenerateContext) -> DocumentParts:
-    yield from utils.indented(
+    yield utils.indented(
         """
 def deploy(
     self,
@@ -606,11 +606,11 @@ def deploy(
     template_values: algokit_utils.TemplateValueMapping | None = None,"""
     )
     yield Part.IncIndent
-    yield from deploy_method_args(context, "create_args", context.methods.create)
-    yield from deploy_method_args(context, "update_args", context.methods.update_application)
-    yield from deploy_method_args(context, "delete_args", context.methods.delete_application)
+    yield deploy_method_args(context, "create_args", context.methods.create)
+    yield deploy_method_args(context, "update_args", context.methods.update_application)
+    yield deploy_method_args(context, "delete_args", context.methods.delete_application)
     yield Part.DecIndent
-    yield from utils.indented(
+    yield utils.indented(
         """
 ) -> algokit_utils.DeployResponse:
     return self.app_client.deploy(
@@ -653,15 +653,15 @@ def get_local_state_method(context: GenerateContext) -> DocumentParts:
 
 def generate(context: GenerateContext) -> DocumentParts:
     if context.disable_linting:
-        yield from disable_linting(context)
-    yield from generated_comment(context)
-    yield from imports(context)
+        yield disable_linting(context)
+    yield generated_comment(context)
+    yield imports(context)
     yield Part.Gap1
-    yield from embed_app_spec(context)
-    yield from helpers(context)
+    yield embed_app_spec(context)
+    yield helpers(context)
     yield Part.Gap2
-    yield from typed_arguments(context)
+    yield typed_arguments(context)
     yield Part.Gap2
-    yield from state_types(context)
+    yield state_types(context)
     yield Part.Gap2
-    yield from typed_client(context)
+    yield typed_client(context)

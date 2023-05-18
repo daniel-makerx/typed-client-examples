@@ -18,5 +18,4 @@ def generate_client(input_path: Path, output_path: Path, settings: GenerationSet
 
 def render(parts: DocumentParts, settings: GenerationSettings) -> str:
     context = RenderContext(indent_inc=settings.indent)
-
-    return "".join(pp for p in parts for pp in convert_part(p, context))
+    return "".join(convert_part(parts, context))
