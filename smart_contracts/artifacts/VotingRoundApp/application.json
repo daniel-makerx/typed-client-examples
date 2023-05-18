@@ -16,7 +16,7 @@
       }
     },
     "get_preconditions(byte[])(uint64,uint64,uint64,uint64)": {
-      "read_only": false,
+      "read_only": true,
       "structs": {
         "output": {
           "name": "VotingPreconditions",
