@@ -22,6 +22,7 @@ export function getEquivalentType(abiTypeStr: string, ioType: 'input' | 'output'
     case 'axfer':
     case 'afrz':
     case 'appl':
+    case 'application':
       return 'TransactionToSign | Transaction | Promise<SendTransactionResult>'
   }
 

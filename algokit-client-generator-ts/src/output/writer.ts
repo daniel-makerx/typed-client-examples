@@ -19,7 +19,7 @@ export type Part =
   | typeof NewLine
   | typeof RestoreLineMode
   | typeof PropertyDelimiter
-export type DocumentParts = Generator<Part>
+export type DocumentParts = Generator<Part, void>
 
 export type WriteOptions = {
   indent?: string

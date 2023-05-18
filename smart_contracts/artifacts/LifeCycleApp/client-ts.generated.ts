@@ -9,6 +9,7 @@ import {
   AppCallTransactionResultOfType,
   CoreAppCallArgs,
   RawAppCallArgs,
+  AppState,
   TealTemplateParams,
 } from '@algorandfoundation/algokit-utils/types/app'
 import {
@@ -20,7 +21,7 @@ import {
   ApplicationClient,
 } from '@algorandfoundation/algokit-utils/types/app-client'
 import { AppSpec } from '@algorandfoundation/algokit-utils/types/app-spec'
-import { SendTransactionResult, TransactionToSign } from '@algorandfoundation/algokit-utils/types/transaction'
+import { SendTransactionResult, TransactionToSign, SendTransactionFrom } from '@algorandfoundation/algokit-utils/types/transaction'
 import { Algodv2, OnApplicationComplete, Transaction } from 'algosdk'
 export const APP_SPEC: AppSpec = {
   "hints": {
@@ -183,186 +184,243 @@ export type LifeCycleApp = {
       argsTuple: [greeting: string, times: number]
       returns: void
     }>
-  }
-  export type MethodArgs<TSignature extends keyof LifeCycleApp['methods']> = LifeCycleApp['methods'][TSignature]['argsObj' | 'argsTuple']
-  export type MethodReturn<TSignature extends keyof LifeCycleApp['methods']> = LifeCycleApp['methods'][TSignature]['returns']
-  type MapperArgs<TSignature extends keyof LifeCycleApp['methods']> = TSignature extends any ? [signature: TSignature, args: MethodArgs<TSignature>, params: AppClientCallCoreParams & CoreAppCallArgs ] : never
-
-  export type LifeCycleAppCreateArgs =
-    | (BareCallArgs & CoreAppCallArgs & (OnCompleteNoOp | OnCompleteOptIn))
-    | ['create(string)string', MethodArgs<'create(string)string'>, (CoreAppCallArgs & (OnCompleteNoOp))?]
-    | ['create(string,uint32)void', MethodArgs<'create(string,uint32)void'>, (CoreAppCallArgs & (OnCompleteNoOp))?]
-  export type LifeCycleAppUpdateArgs =
-    | BareCallArgs & CoreAppCallArgs
-  export type LifeCycleAppDeployArgs = {
-    deployTimeParams?: TealTemplateParams
-    createArgs?: LifeCycleAppCreateArgs
-    updateArgs?: LifeCycleAppUpdateArgs
-  }
-
-  export abstract class LifeCycleAppCallFactory {
-    static helloStringString(args: MethodArgs<'hello(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-      return {
-        method: 'hello(string)string' as const,
-        methodArgs: Array.isArray(args) ? args : [args.name],
-        ...params,
-      }
-    }
-    static helloString(args: MethodArgs<'hello()string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-      return {
-        method: 'hello()string' as const,
-        methodArgs: Array.isArray(args) ? args : [],
-        ...params,
-      }
-    }
-    static createStringString(args: MethodArgs<'create(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-      return {
-        method: 'create(string)string' as const,
-        methodArgs: Array.isArray(args) ? args : [args.greeting],
-        ...params,
-      }
-    }
-    static createStringUint32Void(args: MethodArgs<'create(string,uint32)void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
-      return {
-        method: 'create(string,uint32)void' as const,
-        methodArgs: Array.isArray(args) ? args : [args.greeting, args.times],
-        ...params,
-      }
+  state: {
+    global: {
+      'greeting'?: BinaryState
+      'times'?: IntegerState
     }
   }
-  function mapBySignature(...[signature, args, params]: MapperArgs<keyof LifeCycleApp['methods']>) {
-    switch(signature) {
-      case 'hello(string)string':
-        return LifeCycleAppCallFactory.helloStringString(args, params)
-      case 'hello()string':
-        return LifeCycleAppCallFactory.helloString(args, params)
-      case 'create(string)string':
-        return LifeCycleAppCallFactory.createStringString(args, params)
-      case 'create(string,uint32)void':
-        return LifeCycleAppCallFactory.createStringUint32Void(args, params)
+}
+export type IntegerState = { asBigInt(): bigint, asNumber(): number }
+export type BinaryState = { asByteArray(): Uint8Array, asString(): string }
+export type MethodArgs<TSignature extends keyof LifeCycleApp['methods']> = LifeCycleApp['methods'][TSignature]['argsObj' | 'argsTuple']
+export type MethodReturn<TSignature extends keyof LifeCycleApp['methods']> = LifeCycleApp['methods'][TSignature]['returns']
+type MapperArgs<TSignature extends keyof LifeCycleApp['methods']> = TSignature extends any ? [signature: TSignature, args: MethodArgs<TSignature>, params: AppClientCallCoreParams & CoreAppCallArgs ] : never
+
+export type LifeCycleAppCreateArgs =
+  | (BareCallArgs & CoreAppCallArgs & (OnCompleteNoOp | OnCompleteOptIn))
+  | ['create(string)string', MethodArgs<'create(string)string'>, (CoreAppCallArgs & (OnCompleteNoOp))?]
+  | ['create(string,uint32)void', MethodArgs<'create(string,uint32)void'>, (CoreAppCallArgs & (OnCompleteNoOp))?]
+export type LifeCycleAppUpdateArgs =
+  | BareCallArgs & CoreAppCallArgs
+export type LifeCycleAppDeployArgs = {
+  deployTimeParams?: TealTemplateParams
+  createArgs?: LifeCycleAppCreateArgs
+  updateArgs?: LifeCycleAppUpdateArgs
+}
+
+export abstract class LifeCycleAppCallFactory {
+  static helloStringString(args: MethodArgs<'hello(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+    return {
+      method: 'hello(string)string' as const,
+      methodArgs: Array.isArray(args) ? args : [args.name],
+      ...params,
     }
   }
-
-  /** A client to make calls to the LifeCycleApp smart contract */
-  export class LifeCycleAppClient {
-    /** The underlying `ApplicationClient` for when you want to have more flexibility */
-    public readonly appClient: ApplicationClient
-
-    /**
-     * Creates a new instance of `LifeCycleAppClient`
-     * @param appDetails The details to identify the app to deploy
-     * @param algod An algod client instance
-     */
-    constructor(appDetails: AppDetails, algod: Algodv2) {
-      this.appClient = algokit.getAppClient({
-        ...appDetails,
-        app: APP_SPEC
-      }, algod)
+  static helloString(args: MethodArgs<'hello()string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+    return {
+      method: 'hello()string' as const,
+      methodArgs: Array.isArray(args) ? args : [],
+      ...params,
     }
+  }
+  static createStringString(args: MethodArgs<'create(string)string'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+    return {
+      method: 'create(string)string' as const,
+      methodArgs: Array.isArray(args) ? args : [args.greeting],
+      ...params,
+    }
+  }
+  static createStringUint32Void(args: MethodArgs<'create(string,uint32)void'>, params: AppClientCallCoreParams & CoreAppCallArgs = {}) {
+    return {
+      method: 'create(string,uint32)void' as const,
+      methodArgs: Array.isArray(args) ? args : [args.greeting, args.times],
+      ...params,
+    }
+  }
+}
+function mapBySignature(...[signature, args, params]: MapperArgs<keyof LifeCycleApp['methods']>) {
+  switch(signature) {
+    case 'hello(string)string':
+      return LifeCycleAppCallFactory.helloStringString(args, params)
+    case 'hello()string':
+      return LifeCycleAppCallFactory.helloString(args, params)
+    case 'create(string)string':
+      return LifeCycleAppCallFactory.createStringString(args, params)
+    case 'create(string,uint32)void':
+      return LifeCycleAppCallFactory.createStringUint32Void(args, params)
+  }
+}
 
-    public async mapReturnValue<TReturn>(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult): Promise<AppCallTransactionResultOfType<TReturn>> {
-      const result = await resultPromise
-      if(result.return?.decodeError) {
-        throw result.return.decodeError
-      }
-      const returnValue = result.return?.returnValue as TReturn
+/** A client to make calls to the LifeCycleApp smart contract */
+export class LifeCycleAppClient {
+  /** The underlying `ApplicationClient` for when you want to have more flexibility */
+  public readonly appClient: ApplicationClient
+
+  /**
+   * Creates a new instance of `LifeCycleAppClient`
+   * @param appDetails The details to identify the app to deploy
+   * @param algod An algod client instance
+   */
+  constructor(appDetails: AppDetails, algod: Algodv2) {
+    this.appClient = algokit.getAppClient({
+      ...appDetails,
+      app: APP_SPEC
+    }, algod)
+  }
+
+  protected async mapReturnValue<TReturn>(resultPromise: Promise<AppCallTransactionResult> | AppCallTransactionResult, returnValueFormatter?: (value: any) => TReturn): Promise<AppCallTransactionResultOfType<TReturn>> {
+    const result = await resultPromise
+    if(result.return?.decodeError) {
+      throw result.return.decodeError
+    }
+    const returnValue = result.return?.returnValue !== undefined && returnValueFormatter !== undefined
+      ? returnValueFormatter(result.return.returnValue)
+      : result.return?.returnValue as TReturn | undefined
       return { ...result, return: returnValue }
-    }
-
-    public call<TSignature extends keyof LifeCycleApp['methods']>(params: CallRequest<TSignature, any>) {
-      return this.mapReturnValue<MethodReturn<TSignature>>(this.appClient.call(params))
-    }
-
-    /**
-     * Idempotently deploys the LifeCycleApp smart contract.
-     * @param params The arguments for the contract calls and any additional parameters for the call
-     * @returns The deployment result
-     */
-    public deploy(params: LifeCycleAppDeployArgs & AppClientDeployCoreParams = {}) {
-      return this.appClient.deploy({ 
-        ...params,
-        createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
-        updateArgs: Array.isArray(params.updateArgs) ? mapBySignature(...params.updateArgs as [any, any, any]): params.updateArgs,
-      })
-    }
-
-    /**
-     * Creates a new instance of the LifeCycleApp smart contract using a bare call.
-     * @param args The arguments for the bare call
-     * @returns The create result
-     */
-    public create(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs & (OnCompleteNoOp | OnCompleteOptIn)): Promise<AppCallTransactionResultOfType<undefined>>;
-    /**
-     * Creates a new instance of the LifeCycleApp smart contract using the create(string)string ABI method.
-     * @param method The ABI method to use
-     * @param args The arguments for the contract call
-     * @param params Any additional parameters for the call
-     * @returns The create result
-     */
-    public create(method: 'create(string)string', args: MethodArgs<'create(string)string'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create(string)string'>>>;
-    /**
-     * Creates a new instance of the LifeCycleApp smart contract using the create(string,uint32)void ABI method.
-     * @param method The ABI method to use
-     * @param args The arguments for the contract call
-     * @param params Any additional parameters for the call
-     * @returns The create result
-     */
-    public create(method: 'create(string,uint32)void', args: MethodArgs<'create(string,uint32)void'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create(string,uint32)void'>>>;
-    public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-      if(typeof args[0] !== 'string') {
-        return this.appClient.create({...args[0], })
-      } else {
-        return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
-      }
-    }
-
-    /**
-     * Updates an existing instance of the LifeCycleApp smart contract using a bare call.
-     * @param args The arguments for the bare call
-     * @returns The update result
-     */
-    public update(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
-    public update(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
-      if(typeof args[0] !== 'string') {
-        return this.appClient.update({...args[0], })
-      } else {
-        return this.appClient.update({ ...mapBySignature(args[0] as any, args[1], args[2]), })
-      }
-    }
-
-    /**
-     * Makes a clear_state call to an existing instance of the LifeCycleApp smart contract.
-     * @param args The arguments for the contract call
-     * @param params Any additional parameters for the call
-     * @returns The clear_state result
-     */
-    public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.appClient.clearState({ ...args, ...params, })
-    }
-
-    /**
-     * Calls the hello(string)string ABI method.
-     *
-     * @param args The arguments for the ABI method
-     * @param params Any additional parameters for the call
-     * @returns The result of the call
-     */
-    public helloStringString(args: MethodArgs<'hello(string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.call(LifeCycleAppCallFactory.helloStringString(args, params))
-    }
-
-    /**
-     * Calls the hello()string ABI method.
-     *
-     * @param args The arguments for the ABI method
-     * @param params Any additional parameters for the call
-     * @returns The result of the call
-     */
-    public helloString(args: MethodArgs<'hello()string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
-      return this.call(LifeCycleAppCallFactory.helloString(args, params))
-    }
-
-    public getGlobalState(): void {
-    }
-
   }
+
+  /**
+   * Calls the ABI method with the matching signature using an onCompletion code of NO_OP
+   * @param request A request object containing the method signature, args, and any other relevant properties
+   * @param returnValueFormatter An optional delegate which when provided will be used to map non-undefined return values to the target type
+   */
+  public call<TSignature extends keyof LifeCycleApp['methods']>(request: CallRequest<TSignature, any>, returnValueFormatter?: (value: any) => MethodReturn<TSignature>) {
+    return this.mapReturnValue<MethodReturn<TSignature>>(this.appClient.call(request), returnValueFormatter)
+  }
+
+  /**
+   * Idempotently deploys the LifeCycleApp smart contract.
+   * @param params The arguments for the contract calls and any additional parameters for the call
+   * @returns The deployment result
+   */
+  public deploy(params: LifeCycleAppDeployArgs & AppClientDeployCoreParams = {}) {
+    return this.appClient.deploy({ 
+      ...params,
+      createArgs: Array.isArray(params.createArgs) ? mapBySignature(...params.createArgs as [any, any, any]): params.createArgs,
+      updateArgs: Array.isArray(params.updateArgs) ? mapBySignature(...params.updateArgs as [any, any, any]): params.updateArgs,
+    })
+  }
+
+  /**
+   * Creates a new instance of the LifeCycleApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The create result
+   */
+  public create(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs & (OnCompleteNoOp | OnCompleteOptIn)): Promise<AppCallTransactionResultOfType<undefined>>;
+  /**
+   * Creates a new instance of the LifeCycleApp smart contract using the create(string)string ABI method.
+   * @param method The ABI method to use
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The create result
+   */
+  public create(method: 'create(string)string', args: MethodArgs<'create(string)string'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create(string)string'>>>;
+  /**
+   * Creates a new instance of the LifeCycleApp smart contract using the create(string,uint32)void ABI method.
+   * @param method The ABI method to use
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The create result
+   */
+  public create(method: 'create(string,uint32)void', args: MethodArgs<'create(string,uint32)void'>, params?: AppClientCallCoreParams & AppClientCompilationParams  & (OnCompleteNoOp)): Promise<AppCallTransactionResultOfType<MethodReturn<'create(string,uint32)void'>>>;
+  public create(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.create({...args[0], })
+    } else {
+      return this.appClient.create({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
+  }
+
+  /**
+   * Updates an existing instance of the LifeCycleApp smart contract using a bare call.
+   * @param args The arguments for the bare call
+   * @returns The update result
+   */
+  public update(args: BareCallArgs & AppClientCallCoreParams & AppClientCompilationParams & CoreAppCallArgs): Promise<AppCallTransactionResultOfType<undefined>>;
+  public update(...args: any[]): Promise<AppCallTransactionResultOfType<unknown>> {
+    if(typeof args[0] !== 'string') {
+      return this.appClient.update({...args[0], })
+    } else {
+      return this.appClient.update({ ...mapBySignature(args[0] as any, args[1], args[2]), })
+    }
+  }
+
+  /**
+   * Makes a clear_state call to an existing instance of the LifeCycleApp smart contract.
+   * @param args The arguments for the contract call
+   * @param params Any additional parameters for the call
+   * @returns The clear_state result
+   */
+  public clearState(args: BareCallArgs, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.appClient.clearState({ ...args, ...params, })
+  }
+
+  /**
+   * Calls the hello(string)string ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public helloStringString(args: MethodArgs<'hello(string)string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(LifeCycleAppCallFactory.helloStringString(args, params))
+  }
+
+  /**
+   * Calls the hello()string ABI method.
+   *
+   * @param args The arguments for the ABI method
+   * @param params Any additional parameters for the call
+   * @returns The result of the call
+   */
+  public helloString(args: MethodArgs<'hello()string'>, params?: AppClientCallCoreParams & CoreAppCallArgs) {
+    return this.call(LifeCycleAppCallFactory.helloString(args, params))
+  }
+
+  private static getBinaryState(state: AppState, key: string): BinaryState | undefined {
+    const value = state[key]
+    if (!value) return undefined
+    if (!('valueRaw' in value))
+      throw new Error(`Failed to parse state value for ${key}; received an int when expected a byte array`)
+    return {
+      asString(): string {
+        return value.value
+      },
+      asByteArray(): Uint8Array {
+        return value.valueRaw
+      }
+    }
+  }
+
+  private static getIntegerState(state: AppState, key: string): IntegerState | undefined {
+    const value = state[key]
+    if (!value) return undefined
+    if ('valueRaw' in value)
+      throw new Error(`Failed to parse state value for ${key}; received a byte array when expected a number`)
+    return {
+      asBigInt() {
+        return typeof value.value === 'bigint' ? value.value : BigInt(value.value)
+      },
+      asNumber(): number {
+        return typeof value.value === 'bigint' ? Number(value.value) : value.value
+      },
+    }
+  }
+
+  /**
+   * Returns the application's global state wrapped in a strongly typed accessor with options to format the stored value
+   */
+  public async getGlobalState(): Promise<LifeCycleApp['state']['global']> {
+    const state = await this.appClient.getGlobalState()
+    return {
+      get greeting() {
+        return LifeCycleAppClient.getBinaryState(state, 'greeting')
+      },
+      get times() {
+        return LifeCycleAppClient.getIntegerState(state, 'times')
+      },
+    }
+  }
+
+}

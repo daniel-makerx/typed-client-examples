@@ -10,7 +10,7 @@ export function getCreateOnCompleteOptions(method: MethodIdentifier, app: AlgoAp
   const hasNoOp = callConfig?.no_op === 'ALL' || callConfig?.no_op === 'CREATE'
   const onCompleteType = callConfig
     ? `(${Object.entries(callConfig)
-        .filter(([oc, value]) => value === 'ALL' || value === 'CREATE')
+        .filter(([_, value]) => value === 'ALL' || value === 'CREATE')
         .map(([oc]) => OnCompleteCodeMap[oc as keyof CallConfig])
         .join(' | ')})`
     : {}

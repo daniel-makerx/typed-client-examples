@@ -5,7 +5,10 @@
  * and run json-schema-to-typescript to regenerate this file.
  */
 
-export type StructElement = [] | [FieldName] | [FieldName, ABIType];
+/**
+ * @minItems 2
+ */
+export type StructElement = [FieldName, ABIType];
 export type FieldName = string;
 export type ABIType = string;
 export type ArgumentSource = "global-state" | "local-state" | "abi-method" | "constant";
@@ -24,6 +27,7 @@ export interface AlgoAppSpec {
 export interface Hint {
   read_only?: boolean;
   structs?: {
+    output?: Struct;
     [k: string]: Struct;
   };
   default_arguments?: {
@@ -32,8 +36,8 @@ export interface Hint {
   call_config?: CallConfig;
 }
 export interface Struct {
-  name?: string;
-  elements?: StructElement[];
+  name: string;
+  elements: StructElement[];
 }
 export interface DefaultArgument {
   source?: ArgumentSource;
@@ -112,7 +116,6 @@ export interface DeclaredSchemaValueSpec {
    * Whether the value is set statically (at create time only) or dynamically
    */
   static?: boolean;
-  [k: string]: unknown;
 }
 export interface ReservedSchemaValueSpec {
   /**
@@ -122,7 +125,7 @@ export interface ReservedSchemaValueSpec {
   /**
    * A description of the variable
    */
-  desc?: string;
+  descr?: string;
   /**
    * The maximum number of slots to reserve
    */
